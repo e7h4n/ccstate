@@ -210,3 +210,11 @@ export function createStore(): Store {
 
   return new StoreImpl(atomManager, listenerManager);
 }
+
+let defaultStore: Store | undefined = undefined;
+export function getDefaultStore(): Store {
+  if (!defaultStore) {
+    defaultStore = createStore();
+  }
+  return defaultStore;
+}

@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import { getDefaultStore } from 'ccstate';
 import type { Store } from 'ccstate';
 
 const StoreContext = createContext<Store | null>(null);
@@ -9,7 +10,7 @@ export function useStore(): Store {
   const store = useContext(StoreContext);
 
   if (!store) {
-    throw new Error('Store context not found - did you forget to wrap your app with StoreProvider?');
+    return getDefaultStore();
   }
 
   return store;

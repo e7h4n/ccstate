@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, cleanup, screen } from '@testing-library/vue';
 import { afterEach, expect, it } from 'vitest';
-import { command, createStore, state } from 'ccstate';
+import { command, createStore, getDefaultStore, state } from 'ccstate';
 import { provideStore } from '../provider';
 import { useGet, useSet } from '..';
 
@@ -87,8 +87,9 @@ it('call command by useSet', async () => {
   expect(screen.getByText('Times clicked: 30')).toBeInTheDocument();
 });
 
-it('throw if can not find store', () => {
+it('should use default store if no provider', () => {
   const count$ = state(0);
+  getDefaultStore().set(count$, 10);
 
   const Component = {
     setup() {
@@ -102,10 +103,10 @@ it('throw if can not find store', () => {
   `,
   };
 
-  expect(() => {
-    render({
-      components: { Component },
-      template: `<div><Component /></div>`,
-    });
-  }).toThrow();
+  render({
+    components: { Component },
+    template: `<div><Component /></div>`,
+  });
+
+  expect(screen.getByText('10')).toBeInTheDocument();
 });

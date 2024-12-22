@@ -85,27 +85,15 @@ export default function App() {
     </div>
   );
 }
-```
 
-Use `createStore` and `StoreProvider` to provide a CCState store to React, all states and computations will only affect this isolated store.
-
-```tsx
 // main.jsx
-import { createStore } from 'ccstate';
-import { StoreProvider } from 'ccstate-react';
 import { createRoot } from 'react-dom/client';
-
 import App from './App';
 
 const rootElement = document.getElementById('root');
 const root = createRoot(rootElement);
 
-const store = createStore();
-root.render(
-  <StoreProvider value={store}>
-    <App />
-  </StoreProvider>,
-);
+root.render(<App />);
 ```
 
 That's it! [Click here to see the full example](https://codesandbox.io/p/sandbox/cr3xg6).

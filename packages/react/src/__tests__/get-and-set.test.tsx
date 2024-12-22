@@ -2,7 +2,7 @@
 import { render, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { computed, createStore, command, state, createDebugStore } from 'ccstate';
+import { computed, createStore, command, state, createDebugStore, getDefaultStore } from 'ccstate';
 import { StoreProvider, useGet, useSet } from '..';
 import { StrictMode, useState } from 'react';
 import '@testing-library/jest-dom/vitest';
@@ -199,25 +199,21 @@ describe('react', () => {
     expect(await screen.findByText('1')).toBeInTheDocument();
   });
 
-  it('will throw error if no provider', () => {
+  it('should use default store if no provider', () => {
     const count$ = state(0);
+    getDefaultStore().set(count$, 10);
 
     function App() {
       const count = useGet(count$);
       return <div>{count}</div>;
     }
 
-    // suppress react render error message in console
-    const mock = vi.spyOn(console, 'error').mockImplementation(() => void 0);
-    expect(() =>
-      render(
-        <StrictMode>
-          <App />
-        </StrictMode>,
-      ),
-    ).toThrow();
-
-    mock.mockRestore();
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('will unmount when component cleanup', async () => {
