@@ -1,5 +1,16 @@
 # ccstate
 
+## 3.0.0
+
+### Major Changes
+
+- 932cb80: refactor: expose react hooks into independent package 'ccstate-react'
+- 7035e82: refactor(debug): remove event & devtools
+
+### Minor Changes
+
+- d3b721c: feat: release vue support
+
 ## 2.2.0
 
 ### Minor Changes
