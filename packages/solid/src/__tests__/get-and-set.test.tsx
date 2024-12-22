@@ -1,10 +1,9 @@
-// @vitest-environment happy-dom
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { expect, it } from 'vitest';
 import { computed, command, state, createDebugStore, getDefaultStore } from 'ccstate';
 import { StoreProvider, useGet, useSet } from '..';
-import { createSignal, onMount, Show } from 'solid-js';
+import { createSignal } from 'solid-js';
 import '@testing-library/jest-dom/vitest';
 
 it('using ccstate in solid', async () => {
@@ -31,7 +30,7 @@ it('computed should re-render', async () => {
     return <div>{ret()}</div>;
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
 
   expect(screen.getByText('0')).toBeInTheDocument();
   getDefaultStore().set(base$, 1);
@@ -52,7 +51,7 @@ it('user click counter should increment', async () => {
     return <button onClick={onClick}>{ret()}</button>;
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -73,7 +72,7 @@ it('two atom changes should re-render once', async () => {
     return <div>{ret1() + ret2()}</div>;
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
   expect(screen.getByText('0')).toBeInTheDocument();
 
   getDefaultStore().set(state1$, 1);
@@ -104,7 +103,7 @@ it('async callback will trigger rerender', async () => {
     );
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -127,7 +126,7 @@ it('floating promise trigger rerender', async () => {
     return <button onClick={onClick}>{val()}</button>;
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -145,7 +144,7 @@ it('should use default store if no provider', () => {
     return <div>{count()}</div>;
   }
 
-  render(() => <App />);
+  const screen = render(() => <App />);
   expect(screen.getByText('10')).toBeInTheDocument();
 });
 
@@ -159,30 +158,23 @@ it('will unmount when component cleanup', async () => {
 
   function Container() {
     const [show, setShow] = createSignal(true);
-    const [mounted, setMounted] = createSignal(false);
-
-    onMount(() => {
-      setMounted(true);
-    });
 
     return (
       <div>
-        <Show when={mounted()}>
-          {show() ? <App /> : <div>unmounted</div>}
-          <button
-            onClick={() => {
-              setShow(false);
-            }}
-          >
-            hide
-          </button>
-        </Show>
+        {show() ? <App /> : <div>unmounted</div>}
+        <button
+          onClick={() => {
+            setShow(false);
+          }}
+        >
+          hide
+        </button>
       </div>
     );
   }
 
   const store = createDebugStore();
-  render(() => (
+  const screen = render(() => (
     <StoreProvider value={store}>
       <Container />
     </StoreProvider>

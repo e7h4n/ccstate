@@ -4,7 +4,7 @@ import LeakDetector from 'jest-leak-detector';
 import { expect, it } from 'vitest';
 import { state, createStore } from 'ccstate';
 import type { State } from 'ccstate';
-import { useGet, StoreProvider, useLastResolved } from '../';
+import { useGet, StoreProvider, useResource } from '../';
 import { cleanup, render } from '@solidjs/testing-library';
 import '@testing-library/jest-dom/vitest';
 import { delay } from 'signal-timers';
@@ -44,7 +44,7 @@ it('should release memory for promise & loadable', async () => {
     if (!base$) {
       return null;
     }
-    const ret = useLastResolved(base$);
+    const ret = useResource(base$);
     return <div>{ret()}</div>;
   }
 

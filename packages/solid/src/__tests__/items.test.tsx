@@ -1,5 +1,3 @@
-// @vitest-environment happy-dom
-
 import { cleanup, render, screen, waitFor } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { afterEach, it } from 'vitest';

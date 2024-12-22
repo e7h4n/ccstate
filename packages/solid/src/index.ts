@@ -1,5 +1,4 @@
 export { useGet } from './useGet';
 export { useSet } from './useSet';
-export { useResolved, useLastResolved } from './useResolved';
-export { useLoadable, useLastLoadable } from './useLoadable';
+export { useResource } from './useResource';
 export { StoreProvider } from './provider';

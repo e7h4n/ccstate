@@ -1,15 +1,13 @@
-// @vitest-environment happy-dom
-
 import '@testing-library/jest-dom/vitest';
 import { render, cleanup, screen } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
-import { StoreProvider, useSet, useLoadable } from '..';
+import { StoreProvider, useSet, useResource } from '..';
 import { delay } from 'signal-timers';
-import { useLastLoadable } from '../useLoadable';
 import { onMount } from 'solid-js';
+import { Show } from 'solid-js/web';
 
 afterEach(() => {
   cleanup();
@@ -38,11 +36,11 @@ function makeDefered<T>(): {
   return deferred;
 }
 
-it('convert promise to loadable', async () => {
+it('convert promise to resource', async () => {
   const base = state(Promise.resolve('foo'));
   const App = () => {
-    const ret = useLoadable(base)();
-    return <div>{ret.state === 'loading' ? 'loading' : ret.state === 'hasError' ? 'error' : ret.data}</div>;
+    const data = useResource(base);
+    return <div>{!data.loading && !data.error ? data() : 'loading'}</div>;
   };
   const store = createStore();
   render(() => (
@@ -58,11 +56,8 @@ it('convert promise to loadable', async () => {
 it('reset promise atom will reset loadable', async () => {
   const base = state(Promise.resolve('foo'));
   const App = () => {
-    const ret = useLoadable(base);
-    if (ret.state === 'loading' || ret.state === 'hasError') {
-      return <div>loading</div>;
-    }
-    return <div>{ret.data}</div>;
+    const data = useResource(base);
+    return <div>{!data.loading && !data.error ? data() : 'loading'}</div>;
   };
   const store = createStore();
   render(() => (
@@ -86,11 +81,8 @@ it('reset promise atom will reset loadable', async () => {
 it('switchMap', async () => {
   const base = state(Promise.resolve('foo'));
   const App = () => {
-    const ret = useLoadable(base);
-    if (ret.state === 'loading' || ret.state === 'hasError') {
-      return <div>loading</div>;
-    }
-    return <div>{ret.data}</div>;
+    const data = useResource(base);
+    return <div>{!data.loading && !data.error ? data() : 'loading'}</div>;
   };
   const store = createStore();
   render(() => (
@@ -163,7 +155,7 @@ it('loadable turns primitive throws into values', async () => {
 
   await screen.findByText('Loading...');
   deferred.reject('An error occurred');
-  await screen.findByText('An error occurred');
+  await screen.findByText('Error: An error occurred');
 });
 
 it('loadable goes back to loading after re-fetch', async () => {
@@ -355,26 +347,15 @@ interface LoadableComponentProps {
 }
 
 const LoadableComponent = ({ asyncAtom, effectCallback }: LoadableComponentProps) => {
-  const value = useLoadable(asyncAtom);
+  const data = useResource(asyncAtom);
 
   if (effectCallback) {
     onMount(() => {
-      effectCallback(value);
+      effectCallback(data);
     });
   }
 
-  if (value.state === 'loading') {
-    return <>Loading...</>;
-  }
-
-  if (value.state === 'hasError') {
-    return <>{String(value.error)}</>;
-  }
-
-  // this is to ensure correct typing
-  const data: number | string = value.data;
-
-  return <>Data: {data}</>;
+  return <>{data.loading ? 'Loading...' : data.error ? String(data.error) : `Data: ${String(data())}`}</>;
 };
 
 it('use lastLoadable should not update when new promise pending', async () => {
@@ -382,11 +363,20 @@ it('use lastLoadable should not update when new promise pending', async () => {
 
   const store = createStore();
   function App() {
-    const number = useLastLoadable(async$);
-    if (number.state !== 'hasData') {
-      return <div>loading</div>;
-    }
-    return <div>num{number.data}</div>;
+    const data = useResource(async$);
+
+    return (
+      <Show
+        when={data.latest}
+        fallback={
+          <Show when={!data.loading} fallback={<div>loading</div>}>
+            <div>num{data()}</div>
+          </Show>
+        }
+      >
+        <div>num{data.latest}</div>
+      </Show>
+    );
   }
 
   render(() => (
@@ -403,106 +393,6 @@ it('use lastLoadable should not update when new promise pending', async () => {
   await delay(0);
   expect(screen.getByText('num1')).toBeInTheDocument(); // keep num1 instead 'Loading...'
   defered.resolve(2);
-  await delay(0);
-  expect(screen.getByText('num2')).toBeInTheDocument();
-});
-
-it('use lastLoadable should keep error', async () => {
-  const async$ = state(Promise.reject(new Error('error')));
-
-  const store = createStore();
-  function App() {
-    const number = useLastLoadable(async$);
-    if (number.state === 'loading') {
-      return <div>loading</div>;
-    }
-    if (number.state === 'hasError') {
-      return <div>{String(number.error)}</div>;
-    }
-
-    return <div>num{number.data}</div>;
-  }
-
-  render(() => (
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>
-  ));
-
-  expect(await screen.findByText('Error: error')).toBeInTheDocument();
-
-  const defered = makeDefered();
-  store.set(async$, defered.promise);
-
-  await delay(0);
-  expect(screen.getByText('Error: error')).toBeInTheDocument(); // keep num1 instead 'Loading...'
-  defered.resolve(2);
-  await delay(0);
-  expect(screen.getByText('num2')).toBeInTheDocument();
-});
-
-it('use lastLoadable will will not use old promise value if new promise is made', async () => {
-  const oldDefered = makeDefered<number>();
-  const async$ = state(oldDefered.promise);
-
-  const store = createStore();
-  function App() {
-    const number = useLastLoadable(async$);
-    if (number.state !== 'hasData') {
-      return <div>loading</div>;
-    }
-
-    return <div>num{number.data}</div>;
-  }
-
-  render(() => (
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>
-  ));
-
-  expect(await screen.findByText('loading')).toBeInTheDocument();
-
-  const newDefered = makeDefered<number>();
-  store.set(async$, newDefered.promise);
-  oldDefered.resolve(1);
-
-  await delay(0);
-  expect(screen.getByText('loading')).toBeInTheDocument(); // keep num1 instead 'Loading...'
-  newDefered.resolve(2);
-  await delay(0);
-  expect(screen.getByText('num2')).toBeInTheDocument();
-});
-
-it('use lastLoadable will will not use old promise error if new promise is made', async () => {
-  const oldDefered = makeDefered<number>();
-  const async$ = state(oldDefered.promise);
-
-  const store = createStore();
-  function App() {
-    const number = useLastLoadable(async$);
-    if (number.state !== 'hasData') {
-      return <div>loading</div>;
-    }
-
-    return <div>num{number.data}</div>;
-  }
-
-  render(() => (
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>
-  ));
-
-  expect(await screen.findByText('loading')).toBeInTheDocument();
-
-  const newDefered = makeDefered<number>();
-  store.set(async$, newDefered.promise);
-  oldDefered.reject(new Error('error'));
-
-  await delay(0);
-  expect(screen.getByText('loading')).toBeInTheDocument(); // keep num1 instead 'Loading...'
-  newDefered.resolve(2);
   await delay(0);
   expect(screen.getByText('num2')).toBeInTheDocument();
 });
