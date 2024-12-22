@@ -7,6 +7,7 @@ import { computed, createStore, type Computed } from '../../core';
 import { provideStore } from '../provider';
 import { useGet } from '..';
 import { useLastResolved } from '../useResolved';
+import { delay } from 'signal-timers';
 
 it('should release memory after view cleanup', async () => {
   let base$:
@@ -53,7 +54,7 @@ it('should release memory after view cleanup', async () => {
   expect(await leakDetector.isLeaking()).toBe(false);
 });
 
-it.skip('should release memory for promise & loadable', async () => {
+it('should release memory for promise & loadable', async () => {
   let base$: Computed<Promise<string>> | undefined = computed(() => {
     return Promise.resolve('bar');
   });
@@ -85,6 +86,7 @@ it.skip('should release memory for promise & loadable', async () => {
 
   base$ = undefined;
   cleanup();
+  await delay(0);
 
   expect(await leakDetector.isLeaking()).toBe(false);
 });

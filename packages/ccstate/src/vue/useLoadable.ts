@@ -29,7 +29,6 @@ function useLoadableInternal<T>(
     (promiseValue, _, onCleanup) => {
       const ctrl = new AbortController();
       onCleanup(() => {
-        console.log('cleanup');
         ctrl.abort();
       });
 
