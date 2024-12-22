@@ -99,6 +99,9 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile, --strict-peer-dependencies]
 
+      - name: Build
+        run: pnpm build
+
       - name: bench
         uses: CodSpeedHQ/action@v3
         with:
