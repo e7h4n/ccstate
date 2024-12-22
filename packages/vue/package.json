@@ -1,7 +1,7 @@
 {
-  "name": "ccstate",
+  "name": "ccstate-vue",
   "version": "2.2.0",
-  "description": "CCState Core",
+  "description": "CCState Vue Hooks",
   "private": true,
   "repository": {
     "type": "git",
@@ -20,9 +20,7 @@
     "postbuild:patch:package_dist_main": "json -I -f dist/package.json -e \"this.main='./index.cjs';\"",
     "postbuild:patch:package_dist_module": "json -I -f dist/package.json -e \"this.module='./index.js';\"",
     "postbuild:patch:package_dist_dot_import": "json -I -f dist/package.json -e \"this.exports['.'].import='./index.js';\"",
-    "postbuild:patch:package_dist_dot_require": "json -I -f dist/package.json -e \"this.exports['.'].require='./index.cjs';\"",
-    "postbuild:patch:package_dist_sub_import": "json -I -f dist/package.json -e \"this.exports['./*'].import='./*/index.js';\"",
-    "postbuild:patch:package_dist_sub_require": "json -I -f dist/package.json -e \"this.exports['./*'].require='./*/index.cjs';\""
+    "postbuild:patch:package_dist_dot_require": "json -I -f dist/package.json -e \"this.exports['.'].require='./index.cjs';\""
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -30,11 +28,11 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./*": {
-      "import": "./dist/*/index.js",
-      "require": "./dist/*/index.cjs"
     }
+  },
+  "peerDependencies": {
+    "vue": ">=3.2.0",
+    "ccstate": "workspace:^"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",
@@ -42,12 +40,17 @@
     "@codspeed/vitest-plugin": "^3.1.1",
     "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-node-resolve": "^15.3.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/vue": "^8.1.0",
+    "happy-dom": "^15.11.7",
     "jest-leak-detector": "^29.7.0",
     "json": "^11.0.0",
     "rollup": "^4.28.1",
     "rollup-plugin-dts": "^6.1.1",
     "shx": "^0.3.4",
     "signal-timers": "^1.0.4",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "vue": "^3.5.13"
   }
 }

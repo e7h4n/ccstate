@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM"]
   },
-  "include": ["src/**/*", "types/**/*", "vitest.config.ts"]
+  "include": ["src/**/*", "vitest.config.ts"]
 }
