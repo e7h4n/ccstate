@@ -19,7 +19,7 @@ The name of CCState comes from three basic data types: computed, command, and st
 - 💯 Simple & Intuitive: Crystal-clear API design with just 3 data types and 2 operations
 - ✅ Rock-solid Reliability: Comprehensive test coverage reaching 100% branch coverage
 - 🪶 Ultra-lightweight: Zero dependencies, only 500 lines of core code
-- 💡 Framework Agnostic: Seamlessly works with [React](docs/react.md), [Vue](docs/vue.md), [Vanilla](docs/vanilla.md), or any UI framework
+- 💡 Framework Agnostic: Seamlessly works with [React](docs/react.md), [Vue](docs/vue.md), [Solid.js](docs/solid.md), [Vanilla](docs/vanilla.md), or any UI framework
 - 🚀 Blazing Fast: Optimized performance from day one, 2x-7x faster than Jotai across scenarios
 
 ## Getting Started
@@ -275,6 +275,10 @@ That's it! Next, you can learn how to use CCState in React.
 ## Using in Vue
 
 [Using in Vue](docs/vue.md)
+
+## Using in Solid.js
+
+[Using in Solid.js](docs/solid.md)
 
 ## Using in Vanilla
 
