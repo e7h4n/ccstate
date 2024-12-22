@@ -4,7 +4,8 @@ To begin using CCState in a Vue application, you must utilize the `provideStore`
 
 ```typescript
 // main.ts
-import { createStore, provideStore } from 'ccstate';
+import { createStore } from 'ccstate';
+import { provideStore } from 'ccstate-vue';
 import { createApp } from 'vue';
 import App from './App.vue';
 
@@ -31,7 +32,7 @@ export const count$ = state(0);
 ```vue
 <!-- App.vue -->
 <script setup lang="ts">
-import { useGet } from 'ccstate';
+import { useGet } from 'ccstate-vue';
 import { count$ } from './data/count';
 
 const count = useGet(count$);
@@ -57,7 +58,7 @@ export const user$ = computed(async () => {
 ```vue
 <!-- App.vue -->
 <script setup lang="ts">
-import { useLoadable } from 'ccstate';
+import { useLoadable } from 'ccstate-vue';
 import { user$ } from './data/user';
 
 const user_ = useLoadable(user$);
@@ -92,7 +93,7 @@ Another useful composable is `useResolved`, which always returns the resolved va
 ```vue
 <!-- App.vue -->
 <script setup lang="ts">
-import { useResolved } from 'ccstate';
+import { useResolved } from 'ccstate-vue';
 import { user$ } from './data/user';
 
 const user = useResolved(user$);
@@ -109,7 +110,7 @@ In some scenarios, we want a refreshable Promise Computed to maintain its previo
 
 ```vue
 <script setup lang="ts">
-import { useLastLoadable } from 'ccstate';
+import { useLastLoadable } from 'ccstate-vue';
 import { user$ } from './data/user';
 
 const user_ = useLastLoadable(user$); // Keep the previous result during new user$ request
@@ -128,7 +129,7 @@ The `useSet` composable can be used to update the value of State, or trigger Com
 
 ```vue
 <script setup lang="ts">
-import { useSet } from 'ccstate';
+import { useSet } from 'ccstate-vue';
 import { count$ } from './data/count';
 
 const setCount = useSet(count$);
