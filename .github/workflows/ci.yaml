@@ -45,29 +45,11 @@ jobs:
           run_install: |
             - args: [--frozen-lockfile, --strict-peer-dependencies]
 
-      - name: Get installed Playwright version
-        id: playwright-version
-        run: |
-          PLAYWRIGHT_VERSION=$(cat pnpm-lock.yaml | grep playwright-core | head -n 1 | cut -d '@' -f 2)
-          echo "PLAYWRIGHT_VERSION=${PLAYWRIGHT_VERSION}" >> $GITHUB_ENV
-
       - name: Build
         run: pnpm build
 
-      - name: Install Playwright Browsers
-        run: pnpm -F ccstate-devtools playwright install --with-deps
-
-      - name: lint
-        run: pnpm lint
-
       - name: test
         run: pnpm test
-
-      - name: bench
-        uses: CodSpeedHQ/action@v3
-        with:
-          run: CI=true pnpm bench
-          token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: 'Report Coverage'
         uses: davelosert/vitest-coverage-report-action@v2
@@ -78,3 +60,47 @@ jobs:
           file: coverage/cobertura-coverage.xml
           format: cobertura
           fail-on-error: true
+
+  lint:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: |
+            - args: [--frozen-lockfile, --strict-peer-dependencies]
+
+      - name: Build
+        run: pnpm build
+
+      - name: lint
+        run: pnpm lint
+
+  bench:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: |
+            - args: [--frozen-lockfile, --strict-peer-dependencies]
+
+      - name: bench
+        uses: CodSpeedHQ/action@v3
+        with:
+          run: CI=true pnpm bench
+          token: ${{ secrets.CODSPEED_TOKEN }}
