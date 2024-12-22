@@ -7,7 +7,6 @@
 ![NPM Version](https://img.shields.io/npm/v/ccstate)
 ![npm package minimized gzipped size](https://img.shields.io/bundlejs/size/ccstate)
 [![CI](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml/badge.svg)](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml)
-[![CodSpeed Badge](https://img.shields.io/endpoint?url=https://codspeed.io/badge.json)](https://codspeed.io/e7h4n/ccstate)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 CCState is a semantic, strict, and flexible state management library suitable for medium to large single-page applications with complex state management needs.

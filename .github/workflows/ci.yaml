@@ -105,7 +105,4 @@ jobs:
         run: pnpm build
 
       - name: bench
-        uses: CodSpeedHQ/action@v3
-        with:
-          run: CI=true pnpm bench
-          token: ${{ secrets.CODSPEED_TOKEN }}
+        run: CI=true pnpm bench
