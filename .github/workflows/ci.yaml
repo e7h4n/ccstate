@@ -60,10 +60,13 @@ jobs:
       - name: lint
         run: pnpm lint
 
-      - name: Run test
+      - name: test
+        run: pnpm test
+
+      - name: bench
         uses: CodSpeedHQ/action@v3
         with:
-          run: CI=true pnpm test
+          run: CI=true pnpm bench
           token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: 'Report Coverage'
