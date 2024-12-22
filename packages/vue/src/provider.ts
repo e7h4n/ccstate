@@ -9,10 +9,11 @@ export const provideStore = (store: Store) => {
 };
 
 export const useStore = (): Store => {
-  const store = inject(StoreKey);
-  if (store === undefined) {
-    return getDefaultStore();
-  }
-
-  return store;
+  return inject(
+    StoreKey,
+    () => {
+      return getDefaultStore();
+    },
+    true,
+  );
 };

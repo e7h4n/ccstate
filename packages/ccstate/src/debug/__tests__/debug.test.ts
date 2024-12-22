@@ -36,3 +36,17 @@ it('nestedAtomToString will print anonymous if no debugLabel is provided', () =>
   const base$ = state(1);
   expect(nestedAtomToString([base$])).toEqual(['anonymous']);
 });
+
+it('correctly process unsub decount', () => {
+  const store = createDebugStore();
+  const controller = new AbortController();
+  const base$ = state(1);
+  const callback$ = command(() => void 0);
+  store.sub(base$, callback$, { signal: controller.signal });
+
+  expect(store.getSubscribeGraph()).toEqual([[base$, callback$]]);
+
+  controller.abort();
+
+  expect(store.getSubscribeGraph()).toEqual([]);
+});

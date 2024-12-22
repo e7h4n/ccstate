@@ -125,16 +125,18 @@ export function createDebugStore(
   watches: (AtomWatch | string | RegExp | State<unknown> | Computed<unknown> | Command<unknown, unknown[]>)[] = [],
   defaultActions?: StoreEventType[],
 ): DebugStore {
+  const parsedDefaultActions = defaultActions ? new Set(defaultActions) : undefined;
+
   const parsedWatches = watches.map((watch): AtomWatch => {
     if (typeof watch === 'string' || watch instanceof RegExp) {
-      return { target: watch, actions: defaultActions ? new Set(defaultActions) : undefined };
+      return { target: watch, actions: parsedDefaultActions };
     }
 
     if ('target' in watch) {
       return watch;
     }
 
-    return { target: watch, actions: defaultActions ? new Set(defaultActions) : undefined };
+    return { target: watch, actions: parsedDefaultActions };
   });
 
   const interceptor = new ConsoleInterceptor(parsedWatches);

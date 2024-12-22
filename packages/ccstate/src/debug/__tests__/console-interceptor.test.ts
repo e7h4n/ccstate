@@ -209,3 +209,10 @@ it('createDebugStore with atom', () => {
   store.get(base$);
   expect(console.group).toBeCalledTimes(1);
 });
+
+it('createDebugStore with empty actions', () => {
+  const base$ = state(0);
+  const store = createDebugStore([base$]);
+  store.set(base$, 1);
+  expect(console.group).toBeCalledTimes(1);
+});
