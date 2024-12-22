@@ -2,7 +2,6 @@
   "name": "ccstate-react",
   "version": "3.0.0",
   "description": "CCState React Hooks",
-  "private": true,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/e7h4n/ccstate.git"
