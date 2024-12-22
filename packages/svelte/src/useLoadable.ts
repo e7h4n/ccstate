@@ -27,12 +27,14 @@ function useLoadableInternal<T>(
 
   let abortController = new AbortController();
   onDestroy(() => {
+    console.log('onDestroy');
     abortController.abort();
   });
 
   promise.subscribe((promiseValue) => {
     abortController.abort();
     abortController = new AbortController();
+    const signal = abortController.signal;
 
     if (!keepLastResolved) {
       loadable.set({
@@ -42,7 +44,7 @@ function useLoadableInternal<T>(
 
     void promiseValue
       .then((ret) => {
-        if (abortController.signal.aborted) return;
+        if (signal.aborted) return;
 
         loadable.set({
           state: 'hasData',
@@ -52,7 +54,7 @@ function useLoadableInternal<T>(
       .catch(() => void 0);
 
     void promiseValue.catch((error: unknown) => {
-      if (abortController.signal.aborted) return;
+      if (signal.aborted) return;
 
       loadable.set({
         state: 'hasError',

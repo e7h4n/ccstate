@@ -1,9 +1,9 @@
 <script lang="ts">
   let props: {
-    obj: {};
-    cb: (obj: {}) => void;
+    obj: () => object;
+    cb: (obj: object) => void;
   } = $props();
-  props.cb(props.obj);
+  props.cb(props.obj());
 </script>
 
 <div>done</div>

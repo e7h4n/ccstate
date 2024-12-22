@@ -13,7 +13,7 @@ it('prop takes same atom', async () => {
 
   render(Prop, {
     props: {
-      obj,
+      obj: () => obj,
       cb: (obj: object) => {
         callbackObj = obj;
       },

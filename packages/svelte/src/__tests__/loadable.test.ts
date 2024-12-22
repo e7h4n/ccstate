@@ -37,7 +37,7 @@ it('simple loadable', async () => {
   const promise$ = state(Promise.resolve('bar'));
   render(Loadable, {
     props: {
-      promise$,
+      promise$: () => promise$,
     },
   });
 
@@ -50,7 +50,7 @@ it('error loadable', async () => {
   const promise$ = state(Promise.reject(new Error('INTEST')));
   render(Loadable, {
     props: {
-      promise$,
+      promise$: () => promise$,
     },
   });
 
@@ -68,15 +68,16 @@ it('switchMap', async () => {
   });
   render(Loadable, {
     props: {
-      promise$,
+      promise$: () => promise$,
     },
     context: new Map([[StoreKey, store]]),
   });
 
   expect(screen.getByText('Loading')).toBeInTheDocument();
 
-  console.log(store.getSubscribeGraph());
   store.set(promise$, Promise.resolve('second'));
-  await delay(0);
-  expect(screen.getByText('Result: second')).toBeInTheDocument();
+  expect(await screen.findByText('Result: second')).toBeInTheDocument();
+
+  first.resolve('first');
+  await expect(screen.findByText('Result: first')).rejects.toThrow();
 });
