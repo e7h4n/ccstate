@@ -1,14 +1,9 @@
 <script lang="ts">
-  import type { State } from 'ccstate';
-  import { useGet } from '../useGet';
-  import { useSet } from '../useSet';
-
   let props: {
-    count$: State<number>;
+    obj: {};
+    cb: (obj: {}) => void;
   } = $props();
-  const number = useGet(props.count$);
-  const updateNumber = useSet(props.count$);
-  updateNumber(100);
+  props.cb(props.obj);
 </script>
 
-<div>{$number}</div>
+<div>done</div>
