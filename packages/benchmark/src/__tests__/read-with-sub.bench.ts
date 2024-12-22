@@ -7,8 +7,9 @@ import { jotaiStrategy } from './strategy/jotai';
 import { signalStrategy } from './strategy/signals';
 
 const isCI = typeof window === 'undefined' ? !!process.env.CI : false;
-
-for (let depth = 1; depth <= 4; depth++) {
+const beginScale = isCI ? 3 : 1;
+const maxScale = isCI ? 3 : 4;
+for (let depth = beginScale; depth <= maxScale; depth++) {
   describe(`set with subscription, ${String(Math.pow(10, depth))} atoms pyramid`, () => {
     const { atoms: atomsCCState, store: storeCCState } = setupStore(depth, ccstateStrategy);
     bench('ccstate', () => {
