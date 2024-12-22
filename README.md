@@ -817,10 +817,9 @@ So, I think the only way to implement `Computed`'s effect-less is to separate th
 
 Here are some new ideas:
 
-- Integration with svelte / solid.js
-- Enhance devtools
+- Integration with svelte
+- Enhance debug ability
   - Support viewing current subscription graph and related atom values
-  - Enable logging and breakpoints for specific atoms in devtools
 - Performance improvements
   - Mount atomState directly on atoms when there's only one store in the application to reduce WeakMap lookup overhead
   - Support static declaration of upstream dependencies for Computed to improve performance by disabling runtime dependency analysis
