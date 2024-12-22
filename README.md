@@ -312,12 +312,12 @@ Here are some tips to help you better debug during testing.
 Use `ConsoleInterceptor` to log most store behaviors to the console during testing:
 
 ```typescript
-import { createConsoleDebugStore, state, computed, command } from 'ccstate';
+import { createDebugStore, state, computed, command } from 'ccstate';
 
 const base$ = state(1, { debugLabel: 'base$' });
 const derived$ = computed((get) => get(base$) * 2);
 
-const store = createConsoleDebugStore([base$, 'derived'], ['set', 'sub']); // log sub & set actions
+const store = createDebugStore([base$, 'derived'], ['set', 'sub']); // log sub & set actions
 store.set(base$, 1); // console: SET [V0:base$] 1
 store.sub(
   derived$,
@@ -726,7 +726,7 @@ Click show to make double enter the display state, and you can see the `set` `sh
     ret: – 14
 ```
 
-The abbreviation `CPT` represents `Computed` evaluation, not just a simple read operation. You can also try modifying the parameters of `createConsoleDebugStore` in the code to include `get` in the logs, and you'll find that not every `get` triggers a `Computed` evaluation.
+The abbreviation `CPT` represents `Computed` evaluation, not just a simple read operation. You can also try modifying the parameters of `createDebugStore` in the code to include `get` in the logs, and you'll find that not every `get` triggers a `Computed` evaluation.
 
 Click increment to see the `set` trigger the `Computed` evaluation.
 

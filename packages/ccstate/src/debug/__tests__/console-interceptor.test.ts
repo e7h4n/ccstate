@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import { ConsoleInterceptor, createConsoleDebugStore } from '../console-inspector';
-import { computed, command, state, createDebugStore } from '../..';
+import { ConsoleInterceptor, createDebugStore } from '../console-inspector';
+import { computed, command, state } from '../..';
+import { createDebugStoreInternal } from '../debug-store';
 
 const base1$ = state(0, { debugLabel: 'base$' });
 const base2$ = state(0, { debugLabel: 'base$' });
@@ -27,7 +28,7 @@ afterEach(() => {
 });
 
 function runStore(interceptor: ConsoleInterceptor) {
-  const store = createDebugStore(interceptor);
+  const store = createDebugStoreInternal(interceptor);
   store.set(base1$, 1);
   store.set(base2$, 2);
   const unsub = store.sub(doubleBase1$, callback$);
@@ -172,25 +173,25 @@ it('use regex to filter atoms', () => {
   expect(console.group).toBeCalled();
 });
 
-it('createConsoleDebugStore', () => {
-  const store = createConsoleDebugStore(['base'], ['sub']);
+it('createDebugStore', () => {
+  const store = createDebugStore(['base'], ['sub']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);
   expect(console.group).toBeCalledTimes(0);
 });
 
-it('createConsoleDebugStore with regex', () => {
-  const store = createConsoleDebugStore([/./], ['sub']);
+it('createDebugStore with regex', () => {
+  const store = createDebugStore([/./], ['sub']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);
   expect(console.group).toBeCalledTimes(0);
 });
 
-it('createConsoleDebugStore with AtomWatch', () => {
+it('createDebugStore with AtomWatch', () => {
   const base$ = state(0, { debugLabel: 'base$' });
-  const store = createConsoleDebugStore([
+  const store = createDebugStore([
     {
       target: base$,
       actions: new Set(['set']),
@@ -201,9 +202,9 @@ it('createConsoleDebugStore with AtomWatch', () => {
   expect(console.group).toBeCalledTimes(1);
 });
 
-it('createConsoleDebugStore with atom', () => {
+it('createDebugStore with atom', () => {
   const base$ = state(0, { debugLabel: 'base$' });
-  const store = createConsoleDebugStore([base$], ['set']);
+  const store = createDebugStore([base$], ['set']);
   store.set(base$, 1);
   store.get(base$);
   expect(console.group).toBeCalledTimes(1);

@@ -1,6 +1,7 @@
-import type { Computed, State } from '../core/atom';
+import type { Command, Computed, State } from '../core/atom';
 import type { Store } from '../core/store';
-import type { NestedAtom } from './util';
+
+export type NestedAtom = (State<unknown> | Computed<unknown> | Command<unknown, unknown[]> | NestedAtom)[];
 
 export interface DebugStore extends Store {
   getReadDependencies: (atom: Computed<unknown>) => NestedAtom;

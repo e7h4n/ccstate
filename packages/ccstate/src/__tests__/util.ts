@@ -1,4 +1,6 @@
-import type { NestedAtom, NestedString } from '../../types/debug/util';
+import type { NestedAtom } from '../../types/debug/debug-store';
+
+export type NestedString = (string | NestedString)[];
 
 export function nestedAtomToString(atoms: NestedAtom): NestedString {
   return atoms.map((atom) => {

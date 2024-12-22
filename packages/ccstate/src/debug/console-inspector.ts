@@ -1,8 +1,7 @@
-import type { CallbackFunc, StoreInterceptor } from '../../types/core/store';
+import type { CallbackFunc, StoreEventType, StoreInterceptor } from '../../types/core/store';
 import type { DebugStore } from '../../types/debug/debug-store';
-import type { StoreEventType } from '../../types/debug/event';
 import type { Computed, Command, Updater, State } from '../core';
-import { createDebugStore } from './debug-store';
+import { createDebugStoreInternal } from './debug-store';
 
 export interface AtomWatch {
   target: State<unknown> | Computed<unknown> | Command<unknown, unknown[]> | string | RegExp;
@@ -122,8 +121,8 @@ export class ConsoleInterceptor implements StoreInterceptor {
   };
 }
 
-export function createConsoleDebugStore(
-  watches: (AtomWatch | string | RegExp | State<unknown> | Computed<unknown> | Command<unknown, unknown[]>)[],
+export function createDebugStore(
+  watches: (AtomWatch | string | RegExp | State<unknown> | Computed<unknown> | Command<unknown, unknown[]>)[] = [],
   defaultActions?: StoreEventType[],
 ): DebugStore {
   const parsedWatches = watches.map((watch): AtomWatch => {
@@ -139,5 +138,5 @@ export function createConsoleDebugStore(
   });
 
   const interceptor = new ConsoleInterceptor(parsedWatches);
-  return createDebugStore(interceptor);
+  return createDebugStoreInternal(interceptor);
 }

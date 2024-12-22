@@ -41,6 +41,8 @@ export interface StoreInterceptor {
   computed?: InterceptorComputed;
 }
 
+export type StoreEventType = 'set' | 'get' | 'sub' | 'unsub' | 'mount' | 'unmount' | 'notify' | 'computed';
+
 export interface StoreOptions {
   interceptor?: StoreInterceptor;
 }

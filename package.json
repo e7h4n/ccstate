@@ -16,7 +16,6 @@
     "bench": "vitest bench --run",
     "build": "pnpm build:lib && pnpm build:babel",
     "build:lib": "pnpm -F ccstate build",
-    "build:devtools": "pnpm -F ccstate-devtools build",
     "build:babel": "pnpm -F ccstate-babel build",
     "lint": "pnpm '/^lint:.*/'",
     "lint:type": "pnpm -F ccstate exec tsc --noEmit && pnpm -F ccstate-babel exec tsc --noEmit",

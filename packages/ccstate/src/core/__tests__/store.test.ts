@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { computed, createStore, command, state } from '..';
 import type { Getter } from '..';
 import { suspense } from './utils';
-import { createDebugStore, nestedAtomToString } from '../../debug';
+import { createDebugStore } from '../../debug';
+import { nestedAtomToString } from '../../__tests__/util';
 
 it('should not fire on subscribe', () => {
   const store = createStore();

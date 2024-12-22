@@ -1,6 +1,5 @@
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
-import type { DebugStore } from '../../types/debug/debug-store';
-import type { NestedAtom } from '../../types/debug/util';
+import type { DebugStore, NestedAtom } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
 import { AtomManager, ListenerManager } from '../core/atom-manager';
 import { StoreImpl } from '../core/store';
@@ -79,7 +78,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 }
 
-export function createDebugStore(interceptor?: StoreInterceptor): DebugStore {
+export function createDebugStoreInternal(interceptor?: StoreInterceptor): DebugStore {
   const atomManager = new AtomManager({
     interceptor: interceptor,
   });

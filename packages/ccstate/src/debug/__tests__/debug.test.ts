@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { computed, command, state } from '../../core';
-import { createDebugStore, nestedAtomToString } from '..';
+import { createDebugStore } from '..';
+import { nestedAtomToString } from '../../__tests__/util';
 
 it('get all subscribed atoms', () => {
   const store = createDebugStore();
