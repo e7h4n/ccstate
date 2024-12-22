@@ -1,5 +1,6 @@
 import { StoreInspector } from './components/store-inspector';
-import { StoreProvider, type DevToolsHookMessage, type Store } from 'ccstate';
+import { type DevToolsHookMessage, type Store } from 'ccstate';
+import { StoreProvider } from 'ccstate/react';
 import type { ReactNode } from 'react';
 import { clearEvents$, onEvent$ } from './atoms/events';
 

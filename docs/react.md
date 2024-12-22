@@ -4,7 +4,8 @@ To begin using CCState in a React application, you must utilize the `StoreProvid
 
 ```jsx
 // main.tsx
-import { createStore, StoreProvider } from 'ccstate';
+import { createStore } from 'ccstate';
+import { StoreProvider } from 'ccstate/react';
 import { App } from './App';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -34,7 +35,7 @@ import { state } from 'ccstate';
 export const count$ = state(0);
 
 // App.tsx
-import { useGet } from 'ccstate';
+import { useGet } from 'ccstate/react';
 import { count$ } from './data/count';
 
 function App() {
@@ -58,7 +59,7 @@ export const user$ = computed(async () => {
 });
 
 // App.tsx
-import { useLoadable } from 'ccstate';
+import { useLoadable } from 'ccstate/react';
 import { user$ } from './data/user';
 
 function App() {
@@ -93,7 +94,7 @@ Another useful hook is `useResolved`, which always returns the resolved value of
 
 ```jsx
 // App.tsx
-import { useResolved } from 'ccstate';
+import { useResolved } from 'ccstate/react';
 import { user$ } from './data/user';
 
 function App() {
@@ -120,7 +121,7 @@ export function useResolved<T>(atom: State<Promise<T>> | Computed<Promise<T>>): 
 In some scenarios, we want a refreshable Promise Computed to maintain its previous result during the refresh process instead of showing a loading state. CCState provides `useLastLoadable` and `useLastResolved` to achieve this functionality.
 
 ```jsx
-import { useLoadable } from 'ccstate';
+import { useLoadable } from 'ccstate/react';
 import { user$ } from './data/user';
 
 function App() {
@@ -140,7 +141,7 @@ The `useSet` hook can be used to update the value of State, or trigger Command. 
 
 ```jsx
 // App.tsx
-import { useSet } from 'ccstate';
+import { useSet } from 'ccstate/react';
 import { count$ } from './data/count';
 
 function App() {

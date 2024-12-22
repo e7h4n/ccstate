@@ -62,7 +62,7 @@ Use `useGet` and `useSet` hooks in React to get/set data, and use `useResolved` 
 
 ```jsx
 // App.js
-import { useGet, useSet, useResolved } from 'ccstate';
+import { useGet, useSet, useResolved } from 'ccstate/react';
 import { userId$, user$ } from './data';
 
 export default function App() {
@@ -91,8 +91,8 @@ Use `createStore` and `StoreProvider` to provide a CCState store to React, all s
 
 ```tsx
 // main.jsx
-import { createStore, StoreProvider } from 'ccstate';
-import { StrictMode } from 'react';
+import { createStore } from 'ccstate';
+import { StoreProvider } from 'ccstate/react';
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
@@ -102,11 +102,9 @@ const root = createRoot(rootElement);
 
 const store = createStore();
 root.render(
-  <StrictMode>
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>
-  </StrictMode>,
+  <StoreProvider value={store}>
+    <App />
+  </StoreProvider>,
 );
 ```
 

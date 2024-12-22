@@ -1,4 +1,5 @@
-import { StoreEvent, useGet, useSet, type PackedEventMessage, type State } from 'ccstate';
+import { StoreEvent, type PackedEventMessage, type State } from 'ccstate';
+import { useGet, useSet } from 'ccstate/react';
 import {
   clearEvents$,
   filterLabel$,
