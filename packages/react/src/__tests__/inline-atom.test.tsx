@@ -4,7 +4,7 @@ import '@testing-library/jest-dom/vitest';
 import { screen, cleanup, render } from '@testing-library/react';
 import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
-import { useCCState, useCommand, useComputed, useSub } from '../migrate';
+import { useCCState, useCommand, useComputed, useSub } from '../experimental';
 import { createDebugStore } from 'ccstate';
 
 afterEach(() => {
