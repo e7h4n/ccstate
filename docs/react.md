@@ -189,6 +189,8 @@ function App() {
 
 `useComputed` is similar to `useMemo`, but it can automatically track dependencies, so you don't need to manually specify a dependency array like with `useMemo`. And async `Computed` is also supported as normal.
 
+However, during the computation process of `useComputed`, it's possible to access methods that can cause side effects on the Store, such as methods returned by other `useSet` calls. While this approach might work in some cases, CCState does not recommend this practice and won't test for stability under these circumstances. This is particularly important to note when migrating from `useMemo` to `useComputed`.
+
 ```jsx
 function App() {
   const userId$ = useCCState('');
