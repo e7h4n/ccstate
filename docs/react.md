@@ -156,10 +156,10 @@ function App() {
 > [!CAUTION]
 > Creating Inline Atoms is an experimental feature and may be changed in the future.
 
-Using `useCCState`, `useComputed`, and `useCommand` hooks, you can create atoms directly within your React components.
+Using `useCCState`, `useComputed`, `useCommand` and `useSub` hooks, you can create atoms directly within your React components. This is useful for migrating existed React projects to CCState.
 
 ```jsx
-import { useCCState, useComputed, useCommand } from 'ccstate-react';
+import { useCCState, useComputed, useCommand } from 'ccstate-react/experimental';
 
 function App() {
   const count$ = useCCState(0);
@@ -207,3 +207,18 @@ function App() {
 ```
 
 `useCommand` is nothing special but should useful for passing a callback command to other components as props or another `Command`.
+
+`useSub` is useful for migrating existing `useEffect` code. Although `sub` should be a restricted method in CCState, legacy React projects often contain numerous `useEffect` calls. Therefore, using `useSub` to replace some `useEffect` calls in a controlled manner, while gradually reducing the usage of `useSub`, can be helpful.
+
+```jsx
+import { useSub } from 'ccstate-react/experimental';
+
+function App() {
+  const count$ = useCCState(0);
+  const double$ = useCCState(0);
+  const onCountChange$ = useCommand(({ get, set }) => {
+    set(double$, get(count$) * 2);
+  });
+  useSub(count$, onCountChange$);
+}
+```
