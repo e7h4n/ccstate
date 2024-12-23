@@ -1,5 +1,15 @@
 # ccstate
 
+## 4.0.0
+
+### Major Changes
+
+- b32ad0a: chore: bump version to align packages version
+
+### Minor Changes
+
+- 3e45895: feat: add default store
+
 ## 3.0.0
 
 ### Major Changes
