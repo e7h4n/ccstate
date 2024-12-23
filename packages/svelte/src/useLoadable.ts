@@ -1,7 +1,7 @@
 import { useGet } from './useGet';
 import type { Computed, State } from 'ccstate';
 import { onDestroy } from 'svelte';
-import { writable, type Writable } from 'svelte/store';
+import { writable, type Readable } from 'svelte/store';
 
 type Loadable<T> =
   | {
@@ -19,7 +19,7 @@ type Loadable<T> =
 function useLoadableInternal<T>(
   atom: State<Promise<T>> | Computed<Promise<T>>,
   keepLastResolved: boolean,
-): Writable<Loadable<T>> {
+): Readable<Loadable<T>> {
   const promise = useGet(atom);
   const loadable = writable<Loadable<T>>({
     state: 'loading',
@@ -27,7 +27,6 @@ function useLoadableInternal<T>(
 
   let abortController = new AbortController();
   onDestroy(() => {
-    console.log('onDestroy');
     abortController.abort();
   });
 
@@ -66,10 +65,10 @@ function useLoadableInternal<T>(
   return loadable;
 }
 
-export function useLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Writable<Loadable<T>> {
+export function useLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Readable<Loadable<T>> {
   return useLoadableInternal(atom, false);
 }
 
-export function useLastLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Writable<Loadable<T>> {
+export function useLastLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Readable<Loadable<T>> {
   return useLoadableInternal(atom, true);
 }
