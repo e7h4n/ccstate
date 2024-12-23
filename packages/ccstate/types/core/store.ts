@@ -8,6 +8,7 @@ export interface Store {
 
 export interface SubscribeOptions {
   signal?: AbortSignal;
+  immediate?: boolean;
 }
 
 export type CallbackFunc<T> = Command<T, []>;

@@ -221,6 +221,20 @@ store.sub(
 store.set(base$, 10); // will log to console 'double 20'
 ```
 
+`sub` takes an optional `options` parameter, which can be used to trigger the subscription immediately.
+
+```typescript
+store.sub(
+  base$,
+  command(({ get }) => {
+    console.log('double', get(double$));
+  }),
+  {
+    immediate: true, // will syncronized log to console 'double 20' after sub successfully
+  },
+);
+```
+
 There are two ways to unsubscribe:
 
 1. Using the `unsub` function returned by `store.sub`

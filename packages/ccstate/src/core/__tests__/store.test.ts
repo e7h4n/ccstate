@@ -767,3 +767,13 @@ it('get default store should be same', () => {
   const store2 = getDefaultStore();
   expect(store1).toBe(store2);
 });
+
+it('trigger sub immediately', () => {
+  const store = createStore();
+  const base$ = state(0);
+  const trace = vi.fn();
+  store.sub(base$, command(trace), {
+    immediate: true,
+  });
+  expect(trace).toHaveBeenCalledTimes(1);
+});

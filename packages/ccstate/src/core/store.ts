@@ -171,6 +171,10 @@ export class StoreImpl implements Store {
       throw new Error('interceptor must call fn sync');
     }
 
+    if (options?.immediate) {
+      this.set(cb$);
+    }
+
     return unsub;
   }
 
