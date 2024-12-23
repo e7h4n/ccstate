@@ -163,8 +163,8 @@ import { useCCState, useComputed, useCommand } from 'ccstate-react';
 
 function App() {
   const count$ = useCCState(0);
-  const double$ = useComputed(() => count$ * 2);
-  const incrementTriple$ = useCommand((diff) => count$.set(count$ + diff * 3));
+  const double$ = useComputed((get) => get(count$) * 2);
+  const incrementTriple$ = useCommand(({ set, get }, diff: number) => set(count$, get(count$) + diff * 3));
 
   // ...
 }
