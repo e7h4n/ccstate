@@ -77,8 +77,15 @@ function generateTarget({ input, targetCJS, targetES }) {
 }
 
 /** @type { Array<import('rollup').RollupOptions> } */
-export default generateTarget({
-  input: './src/index.ts',
-  targetCJS: './dist/index.cjs',
-  targetES: './dist/index.js',
-});
+export default [
+  ...generateTarget({
+    input: './src/index.ts',
+    targetCJS: './dist/index.cjs',
+    targetES: './dist/index.js',
+  }),
+  ...generateTarget({
+    input: './src/experimental.ts',
+    targetCJS: './dist/experimental.cjs',
+    targetES: './dist/experimental.js',
+  }),
+];

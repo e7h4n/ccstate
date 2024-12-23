@@ -150,3 +150,60 @@ function App() {
   return <button onClick={() => setCount((x) => x + 1)}>Increment</button>;
 }
 ```
+
+## Creating Inline Atoms
+
+> [!CAUTION]
+> Creating Inline Atoms is an experimental feature and may be changed in the future.
+
+Using `useCCState`, `useComputed`, and `useCommand` hooks, you can create atoms directly within your React components.
+
+```jsx
+import { useCCState, useComputed, useCommand } from 'ccstate-react';
+
+function App() {
+  const count$ = useCCState(0);
+  const double$ = useComputed(() => count$ * 2);
+  const incrementTriple$ = useCommand((diff) => count$.set(count$ + diff * 3));
+
+  // ...
+}
+```
+
+These atoms should be used by `useGet`, `useSet` as other normal atoms.
+
+```jsx
+function App() {
+  const count$ = useCCState(0);
+  const count = useGet(count$);
+  const setCount = useSet(count$);
+
+  return (
+    <>
+      <div>{count}</div>
+      <button onClick={() => setCount((x) => x + 1)}>Increment</button>
+    </>
+  );
+}
+```
+
+`useComputed` is similar to `useMemo`, but it can automatically track dependencies, so you don't need to manually specify a dependency array like with `useMemo`. And async `Computed` is also supported as normal.
+
+```jsx
+function App() {
+  const userId$ = useCCState('');
+  const user$ = useComputed((get) => fetch(`/api/users/${get(userId$)}`).then((resp) => resp.json()));
+
+  const updateUserId = useSet(userId$);
+  const user = useLastResolved(user$);
+
+  return (
+    <>
+      <div>{user?.name}</div>
+      <input value={userId} onChange={(e) => updateUserId(e.target.value)} />
+    </>
+  );
+}
+```
+
+`useCommand` is nothing special but should useful for passing a callback command to other components as props or another `Command`.
