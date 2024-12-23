@@ -3,7 +3,6 @@ import { afterEach, expect, it } from 'vitest';
 import { createDebugStore, state } from 'ccstate';
 import '@testing-library/jest-dom/vitest';
 import Loadable from './Loadable.svelte';
-import { delay } from 'signal-timers';
 import { StoreKey } from '../provider';
 
 function makeDefered<T>(): {
