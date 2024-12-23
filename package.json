@@ -20,6 +20,7 @@
     "build:extra:react": "pnpm -F ccstate-react build",
     "build:extra:vue": "pnpm -F ccstate-vue build",
     "build:extra:solid": "pnpm -F ccstate-solid build",
+    "build:extra:svelte": "pnpm -F ccstate-svelte build",
     "lint": "pnpm '/^lint:.*/'",
     "lint:type": "pnpm -F ccstate exec tsc --noEmit && pnpm -F ccstate-babel exec tsc --noEmit",
     "lint:eslint": "eslint .",
@@ -31,6 +32,7 @@
     "publish:react": "pnpm -F ccstate-react publish ; echo 0",
     "publish:vue": "pnpm -F ccstate-vue publish ; echo 0",
     "publish:solid": "pnpm -F ccstate-solid publish ; echo 0",
+    "publish:svelte": "pnpm -F ccstate-svelte publish ; echo 0",
     "prepare": "husky"
   },
   "engines": {
