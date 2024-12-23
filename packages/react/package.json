@@ -19,9 +19,9 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
-    "./experimental": {
-      "import": "./dist/experimental.js",
-      "require": "./dist/experimental.cjs"
+    "./migrate": {
+      "import": "./dist/migrate.js",
+      "require": "./dist/migrate.cjs"
     }
   },
   "peerDependencies": {

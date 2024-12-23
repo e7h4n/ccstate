@@ -1,5 +1,6 @@
-import { command, computed, state, type Command, type Computed, type State } from 'ccstate';
-import { useRef } from 'react';
+import { command, computed, state, type Command, type Computed, type State, type Subscribe } from 'ccstate';
+import { useEffect, useRef } from 'react';
+import { useStore } from './provider';
 
 function useRefFactory<T>(factory: () => T): T {
   const ref = useRef<T | null>(null);
@@ -28,4 +29,12 @@ export function useCommand<T, Args extends unknown[]>(...args: Parameters<typeof
   return useRefFactory<Command<T, Args>>(() => {
     return command(...args);
   });
+}
+
+export function useSub(...args: Parameters<Subscribe>) {
+  const store = useStore();
+
+  useEffect(() => {
+    return store.sub(...args);
+  }, []);
 }
