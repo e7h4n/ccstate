@@ -767,3 +767,37 @@ it('get default store should be same', () => {
   const store2 = getDefaultStore();
   expect(store1).toBe(store2);
 });
+
+it('test glitch', () => {
+  const base$ = state(0, {
+    debugLabel: 'base$',
+  });
+  const second$ = computed((get) => get(base$), {
+    debugLabel: 'second$',
+  });
+  const threshold$ = computed((get) => get(second$) + 1, {
+    debugLabel: 'threshold$',
+  });
+  const trace = vi.fn();
+  const g$ = computed(
+    (get) => {
+      const second = get(second$);
+      const ret = get(threshold$) > second;
+      trace(ret);
+      return ret;
+    },
+    {
+      debugLabel: 'g$',
+    },
+  );
+
+  const store = createDebugStore([/./], ['set', 'get', 'computed']);
+  store.sub(
+    g$,
+    command(() => void 0),
+  );
+
+  expect(store.get(g$)).toBe(true);
+  store.set(base$, 1);
+  expect(trace).not.toHaveBeenCalledWith(false);
+});
