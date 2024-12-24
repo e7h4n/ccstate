@@ -4,7 +4,7 @@ import { command, type State } from 'ccstate';
 import type { PrimitiveAtom } from 'jotai/vanilla';
 import { ccstateStrategy } from './strategy/ccstate';
 import { jotaiStrategy } from './strategy/jotai';
-import { signalStrategy } from './strategy/signals';
+import { preactSignalStrategy } from './strategy/preact-signals';
 
 test('ccstate write scenario', () => {
   const { cleanup, atoms, store } = setupStore(2, ccstateStrategy);
@@ -29,7 +29,7 @@ test('jotai write scenario', () => {
 });
 
 test('signals write scenario', () => {
-  const { cleanup, atoms: signals } = setupStore(2, signalStrategy);
+  const { cleanup, atoms: signals } = setupStore(2, preactSignalStrategy);
   for (let i = 0; i < signals[0].length / 10; i++) {
     const signal = signals[0][i * 10];
     signal.value = signal.value + 1;

@@ -2,7 +2,10 @@ import { computed, effect, signal } from '@preact/signals';
 import type { Signal } from '@preact/signals';
 import type { Strategy } from './type';
 
-export const signalStrategy: Strategy<Signal<number>, { set: (signal: Signal<number>, value: number) => void }> = {
+export const preactSignalStrategy: Strategy<
+  Signal<number>,
+  { set: (signal: Signal<number>, value: number) => void }
+> = {
   createStore() {
     return {
       get: (signal: Signal<number>) => signal.value,

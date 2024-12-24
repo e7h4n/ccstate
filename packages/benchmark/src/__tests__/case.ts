@@ -1,10 +1,5 @@
 import type { Strategy } from './strategy/type';
 
-function fib(n: number): number {
-  if (n <= 1) return n;
-  return fib(n - 1) + fib(n - 2);
-}
-
 function deriveAtoms<T, S>(atoms: T[], childCount: number, strategy: Strategy<T, S>): T[][] {
   let pendingAtoms: T[] = [...atoms];
   const result: T[][] = [];
@@ -53,7 +48,6 @@ export function setupStore<T, S>(scale: number, strategy: Strategy<T, S>) {
       cleanups.push(
         strategy.sub(store, atom, () => {
           strategy.get(store, atom);
-          fib(10);
         }),
       );
     }

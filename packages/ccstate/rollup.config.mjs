@@ -43,10 +43,12 @@ function generateTarget({ input, targetCJS, targetES }) {
         {
           file: targetCJS,
           format: 'cjs',
+          sourcemap: true,
         },
         {
           file: targetES,
           format: 'es',
+          sourcemap: true,
         },
       ],
     },
@@ -67,9 +69,11 @@ function generateTarget({ input, targetCJS, targetES }) {
       output: [
         {
           file: targetCJS.replace(/\.cjs$/, '.d.cts'),
+          sourcemap: true,
         },
         {
           file: targetES.replace(/\.js$/, '.d.ts'),
+          sourcemap: true,
         },
       ],
     },
