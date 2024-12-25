@@ -15,9 +15,9 @@ The name of CCState comes from three basic types: `Computed`, `Command`, and `St
 
 ## Quick Features
 
+- ✈️ Intuitive async computation: using async/await or try/catch to process async flow as regular JavaScript without any additional concept
 - 💯 Simple & Intuitive: Crystal-clear API design with just three types and two operations
 - ✅ Rock-solid Reliability: Comprehensive test coverage reaching 100% branch coverage
-- ✈️ Intuitive async computation: using async/await or try/catch to process async flow as regular JavaScript without any additional concept
 - 💡 Framework Agnostic: Seamlessly works with [React](docs/react.md), [Vue](docs/vue.md), [Solid.js](docs/solid.md), [Vanilla](docs/vanilla.md), or any UI framework
 
 ## Getting Started
