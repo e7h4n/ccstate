@@ -3,7 +3,7 @@ export interface Setter {
   <T>(state: State<T>, val: T | Updater<T>): void;
   <T, Args extends unknown[]>(command: Command<T, Args>, ...args: Args): T;
 }
-export type Getter = <T>(readable: ReadableAtom<T>) => T;
+export type Getter = <T>(readable: Signal<T>) => T;
 export interface GetterOptions {
   signal: AbortSignal;
 }
@@ -26,5 +26,4 @@ export interface Command<T, Args extends unknown[]> {
   toString: () => string;
 }
 
-export type ReadableAtom<T> = State<T> | Computed<T>;
-export type WritableAtom<T> = State<T> | Command<T, unknown[]>;
+export type Signal<T> = State<T> | Computed<T>;
