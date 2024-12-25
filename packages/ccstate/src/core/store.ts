@@ -230,9 +230,8 @@ export interface ComputedState<T> {
   abortController?: AbortController;
 }
 
-type CommonReadableState<T> = StateState<T> | ComputedState<T>;
-
-type AtomState<T> = StateState<T> | ComputedState<T>;
+type SignalState<T> = StateState<T> | ComputedState<T>;
+type StateMap = WeakMap<ReadableAtom<unknown>, SignalState<unknown>>;
 
 interface Mounted {
   listeners: Set<Command<unknown, []>>;
@@ -243,12 +242,12 @@ function canReadAsCompute<T>(atom: ReadableAtom<T>): atom is Computed<T> {
   return 'read' in atom;
 }
 
-function isComputedState<T>(state: CommonReadableState<T>): state is ComputedState<T> {
+function isComputedState<T>(state: SignalState<T>): state is ComputedState<T> {
   return 'dependencies' in state;
 }
 
 class AtomManager {
-  private atomStateMap = new WeakMap<ReadableAtom<unknown>, AtomState<unknown>>();
+  private atomStateMap: StateMap = new WeakMap();
 
   constructor(private readonly options?: StoreOptions) {}
 
@@ -405,11 +404,11 @@ class AtomManager {
 
   public readAtomState<T>(atom: State<T>, ignoreMounted?: boolean): StateState<T>;
   public readAtomState<T>(atom: Computed<T>, ignoreMounted?: boolean): ComputedState<T>;
-  public readAtomState<T>(atom: State<T> | Computed<T>, ignoreMounted?: boolean): CommonReadableState<T>;
+  public readAtomState<T>(atom: State<T> | Computed<T>, ignoreMounted?: boolean): SignalState<T>;
   public readAtomState<T>(
     atom: State<T> | Computed<T>,
     ignoreMounted = false,
-  ): StateState<T> | ComputedState<T> | CommonReadableState<T> {
+  ): StateState<T> | ComputedState<T> | SignalState<T> {
     if (canReadAsCompute(atom)) {
       return this.readComputedAtom(atom, ignoreMounted);
     }
