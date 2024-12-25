@@ -1,8 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { computed, command, state } from '../atom';
 import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
-import { AtomManager, ListenerManager } from '../atom-manager';
-import { StoreImpl } from '../store';
+import { AtomManager, ListenerManager, StoreImpl } from '../store';
 import type { Command, ReadableAtom, Updater, State } from '../../../types/core/atom';
 
 function createStoreForTest(options: StoreOptions): Store {

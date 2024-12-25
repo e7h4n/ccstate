@@ -1,8 +1,7 @@
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
 import type { DebugStore, NestedAtom } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
-import { AtomManager, ListenerManager } from '../core/atom-manager';
-import { StoreImpl } from '../core/store';
+import { AtomManager, ListenerManager, StoreImpl } from '../core/store';
 
 export class DebugStoreImpl extends StoreImpl implements DebugStore {
   private readonly mountedAtomListenersCount = new Map<State<unknown> | Computed<unknown>, number>();
