@@ -87,7 +87,7 @@ export default function App() {
 }
 ```
 
-That's it! [Click here to see the full example](https://codesandbox.io/p/sandbox/cr3xg6).
+That's it! [Click here to see the full example](https://stackblitz.com/edit/vitejs-vite-rert8c7a?file=src%2FApp.tsx).
 
 Through these examples, you should have understood the basic usage of CCState. Next, you can read to learn about CCState's core APIs.
 
