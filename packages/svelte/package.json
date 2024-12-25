@@ -20,7 +20,7 @@
       "require": "./dist/index.cjs"
     }
   },
-  "peerDependencies": {
+  "dependencies": {
     "ccstate": "workspace:^"
   },
   "devDependencies": {

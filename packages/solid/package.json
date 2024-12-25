@@ -21,8 +21,10 @@
     }
   },
   "peerDependencies": {
-    "ccstate": "workspace:^",
     "solid-js": ">=1.6.0"
+  },
+  "dependencies": {
+    "ccstate": "workspace:^"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.26.0",

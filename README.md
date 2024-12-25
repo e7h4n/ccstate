@@ -9,17 +9,15 @@
 [![CI](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml/badge.svg)](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-CCState is a semantic, strict, and flexible state management library suitable for medium to large single-page applications with complex state management needs.
+CCState is a modern signals-based state management library that elegantly implements async computed and read-write capability isolation based on signals features, making it suitable for medium to large web applications.
 
-The name of CCState comes from three basic data types: computed, command, and state.
+The name of CCState comes from three basic types: computed, command, and state.
 
 ## Quick Features
 
-- 💯 Simple & Intuitive: Crystal-clear API design with just 3 data types and 2 operations
+- 💯 Simple & Intuitive: Crystal-clear API design with just 3 types and 2 operations
 - ✅ Rock-solid Reliability: Comprehensive test coverage reaching 100% branch coverage
-- 🪶 Ultra-lightweight: Zero dependencies, only 500 lines of core code
 - 💡 Framework Agnostic: Seamlessly works with [React](docs/react.md), [Vue](docs/vue.md), [Solid.js](docs/solid.md), [Vanilla](docs/vanilla.md), or any UI framework
-- 🚀 Blazing Fast: Optimized performance from day one, 2x-7x faster than Jotai across scenarios
 
 ## Getting Started
 
@@ -36,16 +34,18 @@ pnpm add ccstate
 yarn add ccstate
 ```
 
-### Create Data
+### Create Signals
 
 Use `state` to store a simple value unit, and use `computed` to create a derived computation logic:
 
 ```ts
-// data.js
+// signals.js
 import { state, computed } from 'ccstate';
 
+// a simple value unit which supports read/write
 export const userId$ = state('');
 
+// intuitive async computation logic
 export const user$ = computed(async (get) => {
   const userId = get(userId$);
   if (!userId) return null;
@@ -55,14 +55,14 @@ export const user$ = computed(async (get) => {
 });
 ```
 
-### Use data in React
+### Use signals in React
 
-Use `useGet` and `useSet` hooks in React to get/set data, and use `useResolved` to get Promise value.
+Use `useGet` and `useSet` hooks in React to get/set signals, and use `useResolved` to get Promise value.
 
 ```jsx
-// App.js
+// App.jsx
 import { useGet, useSet, useResolved } from 'ccstate-react';
-import { userId$, user$ } from './data';
+import { userId$, user$ } from './signals';
 
 export default function App() {
   const userId = useGet(userId$);
@@ -84,15 +84,6 @@ export default function App() {
     </div>
   );
 }
-
-// main.jsx
-import { createRoot } from 'react-dom/client';
-import App from './App';
-
-const rootElement = document.getElementById('root');
-const root = createRoot(rootElement);
-
-root.render(<App />);
 ```
 
 That's it! [Click here to see the full example](https://codesandbox.io/p/sandbox/cr3xg6).
@@ -121,13 +112,14 @@ const user$ = state<({
   name: 'e7h4n',
   avatar: 'https://avatars.githubusercontent.com/u/813596',
 } | undefined>(undefined);
+
 store.set({
   name: 'yc-kanyun',
   avatar: 'https://avatars.githubusercontent.com/u/168416598'
 });
 ```
 
-These examples should be very easy to understand. You might notice a detail in the examples: all variables returned by `state` have a `$` suffix. This is a naming convention used to distinguish an CCState data type from other regular types. CCState data types must be accessed through the store's get/set methods, and since it's common to convert an CCState data type to a regular type using get, the `$` suffix helps avoid naming conflicts.
+These examples should be very easy to understand. You might notice a detail in the examples: all variables returned by `state` have a `$` suffix. This is a naming convention used to distinguish an CCState signal type from other regular types. CCState signal types must be accessed through the store's get/set methods, and since it's common to convert an CCState signal type to a regular type using get, the `$` suffix helps avoid naming conflicts.
 
 ### Store
 
@@ -143,7 +135,7 @@ const otherStore = createStore(); // another new Map()
 otherStore.get(count$); // anotherMap[$count] ?? $count.init, returns 0
 ```
 
-This should be easy to understand. If `Store` only needed to support `State` types, a simple Map would be sufficient. However, CCState needs to support two additional data types. Next, let's introduce `Computed`, CCState's reactive computation unit.
+This should be easy to understand. If `Store` only needed to support `State` types, a simple Map would be sufficient. However, CCState needs to support two additional signal types. Next, let's introduce `Computed`, CCState's reactive computation unit.
 
 ### Computed
 
@@ -168,13 +160,13 @@ Does this example seem less intuitive than `State`? Here's a mental model that m
 - `computed(fn)` returns an object `{read: fn}`, which is assigned to `user$`
 - When `store.get(user$)` encounters an object which has a read function, it calls that function: `user$.read(store.get)`
 
-This way, `Computed` receives a get accessor that can access other data in the store. This get accessor is similar to `store.get` and can be used to read both `State` and `Computed`. The reason CCState specifically passes a get method to `Computed`, rather than allowing direct access to the store within `Computed`, is to shield the logic within `Computed` from other store methods like `store.set`. The key characteristic of `Computed` is that it can only read states from the store but cannot modify them. In other words, `Computed` is side-effect free.
+This way, `Computed` receives a get accessor that can access other signal in the store. This get accessor is similar to `store.get` and can be used to read both `State` and `Computed`. The reason CCState specifically passes a get method to `Computed`, rather than allowing direct access to the store within `Computed`, is to shield the logic within `Computed` from other store methods like `store.set`. The key characteristic of `Computed` is that it can only read states from the store but cannot modify them. In other words, `Computed` is side-effect free.
 
 In most cases, side-effect free computation logic is extremely useful. They can be executed any number of times and have few requirements regarding execution timing. `Computed` is one of the most powerful features in CCState, and you should try to write your logic as `Computed` whenever possible, unless you need to perform set operations on the `Store`.
 
 ### Command
 
-`Command` is CCState's logic unit for organizing side effects. It has both `set` and `get` accessors from the store, allowing it to not only read other data types but also modify `State` or call other `Command`.
+`Command` is CCState's logic unit for organizing side effects. It has both `set` and `get` accessors from the store, allowing it to not only read other signal types but also modify `State` or call other `Command`.
 
 ```typescript
 import { command, createStore } from 'ccstate';
@@ -332,9 +324,9 @@ While Jotai is a great state management solution that has benefited the Motiff p
 - Should reduce reactive capabilities, especially the `onMount` capability - the framework shouldn't provide this ability
 - Some implicit magic operations, especially Promise wrapping, make the application execution process less transparent
 
-To address these issues, I got an idea: "What concepts in Jotai are essential? And which concepts create mental overhead for developers?". Rather than just discussing it theoretically, I decided to try implementing it myself. So I created CCState to express my thoughts on state management. Before detailing the differences from Jotai, we need to understand CCState's data types and subscription system.
+To address these issues, I got an idea: "What concepts in Jotai are essential? And which concepts create mental overhead for developers?". Rather than just discussing it theoretically, I decided to try implementing it myself. So I created CCState to express my thoughts on state management. Before detailing the differences from Jotai, we need to understand CCState's signal types and subscription system.
 
-### More semantic data types
+### More semantic atom types
 
 Like Jotai, CCState is also an Atom State solution. However, unlike Jotai, CCState doesn't expose Raw Atom, instead dividing Atoms into three types:
 
@@ -355,7 +347,7 @@ export const userIdChange$ = command(({ get, set }) => {
 });
 
 // ...
-import { userId$, userIdChange$ } from './data';
+import { userId$, userIdChange$ } from './signals';
 
 function setupPage() {
   const store = createStore();
@@ -436,7 +428,7 @@ export function App() {
 When designing CCState, we wanted the trigger points for value changes to be completely detached from React's Mount/Unmount lifecycle and completely decoupled from React's rendering behavior.
 
 ```jsx
-// data.js
+// signals.js
 export const userId$ = state(0)
 export const init$ = command(({set}) => {
   const userId = // ... parse userId from location search

@@ -26,8 +26,10 @@
   },
   "peerDependencies": {
     "@types/react": ">=17.0.0",
-    "ccstate": "workspace:^",
     "react": ">=17.0.0"
+  },
+  "dependencies": {
+    "ccstate": "workspace:^"
   },
   "peerDependenciesMeta": {
     "@types/react": {
