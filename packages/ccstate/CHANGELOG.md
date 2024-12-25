@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.1.0
+
+### Minor Changes
+
+- 2ce0d1d: fix: glitch (#103)
+
 ## 4.0.0
 
 ### Major Changes

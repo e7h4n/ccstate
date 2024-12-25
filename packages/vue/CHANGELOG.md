@@ -1,5 +1,12 @@
 # ccstate-vue
 
+## 4.1.0
+
+### Patch Changes
+
+- Updated dependencies [2ce0d1d]
+  - ccstate@4.1.0
+
 ## 4.0.0
 
 ### Minor Changes
