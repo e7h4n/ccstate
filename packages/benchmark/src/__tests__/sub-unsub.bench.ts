@@ -31,7 +31,7 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
     });
 
     const { atoms: pSignals } = setupStoreWithoutSub(depth, preactSignalStrategy);
-    bench.skipIf(isCI || isBrowser)('preact-signals', () => {
+    bench.skipIf(isCI || isBrowser).skip('preact-signals', () => {
       const unsub = pEffect(() => {
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         pSignals[pSignals.length - 1][0].value;
@@ -40,7 +40,7 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
     });
 
     const { atoms: aSignals } = setupStoreWithoutSub(depth, alienSignalStrategy);
-    bench.skipIf(isCI || isBrowser)('alien-signals', () => {
+    bench.skipIf(isCI || isBrowser).skip('alien-signals', () => {
       const e = aEffect(() => {
         aSignals[aSignals.length - 1][0].get();
       });

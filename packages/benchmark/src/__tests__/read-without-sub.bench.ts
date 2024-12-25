@@ -39,7 +39,7 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
     });
 
     const { atoms: pSignals } = setupStoreWithoutSub(depth, preactSignalStrategy);
-    bench.skipIf(isCI || isBrowser)('preact-signals', () => {
+    bench.skipIf(isCI || isBrowser).skip('preact-signals', () => {
       for (let i = 0; i < pSignals[0].length / 10; i++) {
         const idx = Math.floor(Math.random() * pSignals[0].length);
         const signal = pSignals[0][idx];
@@ -48,7 +48,7 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
     });
 
     const { atoms: aSignals } = setupStoreWithoutSub(depth, alienSignalStrategy);
-    bench.skipIf(isCI || isBrowser)('alien-signals', () => {
+    bench.skipIf(isCI || isBrowser).skip('alien-signals', () => {
       for (let i = 0; i < aSignals[0].length / 10; i++) {
         const idx = Math.floor(Math.random() * aSignals[0].length);
         const signal = aSignals[0][idx] as Signal<number>;
