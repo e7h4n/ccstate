@@ -1,4 +1,4 @@
-import type { ReadableAtom, Command, Getter, Computed, State } from '../../types/core/atom';
+import type { Signal, Command, Getter, Computed, State } from '../../types/core/atom';
 import type { StoreOptions } from '../../types/core/store';
 
 type DataWithCalledState<T> =
@@ -19,7 +19,7 @@ export interface StateState<T> {
 export interface ComputedState<T> {
   mounted?: Mounted;
   val: T;
-  dependencies: Map<ReadableAtom<unknown>, number>;
+  dependencies: Map<Signal<unknown>, number>;
   epoch: number;
   abortController?: AbortController;
 }
@@ -30,10 +30,10 @@ type AtomState<T> = StateState<T> | ComputedState<T>;
 
 interface Mounted {
   listeners: Set<Command<unknown, []>>;
-  readDepts: Set<ReadableAtom<unknown>>;
+  readDepts: Set<Signal<unknown>>;
 }
 
-function canReadAsCompute<T>(atom: ReadableAtom<T>): atom is Computed<T> {
+function canReadAsCompute<T>(atom: Signal<T>): atom is Computed<T> {
   return 'read' in atom;
 }
 
@@ -42,7 +42,7 @@ function isComputedState<T>(state: CommonReadableState<T>): state is ComputedSta
 }
 
 export class AtomManager {
-  private atomStateMap = new WeakMap<ReadableAtom<unknown>, AtomState<unknown>>();
+  private atomStateMap = new WeakMap<Signal<unknown>, AtomState<unknown>>();
 
   constructor(private readonly options?: StoreOptions) {}
 
@@ -102,14 +102,14 @@ export class AtomManager {
     let atomState: ComputedState<T> | undefined = this.atomStateMap.get(self) as ComputedState<T> | undefined;
     if (!atomState) {
       atomState = {
-        dependencies: new Map<ReadableAtom<unknown>, number>(),
+        dependencies: new Map<Signal<unknown>, number>(),
         epoch: -1,
       } as ComputedState<T>;
       this.atomStateMap.set(self, atomState);
     }
 
     const lastDeps = atomState.dependencies;
-    const readDeps = new Map<ReadableAtom<unknown>, number>();
+    const readDeps = new Map<Signal<unknown>, number>();
     atomState.dependencies = readDeps;
     const wrappedGet: Getter = (depAtom) => {
       const depState = this.readAtomState(depAtom, ignoreMounted);
@@ -131,7 +131,7 @@ export class AtomManager {
 
     const getInterceptor = this.options?.interceptor?.get;
     const ret = self.read(
-      function <U>(depAtom: ReadableAtom<U>) {
+      function <U>(depAtom: Signal<U>) {
         if (!getInterceptor) {
           return wrappedGet(depAtom);
         }
@@ -211,11 +211,11 @@ export class AtomManager {
     return this.readStateAtom(atom);
   }
 
-  private tryGetMount(atom: ReadableAtom<unknown>): Mounted | undefined {
+  private tryGetMount(atom: Signal<unknown>): Mounted | undefined {
     return this.atomStateMap.get(atom)?.mounted;
   }
 
-  public mount<T>(atom: ReadableAtom<T>): Mounted {
+  public mount<T>(atom: Signal<T>): Mounted {
     const mounted = this.tryGetMount(atom);
     if (mounted) {
       return mounted;
@@ -240,7 +240,7 @@ export class AtomManager {
     return atomState.mounted;
   }
 
-  public tryUnmount<T>(atom: ReadableAtom<T>): void {
+  public tryUnmount<T>(atom: Signal<T>): void {
     const atomState = this.atomStateMap.get(atom);
     if (!atomState?.mounted || atomState.mounted.listeners.size || atomState.mounted.readDepts.size) {
       return;
@@ -259,7 +259,7 @@ export class AtomManager {
     atomState.mounted = undefined;
   }
 
-  public inited(atom: ReadableAtom<unknown>) {
+  public inited(atom: Signal<unknown>) {
     return this.atomStateMap.has(atom);
   }
 }
@@ -267,10 +267,10 @@ export class AtomManager {
 export class ListenerManager {
   private pendingListeners = new Set<Command<unknown, []>>();
 
-  markPendingListeners(atomManager: AtomManager, atom: ReadableAtom<unknown>) {
-    let queue: ReadableAtom<unknown>[] = [atom];
+  markPendingListeners(atomManager: AtomManager, atom: Signal<unknown>) {
+    let queue: Signal<unknown>[] = [atom];
     while (queue.length > 0) {
-      const nextQueue: ReadableAtom<unknown>[] = [];
+      const nextQueue: Signal<unknown>[] = [];
       for (const atom of queue) {
         const atomState = atomManager.readAtomState(atom, true);
 

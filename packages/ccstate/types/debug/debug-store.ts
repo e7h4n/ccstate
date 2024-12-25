@@ -1,11 +1,12 @@
-import type { Command, Computed, State } from '../core/atom';
+import type { Command, Computed, Signal, State } from '../core/atom';
 import type { Store } from '../core/store';
 
 export type NestedAtom = (State<unknown> | Computed<unknown> | Command<unknown, unknown[]> | NestedAtom)[];
-
+export type PropagationEdge = [Signal<unknown>, Signal<unknown> | Command<unknown, unknown[]>];
 export interface DebugStore extends Store {
   getReadDependencies: (atom: Computed<unknown>) => NestedAtom;
   getReadDependents: (atom: State<unknown> | Computed<unknown>) => NestedAtom;
   isMounted: (atom: State<unknown> | Computed<unknown>) => boolean;
   getSubscribeGraph: () => NestedAtom;
+  predictPropagationGraph: (atom: Signal<unknown>) => PropagationEdge[];
 }

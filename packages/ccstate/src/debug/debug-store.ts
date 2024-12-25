@@ -1,5 +1,6 @@
+import type { Signal } from '../../types/core/atom';
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
-import type { DebugStore, NestedAtom } from '../../types/debug/debug-store';
+import type { DebugStore, NestedAtom, PropagationEdge } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
 import { AtomManager, ListenerManager } from '../core/atom-manager';
 import { StoreImpl } from '../core/store';
@@ -75,6 +76,43 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   isMounted = (atom: State<unknown> | Computed<unknown>): boolean => {
     const mountState = this.atomManager.readAtomState(atom);
     return mountState.mounted !== undefined;
+  };
+
+  predictPropagationGraph = (state: Signal<unknown>): PropagationEdge[] => {
+    const result: PropagationEdge[] = [];
+    let atoms = [state];
+    let runCount = 0;
+    const visited = new Set<Signal<unknown>>();
+    while (atoms.length > 0) {
+      if (runCount++ > 10) {
+        return result;
+      }
+      const newAtoms: Signal<unknown>[] = [];
+      for (const atom of atoms) {
+        if (visited.has(atom)) {
+          continue;
+        }
+        visited.add(atom);
+        const atomState = this.atomManager.readAtomState(atom);
+        const mounted = atomState.mounted;
+        if (!mounted) {
+          continue;
+        }
+
+        mounted.listeners.forEach((l) => {
+          result.push([atom, l]);
+        });
+
+        mounted.readDepts.forEach((d) => {
+          result.push([atom, d]);
+          newAtoms.push(d);
+        });
+      }
+      console.log('newAtoms', newAtoms);
+      atoms = newAtoms;
+    }
+
+    return result;
   };
 }
 

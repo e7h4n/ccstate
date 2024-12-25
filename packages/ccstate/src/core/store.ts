@@ -1,4 +1,4 @@
-import type { ReadableAtom, Command, Getter, State, Updater, Setter } from '../../types/core/atom';
+import type { Signal, Command, Getter, State, Updater, Setter } from '../../types/core/atom';
 import type { Store, StoreOptions, SubscribeOptions } from '../../types/core/store';
 import { AtomManager, ListenerManager } from './atom-manager';
 
@@ -48,7 +48,7 @@ export class StoreImpl implements Store {
     return undefined;
   };
 
-  get: Getter = <T>(atom: ReadableAtom<T>): T => {
+  get: Getter = <T>(atom: Signal<T>): T => {
     if (!this.options?.interceptor?.get) {
       return this.atomManager.readAtomState(atom).val;
     }
@@ -119,7 +119,7 @@ export class StoreImpl implements Store {
   };
 
   private _subSingleAtom(
-    target$: ReadableAtom<unknown>,
+    target$: Signal<unknown>,
     cb$: Command<unknown, unknown[]>,
     options?: SubscribeOptions,
   ): () => void {
@@ -175,7 +175,7 @@ export class StoreImpl implements Store {
   }
 
   sub(
-    targets$: ReadableAtom<unknown>[] | ReadableAtom<unknown>,
+    targets$: Signal<unknown>[] | Signal<unknown>,
     cb$: Command<unknown, unknown[]>,
     options?: SubscribeOptions,
   ): () => void {

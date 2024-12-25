@@ -41,6 +41,7 @@
     "@babel/preset-typescript": "^7.26.0",
     "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-node-resolve": "^15.3.0",
+    "cytoscape": "^3.30.4",
     "jest-leak-detector": "^29.7.0",
     "json": "^11.0.0",
     "rollup": "^4.28.1",
