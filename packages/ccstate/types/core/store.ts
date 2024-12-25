@@ -28,7 +28,7 @@ export type InterceptorUnsub = <T>(atom$: Signal<T>, callback$: CallbackFunc<T>,
 export type InterceptorMount = <T>(atom$: Signal<T>) => void;
 export type InterceptorUnmount = <T>(atom$: Signal<T>) => void;
 export type InterceptorNotify = <T>(callback$: CallbackFunc<T>, fn: () => T) => void;
-export type InterceptorComputed = <T>(atom$: Computed<T>, fn: () => T) => void;
+export type InterceptorComputed = <T>(atom$: Signal<T>, fn: () => T) => void;
 
 export interface StoreInterceptor {
   get?: InterceptorGet;

@@ -1,10 +1,10 @@
 import type { Command, Getter, Setter, Signal, State, Updater } from '../../types/core/atom';
 import type { Store, StoreOptions, SubscribeOptions } from '../../types/core/store';
-import { get, set, sub, type Context, type StateMap } from './signal-manager';
+import { get, set, sub, type StoreContext, type StateMap } from './signal-manager';
 
 export class StoreImpl implements Store {
   protected readonly stateMap: StateMap = new WeakMap();
-  protected readonly context: Context;
+  protected readonly context: StoreContext;
 
   constructor(protected readonly options?: StoreOptions) {
     this.context = {

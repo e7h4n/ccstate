@@ -1,5 +1,6 @@
 import type { Signal, Command, Getter, State, Updater, Setter, Computed } from '../../types/core/atom';
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
+import { withGetStateInterceptor, withGeValInterceptor } from './interceptor';
 import { canReadAsCompute, isComputedState } from './typing-util';
 
 type DataWithCalledState<T> =
@@ -11,12 +12,12 @@ type DataWithCalledState<T> =
       data: T;
     };
 
-export interface Context {
+export interface StoreContext {
   stateMap: StateMap;
   interceptor?: StoreInterceptor;
 }
 
-interface Batch {
+interface Mutation {
   ignoreMounted?: boolean;
   pendingListeners: Set<Command<unknown, []>>;
 }
@@ -29,18 +30,22 @@ interface Mounted {
   readDepts: Set<Signal<unknown>>;
 }
 
-function tryGetCached<T>(computed: Computed<T>, context: Context, batch?: Batch): ComputedState<T> | undefined {
+function tryGetCached<T>(
+  computed: Computed<T>,
+  context: StoreContext,
+  mutation?: Mutation,
+): ComputedState<T> | undefined {
   const signalState = context.stateMap.get(computed) as ComputedState<T> | undefined;
   if (!signalState) {
     return undefined;
   }
 
-  if (signalState.mounted && !batch?.ignoreMounted) {
+  if (signalState.mounted && !mutation?.ignoreMounted) {
     return signalState;
   }
 
   for (const [dep, epoch] of signalState.dependencies.entries()) {
-    const depState = readSignalState(dep, context, batch);
+    const depState = readSignalState(dep, context, mutation);
     if (depState.epoch !== epoch) {
       return undefined;
     }
@@ -49,38 +54,22 @@ function tryGetCached<T>(computed: Computed<T>, context: Context, batch?: Batch)
   return signalState;
 }
 
-function readComputed<T>(computed: Computed<T>, context: Context, batch?: Batch): ComputedState<T> {
-  const cachedState = tryGetCached(computed, context, batch);
+function readComputed<T>(computed: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
+  const cachedState = tryGetCached(computed, context, mutation);
   if (cachedState) {
     return cachedState;
   }
 
-  const computedInterceptor = context.interceptor?.computed;
-  if (!computedInterceptor) {
-    return computeComputedAtom(computed, context, batch);
-  }
-
-  let result: DataWithCalledState<ComputedState<T>> = {
-    called: false,
-  } as DataWithCalledState<ComputedState<T>>;
-
-  computedInterceptor(computed, () => {
-    result = {
-      called: true,
-      data: computeComputedAtom(computed, context, batch),
-    };
-
-    return result.data.val;
-  });
-
-  if (!result.called) {
-    throw new Error('interceptor must call fn sync');
-  }
-
-  return result.data;
+  return withGetStateInterceptor(
+    () => {
+      return computeComputedAtom(computed, context, mutation);
+    },
+    computed,
+    context.interceptor?.computed,
+  );
 }
 
-function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Batch): ComputedState<T> {
+function computeComputedAtom<T>(atom: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
   const self: Computed<T> = atom;
   let atomState: ComputedState<T> | undefined = context.stateMap.get(self) as ComputedState<T> | undefined;
   if (!atomState) {
@@ -95,7 +84,7 @@ function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Bat
   const readDeps = new Map<Signal<unknown>, number>();
   atomState.dependencies = readDeps;
   const wrappedGet: Getter = (depAtom) => {
-    const depState = readSignalState(depAtom, context, batch);
+    const depState = readSignalState(depAtom, context, mutation);
 
     // get 可能发生在异步过程中，当重复调用时，只有最新的 get 过程会修改 deps
     if (atomState.dependencies === readDeps) {
@@ -103,7 +92,7 @@ function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Bat
 
       const selfMounted = !!atomState.mounted;
       if (selfMounted && !depState.mounted) {
-        tryMount(depAtom, context, batch).readDepts.add(self);
+        tryMount(depAtom, context, mutation).readDepts.add(self);
       } else if (selfMounted && depState.mounted) {
         depState.mounted.readDepts.add(self);
       }
@@ -112,32 +101,9 @@ function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Bat
     return depState.val;
   };
 
-  const getInterceptor = context.interceptor?.get;
   const ret = self.read(
     function <U>(depAtom: Signal<U>) {
-      if (!getInterceptor) {
-        return wrappedGet(depAtom);
-      }
-
-      let result: DataWithCalledState<U> = {
-        called: false,
-      } as DataWithCalledState<U>;
-
-      const fn = () => {
-        result = {
-          called: true,
-          data: wrappedGet(depAtom),
-        };
-
-        return result.data;
-      };
-
-      getInterceptor(depAtom, fn);
-
-      if (!result.called) {
-        throw new Error('interceptor must call fn sync');
-      }
-      return result.data;
+      return withGeValInterceptor(() => wrappedGet(depAtom), depAtom, context.interceptor?.get);
     },
     {
       get signal() {
@@ -158,7 +124,7 @@ function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Bat
       const depState = context.stateMap.get(key);
       if (depState?.mounted) {
         depState.mounted.readDepts.delete(self);
-        tryUnmount(key, context, batch);
+        tryUnmount(key, context, mutation);
       }
     }
   }
@@ -166,7 +132,7 @@ function computeComputedAtom<T>(atom: Computed<T>, context: Context, batch?: Bat
   return atomState;
 }
 
-function readStateAtom<T>(state: State<T>, context: Context): StateState<T> {
+function readStateAtom<T>(state: State<T>, context: StoreContext): StateState<T> {
   const atomState = context.stateMap.get(state);
   if (!atomState) {
     const initState = {
@@ -180,9 +146,9 @@ function readStateAtom<T>(state: State<T>, context: Context): StateState<T> {
   return atomState as StateState<T>;
 }
 
-export function readSignalState<T>(signal: Signal<T>, context: Context, batch?: Batch): SignalState<T> {
+export function readSignalState<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
   if (canReadAsCompute(signal)) {
-    return readComputed(signal, context, batch);
+    return readComputed(signal, context, mutation);
   }
 
   return readStateAtom(signal, context);
@@ -192,7 +158,7 @@ function tryGetMount(atom: Signal<unknown>, stateMap: StateMap): Mounted | undef
   return stateMap.get(atom)?.mounted;
 }
 
-function tryMount<T>(signal: Signal<T>, context: Context, batch?: Batch): Mounted {
+function tryMount<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
   const mounted = tryGetMount(signal, context.stateMap);
   if (mounted) {
     return mounted;
@@ -200,7 +166,7 @@ function tryMount<T>(signal: Signal<T>, context: Context, batch?: Batch): Mounte
 
   context.interceptor?.mount?.(signal);
 
-  const atomState = readSignalState(signal, context, batch);
+  const atomState = readSignalState(signal, context, mutation);
 
   atomState.mounted = atomState.mounted ?? {
     listeners: new Set(),
@@ -209,7 +175,7 @@ function tryMount<T>(signal: Signal<T>, context: Context, batch?: Batch): Mounte
 
   if (isComputedState(atomState)) {
     for (const [dep] of Array.from(atomState.dependencies)) {
-      const mounted = tryMount(dep, context, batch);
+      const mounted = tryMount(dep, context, mutation);
       mounted.readDepts.add(signal);
     }
   }
@@ -217,7 +183,7 @@ function tryMount<T>(signal: Signal<T>, context: Context, batch?: Batch): Mounte
   return atomState.mounted;
 }
 
-function tryUnmount<T>(signal: Signal<T>, context: Context, batch?: Batch): void {
+function tryUnmount<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): void {
   const atomState = context.stateMap.get(signal);
   if (!atomState?.mounted || atomState.mounted.listeners.size || atomState.mounted.readDepts.size) {
     return;
@@ -227,9 +193,9 @@ function tryUnmount<T>(signal: Signal<T>, context: Context, batch?: Batch): void
 
   if (isComputedState(atomState)) {
     for (const [dep] of Array.from(atomState.dependencies)) {
-      const depState = readSignalState(dep, context, batch);
+      const depState = readSignalState(dep, context, mutation);
       depState.mounted?.readDepts.delete(signal);
-      tryUnmount(dep, context, batch);
+      tryUnmount(dep, context, mutation);
     }
   }
 
@@ -239,7 +205,7 @@ function tryUnmount<T>(signal: Signal<T>, context: Context, batch?: Batch): void
 function subSingleSignal<T>(
   signal$: Signal<T>,
   callback$: Command<unknown, []>,
-  context: Context,
+  context: StoreContext,
   options?: SubscribeOptions,
 ) {
   let unsub: (() => void) | undefined;
@@ -296,7 +262,7 @@ function subSingleSignal<T>(
 export function sub<T>(
   signals$: Signal<T>[] | Signal<T>,
   callback$: Command<unknown, []>,
-  context: Context,
+  context: StoreContext,
   options?: SubscribeOptions,
 ): () => void {
   if (Array.isArray(signals$) && signals$.length === 0) {
@@ -323,9 +289,9 @@ export function sub<T>(
   return unsub;
 }
 
-export function get<T>(signal: Signal<T>, context: Context, batch?: Batch): T {
+export function get<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): T {
   if (!context.interceptor?.get) {
-    return readSignalState(signal, context, batch).val;
+    return readSignalState(signal, context, mutation).val;
   }
 
   let result: DataWithCalledState<T> = {
@@ -335,7 +301,7 @@ export function get<T>(signal: Signal<T>, context: Context, batch?: Batch): T {
   const fnWithRet = () => {
     result = {
       called: true,
-      data: readSignalState(signal, context, batch).val,
+      data: readSignalState(signal, context, mutation).val,
     };
     return result.data;
   };
@@ -348,15 +314,15 @@ export function get<T>(signal: Signal<T>, context: Context, batch?: Batch): T {
   return result.data;
 }
 
-function wrapVisitor(context: Context, batch: Batch) {
+function wrapVisitor(context: StoreContext, mutation: Mutation) {
   const wrappedGet: Getter = <T>(signal: Signal<T>) => {
-    return get(signal, context, batch);
+    return get(signal, context, mutation);
   };
   const wrappedSet: Setter = <T, Args extends unknown[]>(
     signal: State<T> | Command<T, Args>,
     ...args: [T | Updater<T>] | Args
   ): undefined | T => {
-    return set<T, Args>(signal, context, batch, ...args);
+    return set<T, Args>(signal, context, mutation, ...args);
   };
 
   return {
@@ -367,8 +333,8 @@ function wrapVisitor(context: Context, batch: Batch) {
 
 function innerSet<T, Args extends unknown[]>(
   atom: State<T> | Command<T, Args>,
-  context: Context,
-  batch: Batch,
+  context: StoreContext,
+  mutation: Mutation,
   ...args: [T | Updater<T>] | Args
 ): undefined | T {
   if ('read' in atom) {
@@ -376,12 +342,14 @@ function innerSet<T, Args extends unknown[]>(
   }
 
   if ('write' in atom) {
-    const ret = atom.write(wrapVisitor(context, batch), ...(args as Args));
+    const ret = atom.write(wrapVisitor(context, mutation), ...(args as Args));
     return ret;
   }
 
   const newValue =
-    typeof args[0] === 'function' ? (args[0] as Updater<T>)(readSignalState(atom, context, batch).val) : (args[0] as T);
+    typeof args[0] === 'function'
+      ? (args[0] as Updater<T>)(readSignalState(atom, context, mutation).val)
+      : (args[0] as T);
 
   if (!context.stateMap.has(atom)) {
     context.stateMap.set(atom, {
@@ -390,27 +358,27 @@ function innerSet<T, Args extends unknown[]>(
     });
     return;
   }
-  const atomState = readSignalState(atom, context, batch);
+  const atomState = readSignalState(atom, context, mutation);
   atomState.val = newValue;
   atomState.epoch += 1;
-  markPendingListeners(atom, context, batch);
+  markPendingListeners(atom, context, mutation);
   return undefined;
 }
 
-function markPendingListeners(signal: Signal<unknown>, context: Context, batch: Batch) {
+function markPendingListeners(signal: Signal<unknown>, context: StoreContext, mutation: Mutation) {
   let queue: Signal<unknown>[] = [signal];
 
   while (queue.length > 0) {
     const nextQueue: Signal<unknown>[] = [];
     for (const atom of queue) {
       const atomState = readSignalState(atom, context, {
-        pendingListeners: batch.pendingListeners,
+        pendingListeners: mutation.pendingListeners,
         ignoreMounted: true,
       });
 
       if (atomState.mounted?.listeners) {
         for (const listener of atomState.mounted.listeners) {
-          batch.pendingListeners.add(listener);
+          mutation.pendingListeners.add(listener);
         }
       }
 
@@ -428,16 +396,16 @@ function markPendingListeners(signal: Signal<unknown>, context: Context, batch: 
 
 export function set<T, Args extends unknown[]>(
   atom: State<T> | Command<T, Args>,
-  context: Context,
-  batch: Batch,
+  context: StoreContext,
+  mutation: Mutation,
   ...args: [T | Updater<T>] | Args
 ): undefined | T {
   let ret: T | undefined;
   const fn = () => {
     try {
-      ret = innerSet(atom, context, batch, ...args) as T | undefined;
+      ret = innerSet(atom, context, mutation, ...args) as T | undefined;
     } finally {
-      notify(context, batch);
+      notify(context, mutation);
     }
     return ret;
   };
@@ -455,21 +423,21 @@ export function set<T, Args extends unknown[]>(
   return ret;
 }
 
-function* innerNotify(context: Context, batch: Batch): Generator<Command<unknown, []>, void, unknown> {
-  const pendingListeners = batch.pendingListeners;
-  batch.pendingListeners = new Set();
+function* innerNotify(context: StoreContext, mutation: Mutation): Generator<Command<unknown, []>, void, unknown> {
+  const pendingListeners = mutation.pendingListeners;
+  mutation.pendingListeners = new Set();
 
   for (const listener of pendingListeners) {
     yield listener;
   }
 }
 
-function notify(context: Context, batch: Batch) {
-  for (const listener of innerNotify(context, batch)) {
+function notify(context: StoreContext, mutation: Mutation) {
+  for (const listener of innerNotify(context, mutation)) {
     let notifyed = false;
     const fn = () => {
       notifyed = true;
-      return listener.write(wrapVisitor(context, batch));
+      return listener.write(wrapVisitor(context, mutation));
     };
     if (context.interceptor?.notify) {
       context.interceptor.notify(listener, fn);
