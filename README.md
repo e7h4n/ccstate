@@ -9,14 +9,15 @@
 [![CI](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml/badge.svg)](https://github.com/e7h4n/ccstate/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-CCState is a modern signals-based state management library that elegantly implements async computed and read-write capability isolation based on signals features, making it suitable for medium to large web applications.
+CCState is a modern signals-based state management library that elegantly implements async computed and read-write capability isolation based on signal features, making it suitable for medium to large web applications.
 
-The name of CCState comes from three basic types: computed, command, and state.
+The name of CCState comes from three basic types: `Computed`, `Command`, and `State`.
 
 ## Quick Features
 
-- 💯 Simple & Intuitive: Crystal-clear API design with just 3 types and 2 operations
+- 💯 Simple & Intuitive: Crystal-clear API design with just three types and two operations
 - ✅ Rock-solid Reliability: Comprehensive test coverage reaching 100% branch coverage
+- ✈️ Intuitive async computation: using async/await or try/catch to process async flow as regular JavaScript without any additional concept
 - 💡 Framework Agnostic: Seamlessly works with [React](docs/react.md), [Vue](docs/vue.md), [Solid.js](docs/solid.md), [Vanilla](docs/vanilla.md), or any UI framework
 
 ## Getting Started
