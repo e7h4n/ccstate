@@ -11,11 +11,12 @@ type DataWithCalledState<T> =
     };
 
 export class StoreImpl implements Store {
-  constructor(
-    protected readonly atomManager: AtomManager,
-    protected readonly listenerManager: ListenerManager,
-    protected readonly options?: StoreOptions,
-  ) {}
+  protected readonly atomManager: AtomManager;
+  protected readonly listenerManager: ListenerManager;
+  constructor(protected readonly options?: StoreOptions) {
+    this.atomManager = new AtomManager(options);
+    this.listenerManager = new ListenerManager();
+  }
 
   private innerSet = <T, Args extends unknown[]>(
     atom: State<T> | Command<T, Args>,
@@ -204,10 +205,7 @@ export class StoreImpl implements Store {
 }
 
 export function createStore(): Store {
-  const atomManager = new AtomManager();
-  const listenerManager = new ListenerManager();
-
-  return new StoreImpl(atomManager, listenerManager);
+  return new StoreImpl();
 }
 
 let defaultStore: Store | undefined = undefined;
@@ -249,7 +247,7 @@ function isComputedState<T>(state: CommonReadableState<T>): state is ComputedSta
   return 'dependencies' in state;
 }
 
-export class AtomManager {
+class AtomManager {
   private atomStateMap = new WeakMap<ReadableAtom<unknown>, AtomState<unknown>>();
 
   constructor(private readonly options?: StoreOptions) {}
@@ -472,7 +470,7 @@ export class AtomManager {
   }
 }
 
-export class ListenerManager {
+class ListenerManager {
   private pendingListeners = new Set<Command<unknown, []>>();
 
   markPendingListeners(atomManager: AtomManager, atom: ReadableAtom<unknown>) {

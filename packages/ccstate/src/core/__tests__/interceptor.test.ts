@@ -1,14 +1,11 @@
 import { expect, it, vi } from 'vitest';
 import { computed, command, state } from '../atom';
 import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
-import { AtomManager, ListenerManager, StoreImpl } from '../store';
+import { StoreImpl } from '../store';
 import type { Command, ReadableAtom, Updater, State } from '../../../types/core/atom';
 
 function createStoreForTest(options: StoreOptions): Store {
-  const atomManager = new AtomManager(options);
-  const listenerManager = new ListenerManager();
-
-  return new StoreImpl(atomManager, listenerManager, options);
+  return new StoreImpl(options);
 }
 
 it('should intercept get', () => {
@@ -365,11 +362,7 @@ it('intercept unmount', () => {
     },
   };
 
-  const atomManager = new AtomManager({
-    interceptor: interceptor,
-  });
-  const listenerManager = new ListenerManager();
-  const store = new StoreImpl(atomManager, listenerManager, {
+  const store = new StoreImpl({
     interceptor: interceptor,
   });
 
