@@ -18,17 +18,17 @@ export type Subscribe = (
   options?: SubscribeOptions,
 ) => () => void;
 
-export type InterceptorGet = <T>(atom$: State<T> | Computed<T>, fn: () => T) => void;
+export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {
-  <T, Args extends unknown[]>(func$: Command<T, Args>, fn: () => T, ...args: Args): void;
+  <T, Args extends unknown[]>(command$: Command<T, Args>, fn: () => T, ...args: Args): void;
   <T>(value$: State<T>, fn: () => void, val: T | Updater<T>): void;
 }
-export type InterceptorSub = <T>(atom$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
-export type InterceptorUnsub = <T>(atom$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
-export type InterceptorMount = <T>(atom$: Signal<T>) => void;
-export type InterceptorUnmount = <T>(atom$: Signal<T>) => void;
+export type InterceptorSub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
+export type InterceptorUnsub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
+export type InterceptorMount = <T>(signal$: Signal<T>) => void;
+export type InterceptorUnmount = <T>(signal$: Signal<T>) => void;
 export type InterceptorNotify = <T>(callback$: CallbackFunc<T>, fn: () => T) => void;
-export type InterceptorComputed = <T>(atom$: Signal<T>, fn: () => T) => void;
+export type InterceptorComputed = <T>(computed$: Computed<T>, fn: () => T) => void;
 
 export interface StoreInterceptor {
   get?: InterceptorGet;

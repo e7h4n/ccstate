@@ -16,14 +16,14 @@ it('should not fire on subscribe', () => {
   expect(callback2).not.toHaveBeenCalled();
 });
 
-it('should fire subscription even if primitive atom value is the same', () => {
+it('should not fire subscription if primitive atom value is the same', () => {
   const store = createStore();
   const countAtom = state(0);
   const callback = vi.fn();
   store.sub(countAtom, command(callback));
   callback.mockClear();
   store.set(countAtom, 0);
-  expect(callback).toBeCalled();
+  expect(callback).not.toBeCalled();
 });
 
 it('should fire subscription even if derived atom value is the same', () => {
@@ -150,7 +150,7 @@ it('should update async atom with deps after await', async () => {
   unsub();
 });
 
-it('should fire subscription when async atom promise is the same', () => {
+it('should not fire subscription when async atom promise is the same', () => {
   const promise = Promise.resolve();
   const promiseAtom = state(promise, {
     debugLabel: 'promiseAtom',
@@ -181,15 +181,14 @@ it('should fire subscription when async atom promise is the same', () => {
   expect(derivedListener).not.toHaveBeenCalled();
 
   store.set(promiseAtom, promise);
-
-  expect(derivedGetter).toHaveBeenCalledTimes(2);
-  expect(promiseListener).toBeCalled();
-  expect(derivedListener).toBeCalled();
+  expect(derivedGetter).toHaveBeenCalledTimes(1);
+  expect(promiseListener).not.toBeCalled();
+  expect(derivedListener).not.toBeCalled();
 
   store.set(promiseAtom, promise);
-  expect(derivedGetter).toHaveBeenCalledTimes(3);
-  expect(promiseListener).toBeCalled();
-  expect(derivedListener).toBeCalled();
+  expect(derivedGetter).toHaveBeenCalledTimes(1);
+  expect(promiseListener).not.toBeCalled();
+  expect(derivedListener).not.toBeCalled();
 
   promiseUnsub();
   derivedUnsub();

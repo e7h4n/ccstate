@@ -3,6 +3,7 @@ import { computed, command, state } from '../atom';
 import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
 import { StoreImpl } from '../store';
 import type { Command, Signal, Updater, State } from '../../../types/core/atom';
+import { delay } from 'signal-timers';
 
 function createStoreForTest(options: StoreOptions): Store {
   return new StoreImpl(options);
@@ -266,7 +267,10 @@ it('should intercept unsub', () => {
   expect(trace).toBeCalledWith(base$, callback$);
 });
 
-it('intercept unsub fn must be called sync', () => {
+it('intercept unsub fn must be called sync', async () => {
+  const traceUncaughtException = vi.fn();
+  process.on('uncaughtException', traceUncaughtException);
+
   const base$ = state(0);
   const trace = vi.fn();
   const store = createStoreForTest({
@@ -277,9 +281,10 @@ it('intercept unsub fn must be called sync', () => {
     },
   });
   const callback$ = command(() => 'foo');
-  expect(() => {
-    store.sub(base$, callback$)();
-  }).toThrow();
+  store.sub(base$, callback$)();
+  await delay(0);
+  expect(traceUncaughtException).toBeCalled();
+  process.off('uncaughtException', traceUncaughtException);
 });
 
 it('should intercept multiple unsub', () => {
@@ -459,7 +464,7 @@ it('should intercept computed', () => {
   );
   expect(traceRead).not.toBeCalled();
 
-  store.set(base$, 1);
+  store.set(base$, 2);
   expect(traceRead).toBeCalled();
 });
 

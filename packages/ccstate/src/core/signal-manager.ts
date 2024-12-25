@@ -1,16 +1,14 @@
 import type { Signal, Command, Getter, State, Updater, Setter, Computed } from '../../types/core/atom';
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
-import { withGetStateInterceptor, withGeValInterceptor } from './interceptor';
+import {
+  withComputedInterceptor,
+  withGetInterceptor,
+  withGeValInterceptor,
+  withSetInterceptor,
+  withSubInterceptor,
+  withUnsubInterceptor,
+} from './interceptor';
 import { canReadAsCompute, isComputedState } from './typing-util';
-
-type DataWithCalledState<T> =
-  | {
-      called: false;
-    }
-  | {
-      called: true;
-      data: T;
-    };
 
 export interface StoreContext {
   stateMap: StateMap;
@@ -22,6 +20,20 @@ interface Mutation {
   pendingListeners: Set<Command<unknown, []>>;
 }
 
+export interface StateState<T> {
+  mounted?: Mounted;
+  val: T;
+  epoch: number;
+}
+
+export interface ComputedState<T> {
+  mounted?: Mounted;
+  val: T;
+  dependencies: Map<Signal<unknown>, number>;
+  epoch: number;
+  abortController?: AbortController;
+}
+
 export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
 
@@ -31,11 +43,11 @@ interface Mounted {
 }
 
 function tryGetCached<T>(
-  computed: Computed<T>,
+  computed$: Computed<T>,
   context: StoreContext,
   mutation?: Mutation,
 ): ComputedState<T> | undefined {
-  const signalState = context.stateMap.get(computed) as ComputedState<T> | undefined;
+  const signalState = context.stateMap.get(computed$) as ComputedState<T> | undefined;
   if (!signalState) {
     return undefined;
   }
@@ -54,82 +66,110 @@ function tryGetCached<T>(
   return signalState;
 }
 
-function readComputed<T>(computed: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
-  const cachedState = tryGetCached(computed, context, mutation);
+function readComputed<T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
+  const cachedState = tryGetCached(computed$, context, mutation);
   if (cachedState) {
     return cachedState;
   }
 
-  return withGetStateInterceptor(
+  return withComputedInterceptor(
     () => {
-      return computeComputedAtom(computed, context, mutation);
+      return evaluateComputed(computed$, context, mutation);
     },
-    computed,
+    computed$,
     context.interceptor?.computed,
   );
 }
 
-function computeComputedAtom<T>(atom: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
-  const self: Computed<T> = atom;
-  let atomState: ComputedState<T> | undefined = context.stateMap.get(self) as ComputedState<T> | undefined;
-  if (!atomState) {
-    atomState = {
+function getOrInitComputedState<T>(computed$: Computed<T>, context: StoreContext): ComputedState<T> {
+  let computedState: ComputedState<T> | undefined = context.stateMap.get(computed$) as ComputedState<T> | undefined;
+  if (!computedState) {
+    computedState = {
       dependencies: new Map<Signal<unknown>, number>(),
       epoch: -1,
     } as ComputedState<T>;
-    context.stateMap.set(self, atomState);
+    context.stateMap.set(computed$, computedState);
   }
 
-  const lastDeps = atomState.dependencies;
+  return computedState;
+}
+
+function wrapGet<T>(
+  callerComputed$: Computed<T>,
+  callerState: ComputedState<T>,
+  context: StoreContext,
+  mutation?: Mutation,
+): [Getter, Map<Signal<unknown>, number>] {
   const readDeps = new Map<Signal<unknown>, number>();
-  atomState.dependencies = readDeps;
-  const wrappedGet: Getter = (depAtom) => {
-    const depState = readSignalState(depAtom, context, mutation);
 
-    // get 可能发生在异步过程中，当重复调用时，只有最新的 get 过程会修改 deps
-    if (atomState.dependencies === readDeps) {
-      readDeps.set(depAtom, depState.epoch);
+  return [
+    (dep$) => {
+      const depState = readSignalState(dep$, context, mutation);
 
-      const selfMounted = !!atomState.mounted;
-      if (selfMounted && !depState.mounted) {
-        tryMount(depAtom, context, mutation).readDepts.add(self);
-      } else if (selfMounted && depState.mounted) {
-        depState.mounted.readDepts.add(self);
+      if (callerState.dependencies === readDeps) {
+        readDeps.set(dep$, depState.epoch);
+
+        const callerMounted = !!callerState.mounted;
+        if (callerMounted && !depState.mounted) {
+          tryMount(dep$, context, mutation).readDepts.add(callerComputed$);
+        } else if (callerMounted && depState.mounted) {
+          depState.mounted.readDepts.add(callerComputed$);
+        }
+      }
+
+      return depState.val;
+    },
+    readDeps,
+  ];
+}
+
+function cleanupMissingDependencies<T>(
+  computed$: Computed<T>,
+  lastDeps: Map<Signal<unknown>, number>,
+  currDeps: Map<Signal<unknown>, number>,
+  context: StoreContext,
+  mutation?: Mutation,
+) {
+  for (const key of lastDeps.keys()) {
+    if (!currDeps.has(key)) {
+      const depState = context.stateMap.get(key);
+      if (depState?.mounted) {
+        depState.mounted.readDepts.delete(computed$);
+        tryUnmount(key, context, mutation);
       }
     }
+  }
+}
 
-    return depState.val;
-  };
+function evaluateComputed<T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation): ComputedState<T> {
+  const computedState = getOrInitComputedState(computed$, context);
 
-  const ret = self.read(
+  const lastDeps = computedState.dependencies;
+
+  const [wrappedGet, dependencies] = wrapGet(computed$, computedState, context, mutation);
+  computedState.dependencies = dependencies;
+
+  const evalVal = computed$.read(
     function <U>(depAtom: Signal<U>) {
       return withGeValInterceptor(() => wrappedGet(depAtom), depAtom, context.interceptor?.get);
     },
     {
       get signal() {
-        atomState.abortController?.abort(`abort ${self.debugLabel ?? 'anonymous'} atom`);
-        atomState.abortController = new AbortController();
-        return atomState.abortController.signal;
+        computedState.abortController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
+        computedState.abortController = new AbortController();
+        return computedState.abortController.signal;
       },
     },
   );
 
-  if (atomState.val !== ret) {
-    atomState.val = ret;
-    atomState.epoch += 1;
+  cleanupMissingDependencies(computed$, lastDeps, dependencies, context, mutation);
+
+  if (computedState.val !== evalVal) {
+    computedState.val = evalVal;
+    computedState.epoch += 1;
   }
 
-  for (const key of lastDeps.keys()) {
-    if (!readDeps.has(key)) {
-      const depState = context.stateMap.get(key);
-      if (depState?.mounted) {
-        depState.mounted.readDepts.delete(self);
-        tryUnmount(key, context, mutation);
-      }
-    }
-  }
-
-  return atomState;
+  return computedState;
 }
 
 function readStateAtom<T>(state: State<T>, context: StoreContext): StateState<T> {
@@ -146,117 +186,105 @@ function readStateAtom<T>(state: State<T>, context: StoreContext): StateState<T>
   return atomState as StateState<T>;
 }
 
-export function readSignalState<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
-  if (canReadAsCompute(signal)) {
-    return readComputed(signal, context, mutation);
+export function readSignalState<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
+  if (canReadAsCompute(signal$)) {
+    return readComputed(signal$, context, mutation);
   }
 
-  return readStateAtom(signal, context);
+  return readStateAtom(signal$, context);
 }
 
-function tryGetMount(atom: Signal<unknown>, stateMap: StateMap): Mounted | undefined {
-  return stateMap.get(atom)?.mounted;
-}
+function didMount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
+  context.interceptor?.mount?.(signal$);
 
-function tryMount<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
-  const mounted = tryGetMount(signal, context.stateMap);
-  if (mounted) {
-    return mounted;
-  }
+  const signalState = readSignalState(signal$, context, mutation);
 
-  context.interceptor?.mount?.(signal);
-
-  const atomState = readSignalState(signal, context, mutation);
-
-  atomState.mounted = atomState.mounted ?? {
+  signalState.mounted = signalState.mounted ?? {
     listeners: new Set(),
     readDepts: new Set(),
   };
 
-  if (isComputedState(atomState)) {
-    for (const [dep] of Array.from(atomState.dependencies)) {
+  if (isComputedState(signalState)) {
+    for (const [dep] of Array.from(signalState.dependencies)) {
       const mounted = tryMount(dep, context, mutation);
-      mounted.readDepts.add(signal);
+      mounted.readDepts.add(signal$);
     }
   }
 
-  return atomState.mounted;
+  return signalState.mounted;
 }
 
-function tryUnmount<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): void {
-  const atomState = context.stateMap.get(signal);
-  if (!atomState?.mounted || atomState.mounted.listeners.size || atomState.mounted.readDepts.size) {
-    return;
+function tryMount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
+  const mounted = context.stateMap.get(signal$)?.mounted;
+  if (mounted) {
+    return mounted;
   }
 
-  context.interceptor?.unmount?.(signal);
+  return didMount(signal$, context, mutation);
+}
 
-  if (isComputedState(atomState)) {
-    for (const [dep] of Array.from(atomState.dependencies)) {
+function didUnmount<T>(
+  signal$: Signal<T>,
+  signalState: SignalState<T>,
+  context: StoreContext,
+  mutation?: Mutation,
+): void {
+  context.interceptor?.unmount?.(signal$);
+
+  if (isComputedState(signalState)) {
+    for (const [dep] of Array.from(signalState.dependencies)) {
       const depState = readSignalState(dep, context, mutation);
-      depState.mounted?.readDepts.delete(signal);
+      depState.mounted?.readDepts.delete(signal$);
       tryUnmount(dep, context, mutation);
     }
   }
 
-  atomState.mounted = undefined;
+  signalState.mounted = undefined;
+}
+
+function tryUnmount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): void {
+  const signalState = context.stateMap.get(signal$);
+  if (!signalState?.mounted || signalState.mounted.listeners.size || signalState.mounted.readDepts.size) {
+    return;
+  }
+
+  didUnmount(signal$, signalState, context, mutation);
 }
 
 function subSingleSignal<T>(
   signal$: Signal<T>,
   callback$: Command<unknown, []>,
   context: StoreContext,
-  options?: SubscribeOptions,
+  signal: AbortSignal,
 ) {
-  let unsub: (() => void) | undefined;
-  const fn = () => {
-    let subscribed = true;
-    const mounted = tryMount(signal$, context);
-    mounted.listeners.add(callback$);
+  withSubInterceptor(
+    () => {
+      const mounted = tryMount(signal$, context);
+      mounted.listeners.add(callback$);
 
-    unsub = () => {
-      if (!subscribed) {
-        return;
-      }
+      const unmount = () => {
+        withUnsubInterceptor(
+          () => {
+            mounted.listeners.delete(callback$);
 
-      const fn = () => {
-        subscribed = false;
-        mounted.listeners.delete(callback$);
-
-        if (mounted.readDepts.size === 0 && mounted.listeners.size === 0) {
-          tryUnmount(signal$, context);
-        }
-
-        options?.signal?.addEventListener('abort', fn);
+            if (mounted.readDepts.size === 0 && mounted.listeners.size === 0) {
+              tryUnmount(signal$, context);
+            }
+          },
+          signal$,
+          callback$,
+          context.interceptor?.unsub,
+        );
       };
 
-      if (context.interceptor?.unsub) {
-        context.interceptor.unsub(signal$, callback$, fn);
-
-        // subscribed should be false if interceptor called fn sync
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (subscribed) {
-          throw new Error('interceptor must call fn sync');
-        }
-      } else {
-        fn();
-      }
-    };
-
-    options?.signal?.addEventListener('abort', unsub);
-  };
-
-  if (context.interceptor?.sub) {
-    context.interceptor.sub(signal$, callback$, fn);
-  } else {
-    fn();
-  }
-
-  if (!unsub) {
-    throw new Error('interceptor must call fn sync');
-  }
-
-  return unsub;
+      signal.addEventListener('abort', unmount, {
+        once: true,
+      });
+    },
+    signal$,
+    callback$,
+    context.interceptor?.sub,
+  );
 }
 
 export function sub<T>(
@@ -269,55 +297,37 @@ export function sub<T>(
     return () => void 0;
   }
 
-  if (Array.isArray(signals$) && signals$.length === 1) {
-    return subSingleSignal(signals$[0], callback$, context, options);
-  } else if (!Array.isArray(signals$)) {
-    return subSingleSignal(signals$, callback$, context, options);
+  const controller = new AbortController();
+  const signal = options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
+
+  if (!Array.isArray(signals$)) {
+    subSingleSignal(signals$, callback$, context, signal);
+  } else {
+    signals$.forEach((atom) => {
+      subSingleSignal(atom, callback$, context, signal);
+    });
   }
 
-  const unsubscribes = new Set<() => void>();
-  signals$.forEach((atom) => {
-    unsubscribes.add(subSingleSignal(atom, callback$, context, options));
-  });
-
-  const unsub = () => {
-    for (const unsubscribe of unsubscribes) {
-      unsubscribe();
-    }
+  return () => {
+    controller.abort();
   };
-
-  return unsub;
 }
 
 export function get<T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation): T {
-  if (!context.interceptor?.get) {
-    return readSignalState(signal, context, mutation).val;
-  }
-
-  let result: DataWithCalledState<T> = {
-    called: false,
-  } as DataWithCalledState<T>;
-
-  const fnWithRet = () => {
-    result = {
-      called: true,
-      data: readSignalState(signal, context, mutation).val,
-    };
-    return result.data;
-  };
-
-  context.interceptor.get(signal, fnWithRet);
-  if (!result.called) {
-    throw new Error('interceptor must call fn sync');
-  }
-
-  return result.data;
+  return withGetInterceptor(
+    () => {
+      return readSignalState(signal, context, mutation).val;
+    },
+    signal,
+    context.interceptor?.get,
+  );
 }
 
 function wrapVisitor(context: StoreContext, mutation: Mutation) {
   const wrappedGet: Getter = <T>(signal: Signal<T>) => {
     return get(signal, context, mutation);
   };
+
   const wrappedSet: Setter = <T, Args extends unknown[]>(
     signal: State<T> | Command<T, Args>,
     ...args: [T | Updater<T>] | Args
@@ -331,42 +341,49 @@ function wrapVisitor(context: StoreContext, mutation: Mutation) {
   };
 }
 
-function innerSet<T, Args extends unknown[]>(
-  atom: State<T> | Command<T, Args>,
-  context: StoreContext,
-  mutation: Mutation,
-  ...args: [T | Updater<T>] | Args
-): undefined | T {
-  if ('read' in atom) {
-    return;
-  }
+function innerSetState<T>(signal$: State<T>, context: StoreContext, mutation: Mutation, val: T | Updater<T>) {
+  const newValue: T =
+    typeof val === 'function' ? (val as Updater<T>)(readSignalState(signal$, context, mutation).val) : val;
 
-  if ('write' in atom) {
-    const ret = atom.write(wrapVisitor(context, mutation), ...(args as Args));
-    return ret;
-  }
-
-  const newValue =
-    typeof args[0] === 'function'
-      ? (args[0] as Updater<T>)(readSignalState(atom, context, mutation).val)
-      : (args[0] as T);
-
-  if (!context.stateMap.has(atom)) {
-    context.stateMap.set(atom, {
+  if (!context.stateMap.has(signal$)) {
+    context.stateMap.set(signal$, {
       val: newValue,
       epoch: 0,
     });
     return;
   }
-  const atomState = readSignalState(atom, context, mutation);
-  atomState.val = newValue;
-  atomState.epoch += 1;
-  markPendingListeners(atom, context, mutation);
+
+  const signalState = readStateAtom(signal$, context);
+
+  if (signalState.val !== newValue) {
+    signalState.val = newValue;
+    signalState.epoch += 1;
+    markPendingListeners(signal$, context, mutation);
+  }
+
   return undefined;
 }
 
-function markPendingListeners(signal: Signal<unknown>, context: StoreContext, mutation: Mutation) {
-  let queue: Signal<unknown>[] = [signal];
+function innerSet<T, Args extends unknown[]>(
+  writable$: State<T> | Command<T, Args>,
+  context: StoreContext,
+  mutation: Mutation,
+  ...args: [T | Updater<T>] | Args
+): undefined | T {
+  if ('read' in writable$) {
+    return;
+  }
+
+  if ('write' in writable$) {
+    return writable$.write(wrapVisitor(context, mutation), ...(args as Args));
+  }
+
+  innerSetState(writable$, context, mutation, args[0]);
+  return;
+}
+
+function markPendingListeners(signal$: Signal<unknown>, context: StoreContext, mutation: Mutation) {
+  let queue: Signal<unknown>[] = [signal$];
 
   while (queue.length > 0) {
     const nextQueue: Signal<unknown>[] = [];
@@ -400,40 +417,27 @@ export function set<T, Args extends unknown[]>(
   mutation: Mutation,
   ...args: [T | Updater<T>] | Args
 ): undefined | T {
-  let ret: T | undefined;
-  const fn = () => {
-    try {
-      ret = innerSet(atom, context, mutation, ...args) as T | undefined;
-    } finally {
-      notify(context, mutation);
-    }
-    return ret;
-  };
-
-  if (context.interceptor?.set) {
-    if ('write' in atom) {
-      context.interceptor.set(atom, fn, ...(args as Args));
-    } else {
-      context.interceptor.set(atom, fn, args[0] as T | Updater<T>);
-    }
-  } else {
-    fn();
-  }
-
-  return ret;
+  return withSetInterceptor(
+    () => {
+      let ret: T | undefined;
+      try {
+        ret = innerSet(atom, context, mutation, ...args) as T | undefined;
+      } finally {
+        notify(context, mutation);
+      }
+      return ret;
+    },
+    atom,
+    context.interceptor?.set,
+    ...args,
+  ) as T | undefined;
 }
 
-function* innerNotify(context: StoreContext, mutation: Mutation): Generator<Command<unknown, []>, void, unknown> {
+function notify(context: StoreContext, mutation: Mutation) {
   const pendingListeners = mutation.pendingListeners;
   mutation.pendingListeners = new Set();
 
   for (const listener of pendingListeners) {
-    yield listener;
-  }
-}
-
-function notify(context: StoreContext, mutation: Mutation) {
-  for (const listener of innerNotify(context, mutation)) {
     let notifyed = false;
     const fn = () => {
       notifyed = true;
@@ -449,18 +453,4 @@ function notify(context: StoreContext, mutation: Mutation) {
       fn();
     }
   }
-}
-
-export interface StateState<T> {
-  mounted?: Mounted;
-  val: T;
-  epoch: number;
-}
-
-export interface ComputedState<T> {
-  mounted?: Mounted;
-  val: T;
-  dependencies: Map<Signal<unknown>, number>;
-  epoch: number;
-  abortController?: AbortController;
 }
