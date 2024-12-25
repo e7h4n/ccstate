@@ -14,6 +14,7 @@ interface ReadContext {
   stateMap: StateMap;
   ignoreMounted: boolean;
   interceptor?: StoreInterceptor;
+  pendingListeners: Set<Command<unknown, []>>;
 }
 
 function tryGetCachedState<T>(atom: Computed<T>, context: ReadContext): ComputedState<T> | undefined {
@@ -90,7 +91,7 @@ function computeComputedAtom<T>(atom: Computed<T>, context: ReadContext): Comput
 
       const selfMounted = !!atomState.mounted;
       if (selfMounted && !depState.mounted) {
-        mount(depAtom, context).readDepts.add(self);
+        tryMount(depAtom, context).readDepts.add(self);
       } else if (selfMounted && depState.mounted) {
         depState.mounted.readDepts.add(self);
       }
@@ -179,7 +180,7 @@ function tryGetMount(atom: Signal<unknown>, stateMap: StateMap): Mounted | undef
   return stateMap.get(atom)?.mounted;
 }
 
-function mount<T>(signal: Signal<T>, context: ReadContext): Mounted {
+function tryMount<T>(signal: Signal<T>, context: ReadContext): Mounted {
   const mounted = tryGetMount(signal, context.stateMap);
   if (mounted) {
     return mounted;
@@ -196,7 +197,7 @@ function mount<T>(signal: Signal<T>, context: ReadContext): Mounted {
 
   if (isComputedState(atomState)) {
     for (const [dep] of Array.from(atomState.dependencies)) {
-      const mounted = mount(dep, context);
+      const mounted = tryMount(dep, context);
       mounted.readDepts.add(signal);
     }
   }
@@ -223,197 +224,306 @@ function tryUnmount<T>(signal: Signal<T>, context: ReadContext): void {
   atomState.mounted = undefined;
 }
 
-export class StoreImpl implements Store {
-  protected readonly atomManager: AtomManager;
-  protected readonly listenerManager: ListenerManager;
-  constructor(protected readonly options?: StoreOptions) {
-    this.atomManager = new AtomManager(options);
-    this.listenerManager = new ListenerManager();
-  }
+function subSingleSignal<T>(
+  signal$: Signal<T>,
+  callback$: Command<unknown, []>,
+  context: ReadContext,
+  options?: SubscribeOptions,
+) {
+  let unsub: (() => void) | undefined;
+  const fn = () => {
+    let subscribed = true;
+    const mounted = tryMount(signal$, context);
+    mounted.listeners.add(callback$);
 
-  private innerSet = <T, Args extends unknown[]>(
-    atom: State<T> | Command<T, Args>,
-    ...args: [T | Updater<T>] | Args
-  ): undefined | T => {
-    if ('read' in atom) {
-      return;
-    }
+    unsub = () => {
+      if (!subscribed) {
+        return;
+      }
 
-    if ('write' in atom) {
-      const ret = atom.write({ get: this.get, set: this.set }, ...(args as Args));
-      return ret;
-    }
-
-    const newValue =
-      typeof args[0] === 'function'
-        ? (args[0] as Updater<T>)(this.atomManager.readAtomState(atom).val)
-        : (args[0] as T);
-
-    if (!this.atomManager.inited(atom)) {
-      this.atomManager.readAtomState(atom).val = newValue;
-      this.listenerManager.markPendingListeners(this.atomManager, atom);
-      return;
-    }
-    const atomState = this.atomManager.readAtomState(atom);
-    atomState.val = newValue;
-    atomState.epoch += 1;
-    this.listenerManager.markPendingListeners(this.atomManager, atom);
-    return undefined;
-  };
-
-  get: Getter = <T>(atom: Signal<T>): T => {
-    if (!this.options?.interceptor?.get) {
-      return this.atomManager.readAtomState(atom).val;
-    }
-    let result: DataWithCalledState<T> = {
-      called: false,
-    } as DataWithCalledState<T>;
-
-    const fnWithRet = () => {
-      result = {
-        called: true,
-        data: this.atomManager.readAtomState(atom).val,
-      };
-      return result.data;
-    };
-
-    this.options.interceptor.get(atom, fnWithRet);
-    if (!result.called) {
-      throw new Error('interceptor must call fn sync');
-    }
-
-    return result.data;
-  };
-
-  private notify = () => {
-    for (const listener of this.listenerManager.notify()) {
-      let notifyed = false;
       const fn = () => {
-        notifyed = true;
-        return listener.write({ get: this.get, set: this.set });
+        subscribed = false;
+        mounted.listeners.delete(callback$);
+
+        if (mounted.readDepts.size === 0 && mounted.listeners.size === 0) {
+          tryUnmount(signal$, context);
+        }
+
+        options?.signal?.addEventListener('abort', fn);
       };
-      if (this.options?.interceptor?.notify) {
-        this.options.interceptor.notify(listener, fn);
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notify must call fn sync
-        if (!notifyed) {
+
+      if (context.interceptor?.unsub) {
+        context.interceptor.unsub(signal$, callback$, fn);
+
+        // subscribed should be false if interceptor called fn sync
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (subscribed) {
           throw new Error('interceptor must call fn sync');
         }
       } else {
         fn();
       }
+    };
+
+    options?.signal?.addEventListener('abort', unsub);
+  };
+
+  if (context.interceptor?.sub) {
+    context.interceptor.sub(signal$, callback$, fn);
+  } else {
+    fn();
+  }
+
+  if (!unsub) {
+    throw new Error('interceptor must call fn sync');
+  }
+
+  return unsub;
+}
+
+function sub<T>(
+  signals$: Signal<T>[] | Signal<T>,
+  callback$: Command<unknown, []>,
+  context: ReadContext,
+  options?: SubscribeOptions,
+): () => void {
+  if (Array.isArray(signals$) && signals$.length === 0) {
+    return () => void 0;
+  }
+
+  if (Array.isArray(signals$) && signals$.length === 1) {
+    return subSingleSignal(signals$[0], callback$, context, options);
+  } else if (!Array.isArray(signals$)) {
+    return subSingleSignal(signals$, callback$, context, options);
+  }
+
+  const unsubscribes = new Set<() => void>();
+  signals$.forEach((atom) => {
+    unsubscribes.add(subSingleSignal(atom, callback$, context, options));
+  });
+
+  const unsub = () => {
+    for (const unsubscribe of unsubscribes) {
+      unsubscribe();
     }
+  };
+
+  return unsub;
+}
+
+function get<T>(signal: Signal<T>, context: ReadContext): T {
+  if (!context.interceptor?.get) {
+    return readSignalState(signal, context).val;
+  }
+
+  let result: DataWithCalledState<T> = {
+    called: false,
+  } as DataWithCalledState<T>;
+
+  const fnWithRet = () => {
+    result = {
+      called: true,
+      data: readSignalState(signal, context).val,
+    };
+    return result.data;
+  };
+
+  context.interceptor?.get(signal, fnWithRet);
+  if (!result.called) {
+    throw new Error('interceptor must call fn sync');
+  }
+
+  return result.data;
+}
+
+function wrapVisitor(context: ReadContext) {
+  const wrappedGet: Getter = <T>(signal: Signal<T>) => {
+    return get(signal, context);
+  };
+  const wrappedSet: Setter = <T, Args extends unknown[]>(
+    signal: State<T> | Command<T, Args>,
+    ...args: [T | Updater<T>] | Args
+  ): undefined | T => {
+    return set<T, Args>(signal, context, ...args);
+  };
+
+  return {
+    get: wrappedGet,
+    set: wrappedSet,
+  };
+}
+
+function innerSet<T, Args extends unknown[]>(
+  atom: State<T> | Command<T, Args>,
+  context: ReadContext,
+  ...args: [T | Updater<T>] | Args
+): undefined | T {
+  if ('read' in atom) {
+    return;
+  }
+
+  if ('write' in atom) {
+    const ret = atom.write(wrapVisitor(context), ...(args as Args));
+    return ret;
+  }
+
+  const newValue =
+    typeof args[0] === 'function' ? (args[0] as Updater<T>)(readSignalState(atom, context).val) : (args[0] as T);
+
+  if (!context.stateMap.has(atom)) {
+    context.stateMap.set(atom, {
+      val: newValue,
+      epoch: 0,
+    });
+    return;
+  }
+  const atomState = readSignalState(atom, context);
+  atomState.val = newValue;
+  atomState.epoch += 1;
+  markPendingListeners(atom, context);
+  return undefined;
+}
+
+function markPendingListeners(signal: Signal<unknown>, context: ReadContext) {
+  let queue: Signal<unknown>[] = [signal];
+
+  while (queue.length > 0) {
+    const nextQueue: Signal<unknown>[] = [];
+    for (const atom of queue) {
+      const atomState = readSignalState(atom, {
+        ...context,
+        ignoreMounted: true,
+      });
+
+      if (atomState.mounted?.listeners) {
+        for (const listener of atomState.mounted.listeners) {
+          context.pendingListeners.add(listener);
+        }
+      }
+
+      const readDepts = atomState.mounted?.readDepts;
+      if (readDepts) {
+        for (const dep of Array.from(readDepts)) {
+          nextQueue.push(dep);
+        }
+      }
+    }
+
+    queue = nextQueue;
+  }
+}
+
+function set<T, Args extends unknown[]>(
+  atom: State<T> | Command<T, Args>,
+  context: ReadContext,
+  ...args: [T | Updater<T>] | Args
+): undefined | T {
+  let ret: T | undefined;
+  const fn = () => {
+    try {
+      ret = innerSet(atom, context, ...args) as T | undefined;
+    } finally {
+      notify(context);
+    }
+    return ret;
+  };
+
+  if (context.interceptor?.set) {
+    if ('write' in atom) {
+      context.interceptor.set(atom, fn, ...(args as Args));
+    } else {
+      context.interceptor.set(atom, fn, args[0] as T | Updater<T>);
+    }
+  } else {
+    fn();
+  }
+
+  return ret;
+}
+
+function* innerNotify(context: ReadContext): Generator<Command<unknown, []>, void, unknown> {
+  const pendingListeners = context.pendingListeners;
+  context.pendingListeners = new Set();
+
+  for (const listener of pendingListeners) {
+    yield listener;
+  }
+}
+
+function notify(context: ReadContext) {
+  for (const listener of innerNotify(context)) {
+    let notifyed = false;
+    const fn = () => {
+      notifyed = true;
+      return listener.write(wrapVisitor(context));
+    };
+    if (context.interceptor?.notify) {
+      context.interceptor.notify(listener, fn);
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notify must call fn sync
+      if (!notifyed) {
+        throw new Error('interceptor must call fn sync');
+      }
+    } else {
+      fn();
+    }
+  }
+}
+
+export class StoreImpl implements Store {
+  protected readonly stateMap: StateMap = new WeakMap();
+
+  constructor(protected readonly options?: StoreOptions) {}
+
+  get: Getter = <T>(atom: Signal<T>): T => {
+    return get(atom, {
+      stateMap: this.stateMap,
+      ignoreMounted: false,
+      interceptor: this.options?.interceptor,
+      pendingListeners: new Set(),
+    });
   };
 
   set: Setter = <T, Args extends unknown[]>(
     atom: State<T> | Command<T, Args>,
     ...args: [T | Updater<T>] | Args
   ): undefined | T => {
-    let ret: T | undefined;
-    const fn = () => {
-      try {
-        ret = this.innerSet(atom, ...args) as T | undefined;
-      } finally {
-        this.notify();
-      }
-      return ret;
-    };
-
-    if (this.options?.interceptor?.set) {
-      if ('write' in atom) {
-        this.options.interceptor.set(atom, fn, ...(args as Args));
-      } else {
-        this.options.interceptor.set(atom, fn, args[0] as T | Updater<T>);
-      }
-    } else {
-      fn();
-    }
-
-    return ret;
+    return set<T, Args>(
+      atom,
+      {
+        stateMap: this.stateMap,
+        ignoreMounted: false,
+        interceptor: this.options?.interceptor,
+        pendingListeners: new Set(),
+      },
+      ...args,
+    );
   };
-
-  private _subSingleAtom(
-    target$: Signal<unknown>,
-    cb$: Command<unknown, unknown[]>,
-    options?: SubscribeOptions,
-  ): () => void {
-    let unsub: (() => void) | undefined;
-    const fn = () => {
-      let subscribed = true;
-      const mounted = this.atomManager.mount(target$);
-      mounted.listeners.add(cb$);
-
-      unsub = () => {
-        if (!subscribed) {
-          return;
-        }
-
-        const fn = () => {
-          subscribed = false;
-          mounted.listeners.delete(cb$);
-
-          if (mounted.readDepts.size === 0 && mounted.listeners.size === 0) {
-            this.atomManager.tryUnmount(target$);
-          }
-
-          options?.signal?.addEventListener('abort', fn);
-        };
-
-        if (this.options?.interceptor?.unsub) {
-          this.options.interceptor.unsub(target$, cb$, fn);
-
-          // subscribed should be false if interceptor called fn sync
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          if (subscribed) {
-            throw new Error('interceptor must call fn sync');
-          }
-        } else {
-          fn();
-        }
-      };
-
-      options?.signal?.addEventListener('abort', unsub);
-    };
-
-    if (this.options?.interceptor?.sub) {
-      this.options.interceptor.sub(target$, cb$, fn);
-    } else {
-      fn();
-    }
-
-    if (!unsub) {
-      throw new Error('interceptor must call fn sync');
-    }
-
-    return unsub;
-  }
 
   sub(
     targets$: Signal<unknown>[] | Signal<unknown>,
     cb$: Command<unknown, unknown[]>,
     options?: SubscribeOptions,
   ): () => void {
-    if (Array.isArray(targets$) && targets$.length === 0) {
-      return () => void 0;
-    }
+    return sub(
+      targets$,
+      cb$,
+      {
+        stateMap: this.stateMap,
+        ignoreMounted: false,
+        interceptor: this.options?.interceptor,
+        pendingListeners: new Set(),
+      },
+      options,
+    );
+  }
 
-    if (Array.isArray(targets$) && targets$.length === 1) {
-      return this._subSingleAtom(targets$[0], cb$, options);
-    } else if (!Array.isArray(targets$)) {
-      return this._subSingleAtom(targets$, cb$, options);
-    }
-
-    const unsubscribes = new Set<() => void>();
-    targets$.forEach((atom) => {
-      unsubscribes.add(this._subSingleAtom(atom, cb$, options));
+  protected readSignalState<T>(signal: Signal<T>): SignalState<T> {
+    return readSignalState(signal, {
+      stateMap: this.stateMap,
+      ignoreMounted: false,
+      interceptor: this.options?.interceptor,
+      pendingListeners: new Set(),
     });
-
-    const unsub = () => {
-      for (const unsubscribe of unsubscribes) {
-        unsubscribe();
-      }
-    };
-
-    return unsub;
   }
 }
 
@@ -457,82 +567,4 @@ function canReadAsCompute<T>(atom: Signal<T>): atom is Computed<T> {
 
 function isComputedState<T>(state: SignalState<T>): state is ComputedState<T> {
   return 'dependencies' in state;
-}
-
-class AtomManager {
-  private atomStateMap: StateMap = new WeakMap();
-
-  constructor(private readonly options?: StoreOptions) {}
-
-  public readAtomState<T>(atom: State<T>, ignoreMounted?: boolean): StateState<T>;
-  public readAtomState<T>(atom: Computed<T>, ignoreMounted?: boolean): ComputedState<T>;
-  public readAtomState<T>(atom: State<T> | Computed<T>, ignoreMounted?: boolean): SignalState<T>;
-  public readAtomState<T>(
-    atom: State<T> | Computed<T>,
-    ignoreMounted = false,
-  ): StateState<T> | ComputedState<T> | SignalState<T> {
-    return readSignalState(atom, {
-      stateMap: this.atomStateMap,
-      ignoreMounted,
-      interceptor: this.options?.interceptor,
-    });
-  }
-
-  public mount<T>(atom: Signal<T>): Mounted {
-    return mount(atom, {
-      stateMap: this.atomStateMap,
-      ignoreMounted: false,
-      interceptor: this.options?.interceptor,
-    });
-  }
-
-  public tryUnmount<T>(atom: Signal<T>): void {
-    tryUnmount(atom, {
-      stateMap: this.atomStateMap,
-      ignoreMounted: false,
-      interceptor: this.options?.interceptor,
-    });
-  }
-
-  public inited(atom: Signal<unknown>) {
-    return this.atomStateMap.has(atom);
-  }
-}
-
-class ListenerManager {
-  private pendingListeners = new Set<Command<unknown, []>>();
-
-  markPendingListeners(atomManager: AtomManager, atom: Signal<unknown>) {
-    let queue: Signal<unknown>[] = [atom];
-    while (queue.length > 0) {
-      const nextQueue: Signal<unknown>[] = [];
-      for (const atom of queue) {
-        const atomState = atomManager.readAtomState(atom, true);
-
-        if (atomState.mounted?.listeners) {
-          for (const listener of atomState.mounted.listeners) {
-            this.pendingListeners.add(listener);
-          }
-        }
-
-        const readDepts = atomState.mounted?.readDepts;
-        if (readDepts) {
-          for (const dep of Array.from(readDepts)) {
-            nextQueue.push(dep);
-          }
-        }
-      }
-
-      queue = nextQueue;
-    }
-  }
-
-  *notify(): Generator<Command<unknown, []>, void, unknown> {
-    const pendingListeners = this.pendingListeners;
-    this.pendingListeners = new Set();
-
-    for (const listener of pendingListeners) {
-      yield listener;
-    }
-  }
 }

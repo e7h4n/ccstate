@@ -39,7 +39,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependencies = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = this.atomManager.readAtomState(atom);
+    const atomState = this.readSignalState(atom);
 
     if (!('dependencies' in atomState)) {
       return [atom];
@@ -54,7 +54,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependents = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = this.atomManager.readAtomState(atom);
+    const atomState = this.readSignalState(atom);
     return [
       atom,
       ...Array.from(atomState.mounted?.readDepts ?? []).map((key) => this.getReadDependents(key)),
@@ -64,7 +64,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   getSubscribeGraph = (): NestedAtom => {
     const subscribedAtoms = Array.from(this.mountedAtomListenersCount.keys());
     return subscribedAtoms.map((atom) => {
-      const atomState = this.atomManager.readAtomState(atom);
+      const atomState = this.readSignalState(atom);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's mounted
       const listeners = Array.from(atomState.mounted!.listeners);
       return [atom, ...listeners];
@@ -72,8 +72,8 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   isMounted = (atom: State<unknown> | Computed<unknown>): boolean => {
-    const mountState = this.atomManager.readAtomState(atom);
-    return mountState.mounted !== undefined;
+    const mountState = this.stateMap.get(atom);
+    return mountState?.mounted !== undefined;
   };
 }
 

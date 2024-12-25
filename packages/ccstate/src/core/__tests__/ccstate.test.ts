@@ -120,21 +120,34 @@ test('set an atom should trigger subscribe', () => {
 
 test('set an atom in func should trigger multiple times', () => {
   const store = createStore();
-  const base$ = state(1);
+  const base$ = state(1, {
+    debugLabel: 'base',
+  });
   const trace = vi.fn();
   store.sub(
     base$,
-    command(() => {
-      trace();
-    }),
+    command(
+      () => {
+        trace();
+      },
+      {
+        debugLabel: 'callback$',
+      },
+    ),
   );
   store.set(
-    command(({ set }) => {
-      set(base$, 2);
-      set(base$, 3);
-      set(base$, 4);
-    }),
+    command(
+      ({ set }) => {
+        set(base$, 2);
+        set(base$, 3);
+        set(base$, 4);
+      },
+      {
+        debugLabel: 'func$',
+      },
+    ),
   );
+
   expect(trace).toBeCalledTimes(3);
 });
 
