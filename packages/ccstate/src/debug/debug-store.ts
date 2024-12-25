@@ -1,6 +1,7 @@
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
 import type { DebugStore, NestedAtom } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
+import { readSignalState } from '../core/signal-manager';
 import { StoreImpl } from '../core/store';
 
 export class DebugStoreImpl extends StoreImpl implements DebugStore {
@@ -39,7 +40,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependencies = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = this.readSignalState(atom);
+    const atomState = readSignalState(atom, this.context);
 
     if (!('dependencies' in atomState)) {
       return [atom];
@@ -54,7 +55,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependents = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = this.readSignalState(atom);
+    const atomState = readSignalState(atom, this.context);
     return [
       atom,
       ...Array.from(atomState.mounted?.readDepts ?? []).map((key) => this.getReadDependents(key)),
@@ -64,7 +65,7 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   getSubscribeGraph = (): NestedAtom => {
     const subscribedAtoms = Array.from(this.mountedAtomListenersCount.keys());
     return subscribedAtoms.map((atom) => {
-      const atomState = this.readSignalState(atom);
+      const atomState = readSignalState(atom, this.context);
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's mounted
       const listeners = Array.from(atomState.mounted!.listeners);
       return [atom, ...listeners];
