@@ -65,8 +65,7 @@ export class ConsoleInterceptor implements StoreInterceptor {
       return;
     }
 
-    console.group('[R][SET] ' + atom$.toString());
-    console.log('arg:', args);
+    console.group('[R][SET] ' + atom$.toString(), '(', ...args, ')');
     console.log('ret:', fn());
     console.groupEnd();
   };

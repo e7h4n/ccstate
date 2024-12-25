@@ -74,7 +74,7 @@ export class AtomManager {
 
     const computedInterceptor = this.options?.interceptor?.computed;
     if (!computedInterceptor) {
-      return this.computeComputedAtom(atom);
+      return this.computeComputedAtom(atom, ignoreMounted);
     }
 
     let result: DataWithCalledState<ComputedState<T>> = {
@@ -84,7 +84,7 @@ export class AtomManager {
     computedInterceptor(atom, () => {
       result = {
         called: true,
-        data: this.computeComputedAtom(atom),
+        data: this.computeComputedAtom(atom, ignoreMounted),
       };
 
       return result.data.val;
@@ -97,7 +97,7 @@ export class AtomManager {
     return result.data;
   }
 
-  private computeComputedAtom<T>(atom: Computed<T>): ComputedState<T> {
+  private computeComputedAtom<T>(atom: Computed<T>, ignoreMounted = false): ComputedState<T> {
     const self: Computed<T> = atom;
     let atomState: ComputedState<T> | undefined = this.atomStateMap.get(self) as ComputedState<T> | undefined;
     if (!atomState) {
@@ -112,7 +112,7 @@ export class AtomManager {
     const readDeps = new Map<ReadableAtom<unknown>, number>();
     atomState.dependencies = readDeps;
     const wrappedGet: Getter = (depAtom) => {
-      const depState = this.readAtomState(depAtom);
+      const depState = this.readAtomState(depAtom, ignoreMounted);
 
       // get 可能发生在异步过程中，当重复调用时，只有最新的 get 过程会修改 deps
       if (atomState.dependencies === readDeps) {
