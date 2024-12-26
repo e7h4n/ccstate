@@ -171,10 +171,8 @@ function evaluateComputed<T>(computed$: Computed<T>, context: StoreContext, muta
 
   cleanupMissingDependencies(computed$, lastDeps, dependencies, context, mutation);
 
-  if (computedState.val !== evalVal) {
-    computedState.val = evalVal;
-    computedState.epoch += 1;
-  }
+  computedState.val = evalVal;
+  computedState.epoch += 1;
 
   return computedState;
 }
@@ -362,11 +360,9 @@ function innerSetState<T>(signal$: State<T>, context: StoreContext, mutation: Mu
 
   const signalState = readStateAtom(signal$, context);
 
-  if (signalState.val !== newValue) {
-    signalState.val = newValue;
-    signalState.epoch += 1;
-    markPendingListeners(signal$, context, mutation);
-  }
+  signalState.val = newValue;
+  signalState.epoch += 1;
+  markPendingListeners(signal$, context, mutation);
 
   return undefined;
 }

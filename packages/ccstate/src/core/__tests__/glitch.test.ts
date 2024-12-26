@@ -87,7 +87,7 @@ export function createDiamondDeps(
 ): [State<number>, State<number> | Computed<number>, State<number> | Computed<number>] {
   if (n < 1) throw new Error('number of layers must be greater than 0');
 
-  // 创建基础状态
+  // create base state
   if (n === 1) {
     const base$ = state(0, {
       debugLabel: 'base$',
