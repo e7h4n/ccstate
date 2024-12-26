@@ -53,7 +53,11 @@ function tryGetCached<T>(
     return undefined;
   }
 
-  if (signalState.mounted && !mutation?.dirtyMarkers.has(computed$.id)) {
+  if (mutation?.dirtyMarkers.has(computed$.id)) {
+    return undefined;
+  }
+
+  if (signalState.mounted) {
     return signalState;
   }
 
