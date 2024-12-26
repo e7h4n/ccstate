@@ -1,4 +1,5 @@
 // @ts-check
+import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { babel } from '@rollup/plugin-babel';
 import { dts } from 'rollup-plugin-dts';
@@ -7,30 +8,33 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const projectRootDir = path.resolve(__dirname);
 
-const extensions = ['.ts', '.js'];
-
+/**
+ * @param {string} id
+ * @returns {boolean}
+ */
 function external(id) {
   return !id.startsWith('.') && !id.startsWith(projectRootDir);
 }
 
+/**
+ * @param {{input:string, targetCJS:string, targetES:string}} param0
+ * @returns {import('rollup').RollupOptions[]}
+ */
 function generateTarget({ input, targetCJS, targetES }) {
-  const commonConfigs = {
-    input,
-    onwarn: (warning) => {
-      throw new Error(warning?.message);
-    },
-    external,
-  };
   return [
     {
-      ...commonConfigs,
+      input,
+      onwarn: (warning) => {
+        throw new Error(warning?.message);
+      },
+      external,
       plugins: [
         nodeResolve({
-          extensions,
+          extensions: ['.ts'],
         }),
         babel({
           exclude: 'node_modules/**',
-          extensions,
+          extensions: ['.ts'],
           babelHelpers: 'bundled',
           configFile: path.resolve(projectRootDir, './babel.config.json'),
         }),
@@ -47,19 +51,25 @@ function generateTarget({ input, targetCJS, targetES }) {
       ],
     },
     {
-      ...commonConfigs,
+      input,
+      onwarn: (warning) => {
+        throw new Error(warning?.message);
+      },
+      external,
       plugins: [
         dts({
           respectExternal: true,
           tsconfig: path.resolve(projectRootDir, './tsconfig.json'),
+          // https://github.com/Swatinem/rollup-plugin-dts/issues/143
+          compilerOptions: { preserveSymlinks: false },
         }),
       ],
       output: [
         {
-          file: targetES.replace(/\.js$/, '.d.ts'),
+          file: targetCJS.replace(/\.cjs$/, '.d.cts'),
         },
         {
-          file: targetCJS.replace(/\.cjs$/, '.d.cts'),
+          file: targetES.replace(/\.js$/, '.d.ts'),
         },
       ],
     },
@@ -69,19 +79,8 @@ function generateTarget({ input, targetCJS, targetES }) {
 /** @type { Array<import('rollup').RollupOptions> } */
 export default [
   ...generateTarget({
-    input: './src/preset.ts',
-    targetCJS: './dist/preset.cjs',
-    targetES: './dist/preset.js',
-  }),
-  ...generateTarget({
-    input: './src/plugin-debug-label.ts',
-    targetCJS: './dist/plugin-debug-label.cjs',
-    targetES: './dist/plugin-debug-label.js',
-  }),
-
-  ...generateTarget({
-    input: './src/plugin-react-refresh.ts',
-    targetCJS: './dist/plugin-react-refresh.cjs',
-    targetES: './dist/plugin-react-refresh.js',
+    input: './src/index.ts',
+    targetCJS: './dist/index.cjs',
+    targetES: './dist/index.js',
   }),
 ];
