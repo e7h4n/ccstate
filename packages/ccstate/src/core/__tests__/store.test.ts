@@ -768,3 +768,37 @@ it('get default store should be same', () => {
   const store2 = getDefaultStore();
   expect(store1).toBe(store2);
 });
+
+it('branch computed', () => {
+  const count$ = state(0, { debugLabel: 'count$' });
+  const base$ = computed((get) => get(count$), {
+    debugLabel: 'base$',
+  });
+  const mid$ = computed((get) => get(base$) + 1, {
+    debugLabel: 'mid$',
+  });
+  const branch$ = state(true, {
+    debugLabel: 'branch$',
+  });
+  const top$ = computed(
+    (get) => {
+      if (get(branch$)) {
+        return get(mid$);
+      }
+
+      return get(base$);
+    },
+    {
+      debugLabel: 'top$',
+    },
+  );
+
+  const store = createStore();
+  expect(store.get(top$)).toBe(1);
+
+  store.set(branch$, false);
+  expect(store.get(top$)).toBe(0);
+
+  store.set(count$, 1);
+  expect(store.get(top$)).toBe(1);
+});

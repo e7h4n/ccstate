@@ -22,7 +22,9 @@ function checkEpoch<T>(
       ? readComputed(dep, context, mutation).epoch
       : context.stateMap.get(dep)?.epoch;
 
-    return depEpoch === epoch;
+    if (depEpoch !== epoch) {
+      return false;
+    }
   }
 
   return true;
