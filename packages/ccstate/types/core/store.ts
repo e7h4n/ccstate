@@ -1,4 +1,4 @@
-import type { Signal, Command, Getter, Setter, State, Computed, Updater } from './atom';
+import type { Signal, Command, Getter, Setter, State, Computed, Updater } from './signal';
 
 export interface Store {
   get: Getter;

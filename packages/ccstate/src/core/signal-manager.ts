@@ -1,4 +1,4 @@
-import type { Signal, Command, Getter, State, Updater, Setter, Computed } from '../../types/core/atom';
+import type { Signal, Command, Getter, State, Updater, Setter, Computed } from '../../types/core/signal';
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
 import {
   withComputedInterceptor,
@@ -17,7 +17,7 @@ export interface StoreContext {
 }
 
 interface Mutation {
-  ignoreMounted?: boolean;
+  dirtyMarkers: Set<number>;
   pendingListeners: Set<Command<unknown, []>>;
 }
 
@@ -53,7 +53,7 @@ function tryGetCached<T>(
     return undefined;
   }
 
-  if (signalState.mounted && !mutation?.ignoreMounted) {
+  if (signalState.mounted && !mutation?.dirtyMarkers.has(computed$.id)) {
     return signalState;
   }
 
@@ -64,6 +64,10 @@ function tryGetCached<T>(
     }
   }
 
+  if (signalState.mounted) {
+    mutation?.dirtyMarkers.delete(computed$.id);
+  }
+
   return signalState;
 }
 
@@ -72,6 +76,8 @@ function readComputed<T>(computed$: Computed<T>, context: StoreContext, mutation
   if (cachedState) {
     return cachedState;
   }
+
+  mutation?.dirtyMarkers.delete(computed$.id);
 
   return withComputedInterceptor(
     () => {
@@ -333,7 +339,7 @@ function wrapVisitor(context: StoreContext, mutation: Mutation) {
     signal: State<T> | Command<T, Args>,
     ...args: [T | Updater<T>] | Args
   ): undefined | T => {
-    return set<T, Args>(signal, context, mutation, ...args);
+    return set<T, Args>(signal, context, ...args);
   };
 
   return {
@@ -383,16 +389,39 @@ function innerSet<T, Args extends unknown[]>(
   return;
 }
 
+function markDirty(signal$: Signal<unknown>, context: StoreContext, mutation: Mutation) {
+  let queue: Signal<unknown>[] = [signal$];
+
+  while (queue.length > 0) {
+    const nextQueue: Signal<unknown>[] = [];
+    for (const _signal$ of queue) {
+      if (canReadAsCompute(_signal$)) {
+        mutation.dirtyMarkers.add(_signal$.id);
+      }
+
+      const signalState = context.stateMap.get(_signal$);
+      if (!signalState?.mounted?.readDepts) {
+        continue;
+      }
+
+      for (const dep of signalState.mounted.readDepts) {
+        nextQueue.push(dep);
+      }
+    }
+
+    queue = nextQueue;
+  }
+}
+
 function markPendingListeners(signal$: Signal<unknown>, context: StoreContext, mutation: Mutation) {
+  markDirty(signal$, context, mutation);
+
   let queue: Signal<unknown>[] = [signal$];
 
   while (queue.length > 0) {
     const nextQueue: Signal<unknown>[] = [];
     for (const atom of queue) {
-      const atomState = readSignalState(atom, context, {
-        pendingListeners: mutation.pendingListeners,
-        ignoreMounted: true,
-      });
+      const atomState = readSignalState(atom, context, mutation);
 
       if (atomState.mounted?.listeners) {
         for (const listener of atomState.mounted.listeners) {
@@ -415,12 +444,16 @@ function markPendingListeners(signal$: Signal<unknown>, context: StoreContext, m
 export function set<T, Args extends unknown[]>(
   atom: State<T> | Command<T, Args>,
   context: StoreContext,
-  mutation: Mutation,
   ...args: [T | Updater<T>] | Args
 ): undefined | T {
-  return withSetInterceptor(
+  const ret = withSetInterceptor(
     () => {
       let ret: T | undefined;
+      const mutation: Mutation = {
+        dirtyMarkers: new Set(),
+        pendingListeners: new Set(),
+      };
+
       try {
         ret = innerSet(atom, context, mutation, ...args) as T | undefined;
       } finally {
@@ -431,7 +464,8 @@ export function set<T, Args extends unknown[]>(
     atom,
     context.interceptor?.set,
     ...args,
-  ) as T | undefined;
+  ) as T;
+  return ret;
 }
 
 function notify(context: StoreContext, mutation: Mutation) {

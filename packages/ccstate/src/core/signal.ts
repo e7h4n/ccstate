@@ -1,4 +1,4 @@
-import type { Computed, Command, Read, State, Write } from '../../types/core/atom';
+import type { Computed, Command, Read, State, Write } from '../../types/core/signal';
 
 interface Options {
   debugLabel?: string;
@@ -6,16 +6,17 @@ interface Options {
 
 let globalId = 0;
 
-const generateToString = (prefix: string, debugLabel?: string) => {
-  const id = globalId++;
+const generateToString = (id: number, prefix: string, debugLabel?: string) => {
   const label = `${prefix}${String(id)}${debugLabel ? ':' + debugLabel : ''}`;
   return () => label;
 };
 
 export function state<T>(init: T, options?: Options): State<T> {
+  const id = globalId++;
   const ret: State<T> = {
+    id,
     init,
-    toString: generateToString('V', options?.debugLabel),
+    toString: generateToString(id, 'S', options?.debugLabel),
   };
 
   if (options?.debugLabel) {
@@ -25,10 +26,13 @@ export function state<T>(init: T, options?: Options): State<T> {
 }
 
 export function computed<T>(read: Read<T>, options?: Options): Computed<T> {
+  const id = globalId++;
   const ret: Computed<T> = {
+    id,
     read,
-    toString: generateToString('C', options?.debugLabel),
+    toString: generateToString(id, 'CPT', options?.debugLabel),
   };
+
   if (options?.debugLabel) {
     ret.debugLabel = options.debugLabel;
   }
@@ -36,9 +40,11 @@ export function computed<T>(read: Read<T>, options?: Options): Computed<T> {
 }
 
 export function command<T, Args extends unknown[]>(write: Write<T, Args>, options?: Options): Command<T, Args> {
+  const id = globalId++;
   const ret: Command<T, Args> = {
+    id,
     write,
-    toString: generateToString('F', options?.debugLabel),
+    toString: generateToString(id, 'CMD', options?.debugLabel),
   };
   if (options?.debugLabel) {
     ret.debugLabel = options.debugLabel;

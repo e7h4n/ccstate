@@ -1,4 +1,4 @@
-import type { Command, Computed, Signal, State, Updater } from '../../types/core/atom';
+import type { Command, Computed, Signal, State, Updater } from '../../types/core/signal';
 import type {
   CallbackFunc,
   InterceptorComputed,

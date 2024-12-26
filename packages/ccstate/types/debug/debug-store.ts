@@ -1,4 +1,4 @@
-import type { Command, Computed, State } from '../core/atom';
+import type { Command, Computed, State } from '../core/signal';
 import type { Store } from '../core/store';
 
 export type NestedAtom = (State<unknown> | Computed<unknown> | Command<unknown, unknown[]> | NestedAtom)[];

@@ -11,16 +11,19 @@ export type Read<T> = (get: Getter, options: GetterOptions) => T;
 export type Write<T, Args extends unknown[]> = (visitor: { get: Getter; set: Setter }, ...args: Args) => T;
 
 export interface State<T> {
+  id: number;
   init: T;
   debugLabel?: string;
   toString: () => string;
 }
 export interface Computed<T> {
+  id: number;
   read: Read<T>;
   debugLabel?: string;
   toString: () => string;
 }
 export interface Command<T, Args extends unknown[]> {
+  id: number;
   write: Write<T, Args>;
   debugLabel?: string;
   toString: () => string;

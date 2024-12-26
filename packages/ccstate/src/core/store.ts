@@ -1,4 +1,4 @@
-import type { Command, Getter, Setter, Signal, State, Updater } from '../../types/core/atom';
+import type { Command, Getter, Setter, Signal, State, Updater } from '../../types/core/signal';
 import type { Store, StoreOptions, SubscribeOptions } from '../../types/core/store';
 import { get, set, sub, type StoreContext, type StateMap } from './signal-manager';
 
@@ -21,15 +21,7 @@ export class StoreImpl implements Store {
     atom: State<T> | Command<T, Args>,
     ...args: [T | Updater<T>] | Args
   ): undefined | T => {
-    return set<T, Args>(
-      atom,
-      this.context,
-      {
-        ignoreMounted: false,
-        pendingListeners: new Set(),
-      },
-      ...args,
-    );
+    return set<T, Args>(atom, this.context, ...args);
   };
 
   sub(

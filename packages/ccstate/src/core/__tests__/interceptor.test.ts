@@ -1,8 +1,8 @@
 import { expect, it, vi } from 'vitest';
-import { computed, command, state } from '../atom';
+import { computed, command, state } from '../signal';
 import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
 import { StoreImpl } from '../store';
-import type { Command, Signal, Updater, State } from '../../../types/core/atom';
+import type { Command, Signal, Updater, State } from '../../../types/core/signal';
 import { delay } from 'signal-timers';
 
 function createStoreForTest(options: StoreOptions): Store {

@@ -11,8 +11,8 @@ import type { Signal } from 'alien-signals';
 const isCI = typeof window === 'undefined' ? !!process.env.CI : false;
 const isBrowser = typeof window !== 'undefined';
 
-const beginScale = isCI ? 3 : 1;
-const maxScale = isCI ? 3 : 4;
+const beginScale = isCI || isBrowser ? 3 : 1;
+const maxScale = isCI || isBrowser ? 3 : 4;
 for (let depth = beginScale; depth <= maxScale; depth++) {
   describe(`set with subscription, ${String(Math.pow(10, depth))} atoms pyramid`, () => {
     const { atoms: atomsCCState, store: storeCCState } = setupStore(depth, ccstateStrategy);
