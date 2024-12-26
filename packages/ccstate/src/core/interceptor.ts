@@ -1,7 +1,9 @@
 import type { Command, Computed, Signal, State, Updater } from '../../types/core/atom';
 import type {
+  CallbackFunc,
   InterceptorComputed,
   InterceptorGet,
+  InterceptorNotify,
   InterceptorSet,
   InterceptorSub,
   InterceptorUnsub,
@@ -150,4 +152,23 @@ export function withUnsubInterceptor<T>(
   if (!result.called) {
     throw new Error('interceptor must call fn sync');
   }
+}
+
+export function withNotifyInterceptor<T>(fn: () => T, callback$: CallbackFunc<T>, interceptor?: InterceptorNotify): T {
+  if (!interceptor) {
+    return fn();
+  }
+
+  let result = { called: false } as DataWithCalledState<T>;
+
+  interceptor(callback$, () => {
+    result = { called: true, data: fn() };
+    return result.data;
+  });
+
+  if (!result.called) {
+    throw new Error('interceptor must call fn sync');
+  }
+
+  return result.data;
 }

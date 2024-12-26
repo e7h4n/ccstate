@@ -4,6 +4,7 @@ import {
   withComputedInterceptor,
   withGetInterceptor,
   withGeValInterceptor,
+  withNotifyInterceptor,
   withSetInterceptor,
   withSubInterceptor,
   withUnsubInterceptor,
@@ -438,19 +439,12 @@ function notify(context: StoreContext, mutation: Mutation) {
   mutation.pendingListeners = new Set();
 
   for (const listener of pendingListeners) {
-    let notifyed = false;
-    const fn = () => {
-      notifyed = true;
-      return listener.write(wrapVisitor(context, mutation));
-    };
-    if (context.interceptor?.notify) {
-      context.interceptor.notify(listener, fn);
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- notify must call fn sync
-      if (!notifyed) {
-        throw new Error('interceptor must call fn sync');
-      }
-    } else {
-      fn();
-    }
+    withNotifyInterceptor(
+      () => {
+        return listener.write(wrapVisitor(context, mutation));
+      },
+      listener,
+      context.interceptor?.notify,
+    );
   }
 }
