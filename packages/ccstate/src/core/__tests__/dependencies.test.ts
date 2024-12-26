@@ -117,6 +117,7 @@ it('do not keep atoms mounted between async recalculations', async () => {
   });
 
   const store = createDebugStore();
+  expect(store.getReadDependents(base)).toEqual([base]);
   store.sub(
     derived,
     command(() => void 0),

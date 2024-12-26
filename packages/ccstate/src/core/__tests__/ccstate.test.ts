@@ -218,6 +218,7 @@ test('get read deps', () => {
   const derived$ = computed((get) => {
     return Object.assign(get(base$), { b: 1 });
   });
+  expect(store.getReadDependencies(derived$)).toEqual([derived$]);
   store.get(derived$);
   expect(store.getReadDependencies(derived$)).toEqual([derived$, [base$]]);
 });
