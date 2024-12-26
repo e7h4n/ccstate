@@ -58,6 +58,19 @@ it('interceptor must call fn sync', () => {
   expect(() => store.get(base$)).toThrow();
 });
 
+it('interceptor must call fn sync for set', () => {
+  const store = createStoreForTest({
+    interceptor: {
+      set: () => void 0,
+    },
+  });
+
+  const base$ = state(0);
+  expect(() => {
+    store.set(base$, 1);
+  }).toThrow();
+});
+
 it('interceptor must call fn sync for derived', () => {
   const store = createStoreForTest({
     interceptor: {
