@@ -40,7 +40,7 @@ export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
 
 interface Mounted {
   listeners: Set<Command<unknown, []>>;
-  readDepts: Set<Signal<unknown>>;
+  readDepts: Set<Computed<unknown>>;
 }
 
 function tryGetCached<T>(
@@ -212,7 +212,7 @@ function didMount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutat
   if (isComputedState(signalState)) {
     for (const [dep] of Array.from(signalState.dependencies)) {
       const mounted = tryMount(dep, context, mutation);
-      mounted.readDepts.add(signal$);
+      mounted.readDepts.add(signal$ as Computed<unknown>);
     }
   }
 
@@ -239,7 +239,7 @@ function didUnmount<T>(
   if (isComputedState(signalState)) {
     for (const [dep] of Array.from(signalState.dependencies)) {
       const depState = readSignalState(dep, context, mutation);
-      depState.mounted?.readDepts.delete(signal$);
+      depState.mounted?.readDepts.delete(signal$ as Computed<unknown>);
       tryUnmount(dep, context, mutation);
     }
   }
@@ -362,7 +362,7 @@ function innerSetState<T>(signal$: State<T>, context: StoreContext, mutation: Mu
 
   signalState.val = newValue;
   signalState.epoch += 1;
-  markPendingListeners(signal$, context, mutation);
+  pushPullStateChange(signalState, context, mutation);
 
   return undefined;
 }
@@ -385,22 +385,18 @@ function innerSet<T, Args extends unknown[]>(
   return;
 }
 
-function markDirty(signal$: Signal<unknown>, context: StoreContext, mutation: Mutation) {
-  let queue: Signal<unknown>[] = [signal$];
+function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
+  let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
   while (queue.length > 0) {
-    const nextQueue: Signal<unknown>[] = [];
-    for (const _signal$ of queue) {
-      if (canReadAsCompute(_signal$)) {
-        mutation.dirtyMarkers.add(_signal$.id);
-      }
+    const nextQueue: Computed<unknown>[] = [];
+    for (const computed$ of queue) {
+      mutation.dirtyMarkers.add(computed$.id);
 
-      const signalState = context.stateMap.get(_signal$);
-      if (!signalState?.mounted?.readDepts) {
-        continue;
-      }
-
-      for (const dep of signalState.mounted.readDepts) {
+      const computedState = context.stateMap.get(computed$);
+      // This computed$ is read from other computed$'s readDepts, so it must not be null and must have mounted
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      for (const dep of computedState!.mounted!.readDepts) {
         nextQueue.push(dep);
       }
     }
@@ -409,23 +405,25 @@ function markDirty(signal$: Signal<unknown>, context: StoreContext, mutation: Mu
   }
 }
 
-function markPendingListeners(signal$: Signal<unknown>, context: StoreContext, mutation: Mutation) {
-  markDirty(signal$, context, mutation);
+function pullEvaluate(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
+  let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
-  let queue: Signal<unknown>[] = [signal$];
+  for (const listener of signalState.mounted?.listeners ?? []) {
+    mutation.pendingListeners.add(listener);
+  }
 
   while (queue.length > 0) {
-    const nextQueue: Signal<unknown>[] = [];
-    for (const atom of queue) {
-      const atomState = readSignalState(atom, context, mutation);
+    const nextQueue: Computed<unknown>[] = [];
+    for (const computed$ of queue) {
+      const computedState = readComputed(computed$, context, mutation);
 
-      if (atomState.mounted?.listeners) {
-        for (const listener of atomState.mounted.listeners) {
+      if (computedState.mounted?.listeners) {
+        for (const listener of computedState.mounted.listeners) {
           mutation.pendingListeners.add(listener);
         }
       }
 
-      const readDepts = atomState.mounted?.readDepts;
+      const readDepts = computedState.mounted?.readDepts;
       if (readDepts) {
         for (const dep of Array.from(readDepts)) {
           nextQueue.push(dep);
@@ -435,6 +433,11 @@ function markPendingListeners(signal$: Signal<unknown>, context: StoreContext, m
 
     queue = nextQueue;
   }
+}
+
+function pushPullStateChange(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
+  pushDirtyMarkers(signalState, context, mutation);
+  pullEvaluate(signalState, context, mutation);
 }
 
 export function set<T, Args extends unknown[]>(
