@@ -1,4 +1,4 @@
-import type { Computed, Command, Read, State, Write } from '../../types/core/signal';
+import type { Computed, Command, Read, State, Write } from '../../../types/core/signal';
 
 interface Options {
   debugLabel?: string;

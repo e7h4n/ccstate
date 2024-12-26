@@ -1,5 +1,5 @@
 import type { Computed, Signal } from '../../types/core/signal';
-import type { ComputedState, SignalState } from './signal-manager';
+import type { ComputedState, SignalState } from '../../types/core/store';
 
 export function canReadAsCompute<T>(atom: Signal<T>): atom is Computed<T> {
   return 'read' in atom;

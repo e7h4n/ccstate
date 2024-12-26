@@ -1,6 +1,7 @@
 import type { Command, Computed, Signal, State, Updater } from '../../types/core/signal';
 import type {
   CallbackFunc,
+  ComputedState,
   InterceptorComputed,
   InterceptorGet,
   InterceptorNotify,
@@ -8,7 +9,6 @@ import type {
   InterceptorSub,
   InterceptorUnsub,
 } from '../../types/core/store';
-import type { ComputedState } from './signal-manager';
 
 type DataWithCalledState<T> =
   | {

@@ -13,7 +13,7 @@
     "fix:format": "prettier '**/*' --ignore-unknown --write",
     "fix:lint": "eslint . --fix",
     "test": "vitest --coverage --run",
-    "bench": "vitest bench --run",
+    "bench": "pnpm build:core && vitest bench --run",
     "build": "pnpm build:core && pnpm '/^build:extra:.*/'",
     "build:core": "pnpm -F ccstate build",
     "build:extra:babel": "pnpm -F ccstate-babel build",

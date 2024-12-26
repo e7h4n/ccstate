@@ -1,8 +1,7 @@
 import type { StoreInterceptor, SubscribeOptions } from '../../types/core/store';
 import type { DebugStore, NestedAtom } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
-import { readSignalState } from '../core/signal-manager';
-import { StoreImpl } from '../core/store';
+import { StoreImpl } from '../core/store/store';
 
 export class DebugStoreImpl extends StoreImpl implements DebugStore {
   private readonly mountedAtomListenersCount = new Map<State<unknown> | Computed<unknown>, number>();
@@ -40,7 +39,10 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependencies = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = readSignalState(atom, this.context);
+    const atomState = this.context.stateMap.get(atom);
+    if (!atomState) {
+      return [atom];
+    }
 
     if (!('dependencies' in atomState)) {
       return [atom];
@@ -55,7 +57,11 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   };
 
   getReadDependents = (atom: State<unknown> | Computed<unknown>): NestedAtom => {
-    const atomState = readSignalState(atom, this.context);
+    const atomState = this.context.stateMap.get(atom);
+    if (!atomState) {
+      return [atom];
+    }
+
     return [
       atom,
       ...Array.from(atomState.mounted?.readDepts ?? []).map((key) => this.getReadDependents(key)),
@@ -65,9 +71,9 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   getSubscribeGraph = (): NestedAtom => {
     const subscribedAtoms = Array.from(this.mountedAtomListenersCount.keys());
     return subscribedAtoms.map((atom) => {
-      const atomState = readSignalState(atom, this.context);
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- we know it's mounted
-      const listeners = Array.from(atomState.mounted!.listeners);
+      const atomState = this.context.stateMap.get(atom);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const listeners = Array.from(atomState!.mounted!.listeners);
       return [atom, ...listeners];
     });
   };

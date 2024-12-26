@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest';
-import { command, computed, state } from '../signal';
-import { getDefaultStore } from '../store';
+import { command, computed, state } from '../signal/factory';
+import { getDefaultStore } from '../store/store';
 
 it('default state & computed is not distincted', () => {
   const base$ = state(0);

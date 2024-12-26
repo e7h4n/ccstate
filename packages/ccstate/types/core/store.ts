@@ -46,3 +46,52 @@ export type StoreEventType = 'set' | 'get' | 'sub' | 'unsub' | 'mount' | 'unmoun
 export interface StoreOptions {
   interceptor?: StoreInterceptor;
 }
+
+export interface StoreContext {
+  stateMap: StateMap;
+  interceptor?: StoreInterceptor;
+}
+
+export interface Mutation {
+  dirtyMarkers: Set<number>;
+  pendingListeners: Set<Command<unknown, []>>;
+  visitor: {
+    get: Getter;
+    set: Setter;
+  };
+}
+
+export interface StateState<T> {
+  mounted?: Mounted;
+  val: T;
+  epoch: number;
+}
+
+export interface ComputedState<T> {
+  mounted?: Mounted;
+  val: T;
+  dependencies: Map<Signal<unknown>, number>;
+  epoch: number;
+  abortController?: AbortController;
+}
+
+export type SignalState<T> = StateState<T> | ComputedState<T>;
+export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
+
+export interface Mounted {
+  listeners: Set<Command<unknown, []>>;
+  readDepts: Set<Computed<unknown>>;
+}
+
+export type StoreSet = <T, Args extends unknown[]>(
+  atom: State<T> | Command<T, Args>,
+  context: StoreContext,
+  ...args: [T | Updater<T>] | Args
+) => T | undefined;
+
+export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation) => T;
+
+export type ReadComputed = <T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation) => ComputedState<T>;
+export type ReadSignal = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => SignalState<T>;
+export type Mount = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => Mounted;
+export type Unmount = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => void;

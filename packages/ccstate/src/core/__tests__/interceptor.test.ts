@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
-import { computed, command, state } from '../signal';
+import { computed, command, state } from '../signal/factory';
 import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
-import { StoreImpl } from '../store';
+import { StoreImpl } from '../store/store';
 import type { Command, Signal, Updater, State } from '../../../types/core/signal';
 import { delay } from 'signal-timers';
 
