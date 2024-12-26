@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.2.0
+
+### Minor Changes
+
+- 023d3a7: feat: set state & computed mutation will not distinct same value event
+
 ## 4.1.0
 
 ### Minor Changes
