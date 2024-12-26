@@ -64,10 +64,6 @@ function tryGetCached<T>(
     }
   }
 
-  if (signalState.mounted) {
-    mutation?.dirtyMarkers.delete(computed$.id);
-  }
-
   return signalState;
 }
 
