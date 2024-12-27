@@ -38,6 +38,18 @@ export function createDevtools() {
     set(internalSelectedWatch$, watch);
   });
 
+  const graph$ = computed((get) => {
+    const store = get(debugStore$);
+    const currentWatch = get(currentWatch$);
+    if (!store || !currentWatch) return null;
+
+    return {
+      title: currentWatch.target.toString(),
+      edges: [],
+      nodes: new Map(),
+    };
+  });
+
   return {
     computedWatches$,
     pushComputedWatch$,
@@ -45,5 +57,6 @@ export function createDevtools() {
     setDebugStore$,
     currentWatch$,
     selectWatch$,
+    graph$,
   };
 }

@@ -1,4 +1,4 @@
-import { computed, createDebugStore, createStore } from 'ccstate';
+import { computed, createDebugStore, createStore, state } from 'ccstate';
 import { createDevtools, type ComputedWatch } from '../devtools';
 import { it, expect } from 'vitest';
 
@@ -29,4 +29,32 @@ it('should have null selected watch initially', () => {
 
   store.set(devtools.selectWatch$, watch2);
   expect(store.get(devtools.currentWatch$)).toBe(watch2);
+});
+
+it('should compute graph', () => {
+  const store = createStore();
+  const devtools = createDevtools();
+
+  const base$ = state(0, {
+    debugLabel: 'base$',
+  });
+  const derived$ = computed((get) => 1 + get(base$), {
+    debugLabel: 'derived$',
+  });
+
+  expect(store.get(devtools.graph$)).toBeNull();
+
+  const targetStore = createDebugStore();
+  store.set(devtools.setDebugStore$, targetStore);
+  expect(store.get(devtools.graph$)).toBeNull();
+
+  store.set(devtools.pushComputedWatch$, {
+    target: derived$,
+  });
+
+  expect(store.get(devtools.graph$)).toEqual({
+    title: derived$.toString(),
+    edges: [],
+    nodes: new Map(),
+  });
 });

@@ -21,7 +21,7 @@ class CCStateDevtools extends HTMLElement {
 
     this.signals = createDevtools();
     this.store.set(this.render$);
-    this.store.sub([this.signals.debugStore$, this.signals.computedWatches$], this.render$);
+    this.store.sub([this.signals.debugStore$, this.signals.computedWatches$, this.signals.graph$], this.render$);
   }
 
   addDependenciesGraph(computed$: Computed<unknown>) {
@@ -46,6 +46,7 @@ class CCStateDevtools extends HTMLElement {
   private render$ = command(({ get }) => {
     const debugStore = get(this.signals.debugStore$);
     const tabs = get(this.tabs$);
+    const graph = get(this.signals.graph$);
 
     if (!debugStore) {
       render(html`<div data-testid="debug-store-not-set">Please set debugStore attribute First</div>`, this.container);
@@ -61,6 +62,10 @@ class CCStateDevtools extends HTMLElement {
       `,
       this.container,
     );
+
+    const graphEl = this.container.querySelector('#graph');
+    console.log(graph, graphEl);
+    // TODO: render graph to graphEl
   });
 }
 
