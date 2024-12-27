@@ -57,4 +57,31 @@ it('should compute graph', () => {
     edges: [],
     nodes: new Map(),
   });
+
+  expect(targetStore.get(derived$)).toBe(1);
+  expect(store.get(devtools.graph$)).toEqual({
+    title: derived$.toString(),
+    edges: [],
+    nodes: new Map(),
+  });
+
+  store.set(devtools.refreshGraph$);
+  expect(store.get(devtools.graph$)).toEqual({
+    title: derived$.toString(),
+    edges: [[derived$.id, base$.id, 0]],
+    nodes: new Map([
+      [
+        derived$.id,
+        {
+          label: derived$.toString(),
+          shape: 'circle',
+          data: {
+            epoch: 0,
+            value: 1,
+          },
+        },
+      ],
+      [base$.id, { label: base$.toString(), shape: 'square', data: { epoch: 0, value: 0 } }],
+    ]),
+  });
 });

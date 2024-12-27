@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
-  "include": ["src", "vitest.config.ts"]
+  "include": ["src", "vitest.config.ts", "e2e", "vite.config.ts"]
 }

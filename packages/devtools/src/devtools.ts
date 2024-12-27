@@ -38,15 +38,56 @@ export function createDevtools() {
     set(internalSelectedWatch$, watch);
   });
 
+  const internalGraphRefresh$ = state(0);
+  const refreshGraph$ = command(({ set }) => {
+    set(internalGraphRefresh$, (x) => x + 1);
+  });
+
   const graph$ = computed((get) => {
+    get(internalGraphRefresh$);
+
     const store = get(debugStore$);
     const currentWatch = get(currentWatch$);
     if (!store || !currentWatch) return null;
 
+    const graph = store.getDependenciesGraph(currentWatch.target);
+
     return {
       title: currentWatch.target.toString(),
-      edges: [],
-      nodes: new Map(),
+      edges: graph.map(([from, to, value]) => [from.signal.id, to.signal.id, value]),
+      nodes: graph.reduce(
+        (prev, curr) => {
+          prev.set(curr[0].signal.id, {
+            label: curr[0].signal.toString(),
+            shape: 'read' in curr[0].signal ? 'circle' : 'square',
+            data: {
+              epoch: curr[0].epoch,
+              value: curr[0].val,
+            },
+          });
+          prev.set(curr[1].signal.id, {
+            label: curr[1].signal.toString(),
+            shape: 'read' in curr[1].signal ? 'circle' : 'square',
+            data: {
+              epoch: curr[1].epoch,
+              value: curr[1].val,
+            },
+          });
+
+          return prev;
+        },
+        new Map<
+          number,
+          {
+            label: string;
+            shape: string;
+            data: {
+              epoch: number;
+              value: unknown;
+            };
+          }
+        >(),
+      ),
     };
   });
 
@@ -58,5 +99,6 @@ export function createDevtools() {
     currentWatch$,
     selectWatch$,
     graph$,
+    refreshGraph$,
   };
 }
