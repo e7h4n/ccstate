@@ -1,6 +1,8 @@
 export type Updater<T> = (current: T) => T;
+export type StateArg<T> = T | Updater<T>;
+
 export interface Setter {
-  <T>(state: State<T>, val: T | Updater<T>): void;
+  <T>(state: State<T>, val: StateArg<T>): void;
   <T, Args extends unknown[]>(command: Command<T, Args>, ...args: Args): T;
 }
 export type Getter = <T>(readable: Signal<T>) => T;

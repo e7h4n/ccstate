@@ -1,22 +1,27 @@
 import { useStore } from './provider';
-import type { Command, Updater, State } from 'ccstate';
+import type { Command, State, StateArg } from 'ccstate';
 
-export function useSet<T>(atom: State<T>): (value: T | Updater<T>) => void;
-export function useSet<T, ARGS extends unknown[]>(atom: Command<T, ARGS>): (...args: ARGS) => T;
-export function useSet<T, ARGS extends unknown[]>(
-  atom: State<T> | Command<T, ARGS>,
-): ((value: T | Updater<T>) => void) | ((...args: ARGS) => T) {
+type ValueSetter<T> = (val: StateArg<T>) => void;
+type CommandInvoker<T, CommandArgs extends unknown[]> = (...args: CommandArgs) => T;
+
+export function useSet<T>(signal: State<T>): ValueSetter<T>;
+export function useSet<T, CommandArgs extends unknown[]>(
+  signal: Command<T, CommandArgs>,
+): CommandInvoker<T, CommandArgs>;
+export function useSet<T, CommandArgs extends unknown[]>(
+  signal: State<T> | Command<T, CommandArgs>,
+): ValueSetter<T> | CommandInvoker<T, CommandArgs> {
   const store = useStore();
 
-  if ('write' in atom) {
-    return (...args: ARGS): T => {
-      const ret = store.set(atom, ...args);
+  if ('write' in signal) {
+    return (...args: CommandArgs): T => {
+      const ret = store.set(signal, ...args);
 
       return ret;
     };
   }
 
-  return (value: T | Updater<T>) => {
-    store.set(atom, value);
+  return (value: StateArg<T>) => {
+    store.set(signal, value);
   };
 }

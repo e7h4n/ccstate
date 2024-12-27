@@ -1,4 +1,4 @@
-import type { Signal, Command, Getter, Setter, State, Computed, Updater } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg } from './signal';
 
 export interface Store {
   get: Getter;
@@ -21,7 +21,7 @@ export type Subscribe = (
 export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {
   <T, Args extends unknown[]>(command$: Command<T, Args>, fn: () => T, ...args: Args): void;
-  <T>(state$: State<T>, fn: () => void, val: T | Updater<T>): void;
+  <T>(state$: State<T>, fn: () => void, val: StateArg<T>): void;
 }
 export type InterceptorSub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
 export type InterceptorUnsub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
@@ -83,7 +83,7 @@ export interface Mounted {
   readDepts: Set<Computed<unknown>>;
 }
 
-export type SetArgs<T, Args extends unknown[]> = [T | Updater<T>] | Args;
+export type SetArgs<T, CommandArgs extends unknown[]> = [StateArg<T>] | CommandArgs;
 
 export type StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   atom: State<T> | Command<T, Args>,

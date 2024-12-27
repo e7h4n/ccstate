@@ -1,6 +1,6 @@
-import type { CallbackFunc, StoreEventType, StoreInterceptor } from '../../types/core/store';
+import type { CallbackFunc, SetArgs, StoreEventType, StoreInterceptor } from '../../types/core/store';
 import type { DebugStore } from '../../types/debug/debug-store';
-import type { Computed, Command, Updater, State } from '../core';
+import type { Computed, Command, State } from '../core';
 import { createDebugStoreInternal } from './debug-store';
 
 export interface AtomWatch {
@@ -55,11 +55,7 @@ export class ConsoleInterceptor implements StoreInterceptor {
     console.groupEnd();
   };
 
-  set = <T, Args extends unknown[]>(
-    atom$: State<T> | Command<T, Args>,
-    fn: () => T,
-    ...args: Args | [T | Updater<T>]
-  ) => {
+  set = <T, Args extends SetArgs<T, unknown[]>>(atom$: State<T> | Command<T, Args>, fn: () => T, ...args: Args) => {
     if (!this.shouldLog(atom$ as unknown as State<T>, 'set')) {
       fn();
       return;

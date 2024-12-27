@@ -1,4 +1,4 @@
-import type { Command, State, Updater, Computed, Signal } from '../../../types/core/signal';
+import type { Command, State, Computed, Signal, Updater, StateArg } from '../../../types/core/signal';
 import type {
   Mutation,
   ReadComputed,
@@ -79,12 +79,15 @@ function innerSetState<T>(
   signal$: State<T>,
   context: StoreContext,
   mutation: Mutation,
-  val: T | Updater<T>,
+  val: StateArg<T>,
 ) {
-  const newValue: T =
-    typeof val === 'function'
-      ? (val as Updater<T>)((context.stateMap.get(signal$)?.val as T | undefined) ?? signal$.init)
-      : val;
+  let newValue: T;
+  if (typeof val === 'function') {
+    const updater = val as Updater<T>;
+    newValue = updater((context.stateMap.get(signal$)?.val as T | undefined) ?? signal$.init);
+  } else {
+    newValue = val;
+  }
 
   const signalState = context.stateMap.get(signal$);
   if (!signalState) {
