@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.3.0
+
+### Minor Changes
+
+- 89d98a2: feat(ccstate): state & computed will distinct change by default
+
 ## 4.2.0
 
 ### Minor Changes
