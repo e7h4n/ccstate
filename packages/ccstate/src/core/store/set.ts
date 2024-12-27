@@ -1,5 +1,13 @@
 import type { Command, State, Updater, Computed, Signal } from '../../../types/core/signal';
-import type { Mutation, ReadComputed, StoreContext, StateState, StoreGet, StoreSet } from '../../../types/core/store';
+import type {
+  Mutation,
+  ReadComputed,
+  StoreContext,
+  StateState,
+  StoreGet,
+  StoreSet,
+  SetArgs,
+} from '../../../types/core/store';
 
 function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
@@ -94,19 +102,19 @@ function innerSetState<T>(
   return undefined;
 }
 
-export function set<T, Args extends unknown[]>(
+export function set<T, Args extends SetArgs<T, unknown[]>>(
   readComputed: ReadComputed,
   writable$: State<T> | Command<T, Args>,
   context: StoreContext,
   mutation: Mutation,
-  ...args: [T | Updater<T>] | Args
+  ...args: Args
 ): undefined | T {
   if ('read' in writable$) {
     return;
   }
 
   if ('write' in writable$) {
-    return writable$.write(mutation.visitor, ...(args as Args));
+    return writable$.write(mutation.visitor, ...args);
   }
 
   innerSetState(readComputed, writable$, context, mutation, args[0]);
@@ -134,9 +142,9 @@ export function createMutation(context: StoreContext, get: StoreGet, set: StoreS
       get: <T>(signal$: Signal<T>) => {
         return get(signal$, context, mutation);
       },
-      set: <T, Args extends unknown[]>(
+      set: <T, Args extends SetArgs<T, unknown[]>>(
         signal$: State<T> | Command<T, Args>,
-        ...args: [T | Updater<T>] | Args
+        ...args: Args
       ): undefined | T => {
         return set<T, Args>(signal$, context, ...args);
       },

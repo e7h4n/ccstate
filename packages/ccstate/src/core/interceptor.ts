@@ -1,4 +1,4 @@
-import type { Command, Computed, Signal, State, Updater } from '../../types/core/signal';
+import type { Command, Computed, Signal, State } from '../../types/core/signal';
 import type {
   CallbackFunc,
   ComputedState,
@@ -8,6 +8,7 @@ import type {
   InterceptorSet,
   InterceptorSub,
   InterceptorUnsub,
+  SetArgs,
 } from '../../types/core/store';
 
 type DataWithCalledState<T> =
@@ -19,11 +20,11 @@ type DataWithCalledState<T> =
       data: T;
     };
 
-export function withSetInterceptor<T, Args extends unknown[]>(
+export function withSetInterceptor<T, Args extends SetArgs<T, unknown[]>>(
   fn: () => T | undefined,
   writable$: State<T> | Command<T, Args>,
   interceptor: InterceptorSet | undefined,
-  ...args: [T | Updater<T>] | Args
+  ...args: Args
 ): T | undefined {
   if (!interceptor) {
     return fn();
@@ -35,9 +36,9 @@ export function withSetInterceptor<T, Args extends unknown[]>(
     return result.data;
   };
   if ('write' in writable$) {
-    interceptor(writable$, wrappedFn, ...(args as Args));
+    interceptor(writable$, wrappedFn, ...args);
   } else {
-    interceptor(writable$, wrappedFn, args[0] as T | Updater<T>);
+    interceptor(writable$, wrappedFn, args[0]);
   }
 
   if (!result.called) {

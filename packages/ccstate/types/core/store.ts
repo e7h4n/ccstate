@@ -21,7 +21,7 @@ export type Subscribe = (
 export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {
   <T, Args extends unknown[]>(command$: Command<T, Args>, fn: () => T, ...args: Args): void;
-  <T>(value$: State<T>, fn: () => void, val: T | Updater<T>): void;
+  <T>(state$: State<T>, fn: () => void, val: T | Updater<T>): void;
 }
 export type InterceptorSub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
 export type InterceptorUnsub = <T>(signal$: Signal<T>, callback$: CallbackFunc<T>, fn: () => void) => void;
@@ -83,10 +83,12 @@ export interface Mounted {
   readDepts: Set<Computed<unknown>>;
 }
 
-export type StoreSet = <T, Args extends unknown[]>(
+export type SetArgs<T, Args extends unknown[]> = [T | Updater<T>] | Args;
+
+export type StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   atom: State<T> | Command<T, Args>,
   context: StoreContext,
-  ...args: [T | Updater<T>] | Args
+  ...args: Args
 ) => T | undefined;
 
 export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation) => T;

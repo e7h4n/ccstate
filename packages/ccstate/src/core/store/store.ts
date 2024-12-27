@@ -1,4 +1,4 @@
-import type { Command, Getter, Setter, Signal, State, Updater, Computed } from '../../../types/core/signal';
+import type { Command, Getter, Setter, Signal, State, Computed } from '../../../types/core/signal';
 import type {
   StateMap,
   Store,
@@ -12,6 +12,7 @@ import type {
   SignalState,
   StoreGet,
   StoreSet,
+  SetArgs,
 } from '../../../types/core/store';
 import { evaluateComputed, tryGetCached } from '../signal/computed';
 import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from '../interceptor';
@@ -89,10 +90,10 @@ const get: StoreGet = (signal, context, mutation) => {
   );
 };
 
-const set: StoreSet = (<T, Args extends unknown[]>(
+const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   atom: State<T> | Command<T, Args>,
   context: StoreContext,
-  ...args: [T | Updater<T>] | Args
+  ...args: Args
 ): T | undefined => {
   return withSetInterceptor<T, Args>(
     () => {
@@ -110,7 +111,7 @@ const set: StoreSet = (<T, Args extends unknown[]>(
     context.interceptor?.set,
     ...args,
   );
-}) as StoreSet;
+};
 
 export class StoreImpl implements Store {
   protected readonly stateMap: StateMap = new WeakMap();
@@ -127,9 +128,9 @@ export class StoreImpl implements Store {
     return get(atom, this.context);
   };
 
-  set: Setter = <T, Args extends unknown[]>(
+  set: Setter = <T, Args extends SetArgs<T, unknown[]>>(
     atom: State<T> | Command<T, Args>,
-    ...args: [T | Updater<T>] | Args
+    ...args: Args
   ): undefined | T => {
     return set<T, Args>(atom, this.context, ...args);
   };

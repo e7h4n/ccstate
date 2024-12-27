@@ -1,8 +1,8 @@
 import { expect, it, vi } from 'vitest';
 import { computed, command, state } from '../signal/factory';
-import type { CallbackFunc, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
+import type { CallbackFunc, SetArgs, Store, StoreInterceptor, StoreOptions } from '../../../types/core/store';
 import { StoreImpl } from '../store/store';
-import type { Command, Signal, Updater, State } from '../../../types/core/signal';
+import type { Command, Signal, State } from '../../../types/core/signal';
 import { delay } from 'signal-timers';
 
 function createStoreForTest(options: StoreOptions): Store {
@@ -102,11 +102,7 @@ it('should intercept set', () => {
 
   const store = createStoreForTest({
     interceptor: {
-      set: <T, Args extends unknown[]>(
-        atom: State<T> | Command<T, Args>,
-        fn: () => T,
-        ...args: Args | [T | Updater<T>]
-      ) => {
+      set: <T, Args extends SetArgs<T, unknown[]>>(atom: State<T> | Command<T, Args>, fn: () => T, ...args: Args) => {
         const ret = fn();
         trace(atom, args, ret);
       },
@@ -125,11 +121,7 @@ it('should intercept set hierarchy', () => {
 
   const store = createStoreForTest({
     interceptor: {
-      set: <T, Args extends unknown[]>(
-        atom: State<T> | Command<T, Args>,
-        fn: () => T,
-        ...args: Args | [T | Updater<T>]
-      ) => {
+      set: <T, Args extends SetArgs<T, unknown[]>>(atom: State<T> | Command<T, Args>, fn: () => T, ...args: Args) => {
         const ret = fn();
         trace(atom, args, ret);
       },
