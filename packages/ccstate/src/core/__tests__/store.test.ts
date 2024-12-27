@@ -16,14 +16,14 @@ it('should not fire on subscribe', () => {
   expect(callback2).not.toHaveBeenCalled();
 });
 
-it('should fire subscription if primitive atom value is the same', () => {
+it('should not fire subscription if primitive atom value is the same', () => {
   const store = createStore();
   const countAtom = state(0);
   const callback = vi.fn();
   store.sub(countAtom, command(callback));
   callback.mockClear();
   store.set(countAtom, 0);
-  expect(callback).toBeCalled();
+  expect(callback).not.toBeCalled();
 });
 
 it('should fire subscription even if derived atom value is the same', () => {
@@ -150,7 +150,7 @@ it('should update async atom with deps after await', async () => {
   unsub();
 });
 
-it('should fire subscription when async atom promise is the same', () => {
+it('should not fire subscription when async atom promise is the same', () => {
   const promise = Promise.resolve();
   const promiseAtom = state(promise, {
     debugLabel: 'promiseAtom',
@@ -180,17 +180,16 @@ it('should fire subscription when async atom promise is the same', () => {
   expect(promiseListener).not.toHaveBeenCalled();
   expect(derivedListener).not.toHaveBeenCalled();
 
+  derivedGetter.mockClear();
   store.set(promiseAtom, promise);
-  expect(derivedGetter).toHaveBeenCalledTimes(2);
-  expect(promiseListener).toBeCalled();
-  expect(derivedListener).toBeCalled();
+  expect(derivedGetter).not.toHaveBeenCalled();
+  expect(promiseListener).not.toBeCalled();
+  expect(derivedListener).not.toBeCalled();
 
-  promiseListener.mockClear();
-  derivedListener.mockClear();
   store.set(promiseAtom, promise);
-  expect(derivedGetter).toHaveBeenCalledTimes(3);
-  expect(promiseListener).toBeCalled();
-  expect(derivedListener).toBeCalled();
+  expect(derivedGetter).not.toHaveBeenCalled();
+  expect(promiseListener).not.toBeCalled();
+  expect(derivedListener).not.toBeCalled();
 
   promiseUnsub();
   derivedUnsub();
@@ -357,16 +356,17 @@ it('should update derived atoms during write', () => {
   expect(store.get(countAtom)).toBe(2);
 });
 
-it('should recompute a derived atom value even if unchanged (#2168)', () => {
+it('should not recompute a derived atom value if unchanged (#2168)', () => {
   const store = createStore();
   const countAtom = state(1);
   const zeroAtom = computed((get) => get(countAtom) * 0);
   const deriveFn = vi.fn((get: Getter) => get(zeroAtom));
   const derivedAtom = computed(deriveFn);
   expect(store.get(derivedAtom)).toBe(0);
+  expect(deriveFn).toHaveBeenCalledTimes(1);
   store.set(countAtom, (c) => c + 1);
   expect(store.get(derivedAtom)).toBe(0);
-  expect(deriveFn).toHaveBeenCalledTimes(2);
+  expect(deriveFn).toHaveBeenCalledTimes(1);
 });
 
 it('should notify pending write triggered asynchronously and indirectly (#2451)', async () => {

@@ -10,6 +10,7 @@ import type {
 } from '../../../types/core/store';
 import { withGeValInterceptor } from '../interceptor';
 import { canReadAsCompute } from '../typing-util';
+import { shouldDistinct } from './signal';
 
 function checkEpoch<T>(
   readComputed: ReadComputed,
@@ -147,8 +148,10 @@ export function evaluateComputed<T>(
 
   cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, mutation);
 
-  computedState.val = evalVal;
-  computedState.epoch += 1;
+  if (!shouldDistinct(computed$, evalVal, context)) {
+    computedState.val = evalVal;
+    computedState.epoch += 1;
+  }
 
   return computedState;
 }

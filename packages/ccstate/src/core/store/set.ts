@@ -8,6 +8,7 @@ import type {
   StoreSet,
   SetArgs,
 } from '../../../types/core/store';
+import { shouldDistinct } from '../signal/signal';
 
 function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
@@ -87,6 +88,10 @@ function innerSetState<T>(
     newValue = updater((context.stateMap.get(signal$)?.val as T | undefined) ?? signal$.init);
   } else {
     newValue = val;
+  }
+
+  if (shouldDistinct(signal$, newValue, context)) {
+    return;
   }
 
   const signalState = context.stateMap.get(signal$);
