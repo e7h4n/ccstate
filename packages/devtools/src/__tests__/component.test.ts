@@ -1,9 +1,25 @@
 import { computed } from 'ccstate';
 import '../';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { screen } from 'shadow-dom-testing-library';
 import { createDebugStore } from 'ccstate/debug';
+
+vi.mock('cytoscape', () => {
+  const cytoscape = vi.fn().mockImplementation(() => {
+    return {
+      destroy: vi.fn(),
+    };
+  });
+  (
+    cytoscape as unknown as {
+      use: () => void;
+    }
+  ).use = vi.fn();
+  return {
+    default: cytoscape,
+  };
+});
 
 afterEach(() => {
   document.body.innerHTML = '';

@@ -1,16 +1,24 @@
 import { command, computed, getDefaultStore, type Computed, type DebugStore } from 'ccstate';
 import { styles } from './styles';
 import { html, render } from 'lit-html';
-import { createDevtools } from './devtools';
+import { createDevtools, type DAGGraph } from './devtools';
+import cytoscape from 'cytoscape';
+import dagre from 'cytoscape-dagre';
+
+// eslint-disable-next-line import/no-named-as-default-member
+cytoscape.use(dagre);
 
 class CCStateDevtools extends HTMLElement {
   private store = getDefaultStore();
 
   private signals: ReturnType<typeof createDevtools>;
 
+  private renderController?: AbortController;
+
   private container: HTMLDivElement;
 
   constructor() {
+    console.log('constructor');
     super();
     const root = this.attachShadow({ mode: 'open' });
     this.container = document.createElement('div');
@@ -43,7 +51,14 @@ class CCStateDevtools extends HTMLElement {
     );
   });
 
-  private render$ = command(({ get }) => {
+  private resetRender$ = command(() => {
+    this.renderController?.abort();
+    this.renderController = new AbortController();
+    return this.renderController.signal;
+  });
+
+  private render$ = command(({ get, set }) => {
+    const signal = set(this.resetRender$);
     const debugStore = get(this.signals.debugStore$);
     const tabs = get(this.tabs$);
     const graph = get(this.signals.graph$);
@@ -57,15 +72,48 @@ class CCStateDevtools extends HTMLElement {
       html`
         <div>
           <div id="tabs" data-testid="tabs">${tabs}</div>
-          <div id="graph" data-testid="graph"></div>
+          <div id="graph" data-testid="graph" style="width: 100%; height: 600px;"></div>
         </div>
       `,
       this.container,
     );
 
     const graphEl = this.container.querySelector('#graph');
-    console.log(graph, graphEl);
-    // TODO: render graph to graphEl
+    if (!graphEl || !graph) return;
+
+    set(this.renderGraph$, graph, graphEl as HTMLDivElement, signal);
+  });
+
+  private renderGraph$ = command((_, graph: DAGGraph, element: HTMLDivElement, signal: AbortSignal) => {
+    const cy = cytoscape({
+      layout: {
+        name: 'dagre',
+      },
+
+      container: element,
+      elements: {
+        nodes: Array.from(graph.nodes.entries()).map(([id, node]) => ({
+          data: {
+            id: id.toString(),
+            label: node.label,
+            ...node.data,
+          },
+          classes: [node.shape],
+        })),
+        edges: graph.edges.map(([from, to, value]) => ({
+          data: {
+            id: `${from.toString()}-${to.toString()}`,
+            source: from.toString(),
+            target: to.toString(),
+            label: String(value),
+          },
+        })),
+      },
+    });
+
+    signal.addEventListener('abort', () => {
+      cy.destroy();
+    });
   });
 }
 

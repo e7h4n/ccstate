@@ -4,6 +4,22 @@ export interface ComputedWatch {
   target: Computed<unknown>;
 }
 
+export interface DAGGraph {
+  title: string;
+  edges: [number, number, unknown][];
+  nodes: Map<
+    number,
+    {
+      label: string;
+      shape: string;
+      data: {
+        epoch: number;
+        value: unknown;
+      };
+    }
+  >;
+}
+
 export function createDevtools() {
   const internalComputedWatches$: State<ComputedWatch[]> = state([]);
   const internalSelectedWatch$: State<ComputedWatch | null> = state(null);
@@ -43,7 +59,7 @@ export function createDevtools() {
     set(internalGraphRefresh$, (x) => x + 1);
   });
 
-  const graph$ = computed((get) => {
+  const graph$ = computed<DAGGraph | null>((get) => {
     get(internalGraphRefresh$);
 
     const store = get(debugStore$);
@@ -88,7 +104,7 @@ export function createDevtools() {
           }
         >(),
       ),
-    };
+    } satisfies DAGGraph;
   });
 
   return {
