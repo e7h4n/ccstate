@@ -6,25 +6,94 @@ import cytoscape from 'cytoscape';
 
 class CCStateDevtools extends HTMLElement {
   private store = getDefaultStore();
-
   private signals: ReturnType<typeof createDevtools>;
-
   private renderController?: AbortController;
-
   private container: HTMLDivElement;
+  private dialog: HTMLDivElement;
+  private isDragging = false;
+  private dragOffset = { x: 0, y: 0 };
+  private cyInstance?: cytoscape.Core;
+  private resizeObserver: ResizeObserver;
+  private resizeTimeout?: number;
 
   constructor() {
     super();
     const root = this.attachShadow({ mode: 'open' });
+    this.dialog = document.createElement('div');
+    this.dialog.className = 'devtools-dialog';
     this.container = document.createElement('div');
+    this.container.className = 'dialog-content';
+
+    const titleBar = document.createElement('div');
+    titleBar.className = 'dialog-title';
+    titleBar.textContent = 'CCState Devtools';
+
+    titleBar.addEventListener('mousedown', this.handleDragStart.bind(this));
+    document.addEventListener('mousemove', this.handleDragMove.bind(this));
+    document.addEventListener('mouseup', this.handleDragEnd.bind(this));
+
     const style = document.createElement('style');
     style.textContent = styles;
+
+    this.dialog.appendChild(titleBar);
+    this.dialog.appendChild(this.container);
     root.appendChild(style);
-    root.appendChild(this.container);
+    root.appendChild(this.dialog);
 
     this.signals = createDevtools();
     this.store.set(this.render$);
     this.store.sub([this.signals.debugStore$, this.signals.computedWatches$, this.signals.graph$], this.render$);
+
+    this.resizeObserver = new ResizeObserver(this.handleResize.bind(this));
+    this.resizeObserver.observe(this.dialog);
+
+    const viewportWidth = document.documentElement.clientWidth;
+    this.dialog.style.left = `${viewportWidth - 620}px`;
+    this.dialog.style.right = '';
+  }
+
+  private handleDragStart(e: MouseEvent) {
+    this.isDragging = true;
+    const rect = this.dialog.getBoundingClientRect();
+    this.dragOffset = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }
+
+  private handleDragMove(e: MouseEvent) {
+    if (!this.isDragging) return;
+    
+    const viewportWidth = document.documentElement.clientWidth;
+    const viewportHeight = document.documentElement.clientHeight;
+    const dialogRect = this.dialog.getBoundingClientRect();
+    
+    let x = e.clientX - this.dragOffset.x;
+    let y = e.clientY - this.dragOffset.y;
+    
+    x = Math.max(0, Math.min(x, viewportWidth - dialogRect.width));
+    y = Math.max(0, Math.min(y, viewportHeight - dialogRect.height));
+    
+    this.dialog.style.left = `${x}px`;
+    this.dialog.style.top = `${y}px`;
+    this.dialog.style.right = '';
+  }
+
+  private handleDragEnd() {
+    this.isDragging = false;
+  }
+
+  disconnectedCallback() {
+    document.removeEventListener('mousemove', this.handleDragMove.bind(this));
+    document.removeEventListener('mouseup', this.handleDragEnd.bind(this));
+    this.resizeObserver.disconnect();
+    if (this.cyInstance) {
+      this.cyInstance.destroy();
+      this.cyInstance = undefined;
+    }
+    if (this.resizeTimeout) {
+      window.clearTimeout(this.resizeTimeout);
+    }
   }
 
   addDependenciesGraph(computed$: Computed<unknown>) {
@@ -65,10 +134,8 @@ class CCStateDevtools extends HTMLElement {
 
     render(
       html`
-        <div>
-          <div id="tabs" data-testid="tabs">${tabs}</div>
-          <div id="graph" data-testid="graph" style="width: 100%; height: 600px;"></div>
-        </div>
+        <div id="tabs" data-testid="tabs">${tabs}</div>
+        <div id="graph" data-testid="graph"></div>
       `,
       this.container,
     );
@@ -76,11 +143,61 @@ class CCStateDevtools extends HTMLElement {
     const graphEl = this.container.querySelector('#graph');
     if (!graphEl || !graph) return;
 
+    const contentRect = this.container.getBoundingClientRect();
+    const height = contentRect.height - 60;
+    graphEl.style.height = `${height}px`;
+
     set(this.renderGraph$, graph, graphEl as HTMLDivElement, signal);
   });
 
+  private handleResize() {
+    if (this.cyInstance) {
+      if (this.resizeTimeout) {
+        window.clearTimeout(this.resizeTimeout);
+      }
+
+      const contentRect = this.container.getBoundingClientRect();
+      const graphEl = this.container.querySelector('#graph');
+      if (graphEl) {
+        const height = contentRect.height - 60;
+        (graphEl as HTMLElement).style.height = `${height}px`;
+
+        const zoom = this.cyInstance.zoom();
+        const pan = this.cyInstance.pan();
+        this.cyInstance.resize();
+        this.cyInstance.zoom(zoom);
+        this.cyInstance.pan(pan);
+      }
+
+      this.resizeTimeout = window.setTimeout(() => {
+        if (this.cyInstance) {
+          const extent = this.cyInstance.extent();
+          const viewportWidth = this.cyInstance.width();
+          const viewportHeight = this.cyInstance.height();
+
+          if (
+            extent.x2 - extent.x1 > viewportWidth * 1.2 ||
+            extent.y2 - extent.y1 > viewportHeight * 1.2 ||
+            (extent.x2 - extent.x1) * 1.2 < viewportWidth ||
+            (extent.y2 - extent.y1) * 1.2 < viewportHeight
+          ) {
+            this.cyInstance
+              .layout({
+                name: 'breadthfirst',
+                animate: true,
+                animationDuration: 300,
+                fit: true,
+                padding: 30,
+              })
+              .run();
+          }
+        }
+      }, 300);
+    }
+  }
+
   private renderGraph$ = command((_, graph: DAGGraph, element: HTMLDivElement, signal: AbortSignal) => {
-    const cy = cytoscape({
+    this.cyInstance = cytoscape({
       style: [
         {
           selector: 'node',
@@ -125,7 +242,6 @@ class CCStateDevtools extends HTMLElement {
           },
         },
       ],
-
       minZoom: 0.2,
       maxZoom: 3,
       wheelSensitivity: 0.2,
@@ -139,7 +255,6 @@ class CCStateDevtools extends HTMLElement {
       desktopTapThreshold: 4,
       autoungrabify: false,
       autolock: false,
-
       container: element,
       elements: {
         nodes: Array.from(graph.nodes.entries()).map(([id, node]) => {
@@ -164,12 +279,13 @@ class CCStateDevtools extends HTMLElement {
       },
     });
 
-    cy.layout({
-      name: 'breadthfirst',
-    }).run();
+    this.cyInstance.layout({ name: 'breadthfirst' }).run();
 
     signal.addEventListener('abort', () => {
-      cy.destroy();
+      if (this.cyInstance) {
+        this.cyInstance.destroy();
+        this.cyInstance = undefined;
+      }
     });
   });
 }

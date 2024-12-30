@@ -28,4 +28,67 @@ export const styles = `
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+.devtools-dialog {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 600px;
+  height: 500px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  resize: both;
+  z-index: 10000;
+}
+
+.dialog-title {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  cursor: move;
+  user-select: none;
+  font-weight: bold;
+}
+
+.dialog-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  height: calc(100% - 48px);
+  box-sizing: border-box;
+}
+
+#tabs {
+  flex-shrink: 0;
+  margin-bottom: 16px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.computed-select-button {
+  margin-right: 8px;
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
+.computed-select-button:hover {
+  background: #f5f5f5;
+}
+
+#graph {
+  flex: 1;
+  min-height: 200px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
 `;
