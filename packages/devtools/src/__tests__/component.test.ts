@@ -9,6 +9,11 @@ vi.mock('cytoscape', () => {
   const cytoscape = vi.fn().mockImplementation(() => {
     return {
       destroy: vi.fn(),
+      layout: () => {
+        return {
+          run: vi.fn(),
+        };
+      },
     };
   });
   (

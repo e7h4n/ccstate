@@ -23,7 +23,6 @@
   "dependencies": {
     "ccstate": "workspace:^",
     "cytoscape": "^3.30.4",
-    "cytoscape-dagre": "^2.5.0",
     "lit-html": "^3.2.1"
   },
   "devDependencies": {
@@ -35,7 +34,6 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/user-event": "^14.5.2",
     "@types/cytoscape": "^3.21.8",
-    "@types/cytoscape-dagre": "^2.3.3",
     "ccstate": "workspace:^",
     "happy-dom": "^15.11.7",
     "json": "^11.0.0",

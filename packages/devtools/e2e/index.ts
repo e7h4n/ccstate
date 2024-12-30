@@ -78,7 +78,7 @@ const devtools = document.createElement('ccstate-devtools');
 document.body.appendChild(devtools);
 devtools.debugStore = debugStore;
 
-const [, , top$] = createDiamondDeps(30, 'random');
+const [, , top$] = createDiamondDeps(15, 'random');
 
 debugStore.get(top$);
 devtools.addDependenciesGraph(top$ as Computed<unknown>);

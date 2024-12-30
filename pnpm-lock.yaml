@@ -184,9 +184,6 @@ importers:
       cytoscape:
         specifier: ^3.30.4
         version: 3.30.4
-      cytoscape-dagre:
-        specifier: ^2.5.0
-        version: 2.5.0(cytoscape@3.30.4)
       lit-html:
         specifier: ^3.2.1
         version: 3.2.1
@@ -215,9 +212,6 @@ importers:
       '@types/cytoscape':
         specifier: ^3.21.8
         version: 3.21.8
-      '@types/cytoscape-dagre':
-        specifier: ^2.3.3
-        version: 2.3.3
       happy-dom:
         specifier: ^15.11.7
         version: 15.11.7
@@ -1936,9 +1930,6 @@ packages:
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
 
-  '@types/cytoscape-dagre@2.3.3':
-    resolution: {integrity: sha512-FJBsNMbBZpqNwT6rp5leVYMevWUjnyD1QS8erNMAMWoBifvaVUklXIjE+bllLDSowjM3abXuRvljliSXUU+d1A==}
-
   '@types/cytoscape@3.21.8':
     resolution: {integrity: sha512-6Bo9ZDrv0vfwe8Sg/ERc5VL0yU0gYvP4dgZi0fAXYkKHfyHaNqWRMcwYm3mu4sLsXbB8ZuXE75sR7qnaOL5JgQ==}
 
@@ -2495,17 +2486,9 @@ packages:
   csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==}
 
-  cytoscape-dagre@2.5.0:
-    resolution: {integrity: sha512-VG2Knemmshop4kh5fpLO27rYcyUaaDkRw+6PiX4bstpB+QFt0p2oauMrsjVbUamGWQ6YNavh7x2em2uZlzV44g==}
-    peerDependencies:
-      cytoscape: ^3.2.22
-
   cytoscape@3.30.4:
     resolution: {integrity: sha512-OxtlZwQl1WbwMmLiyPSEBuzeTIQnwZhJYYWFzZ2PhEHVFwpeaqNIkUzSiso00D98qk60l8Gwon2RP304d3BJ1A==}
     engines: {node: '>=0.10'}
-
-  dagre@0.8.5:
-    resolution: {integrity: sha512-/aTqmnRta7x7MCCpExk7HQL2O4owCT2h8NT//9I1OQ9vt29Pa0BzSAkR5lwFUcQ7491yVi/3CXU9jQ5o0Mn2Sw==}
 
   dargs@8.1.0:
     resolution: {integrity: sha512-wAV9QHOsNbwnWdNW2FYvE1P56wtgSbM+3SZcdGiWQILwVjACCXDCI3Ai8QlCjMDB8YK5zySiXZYBiwGmNY3lnw==}
@@ -3047,9 +3030,6 @@ packages:
 
   graphemer@1.4.0:
     resolution: {integrity: sha512-EtKwoO6kxCL9WO5xipiHTZlSzBm7WLT627TqC/uVRd0HKmq8NXyebnNYxDoBi7wt8eTWrUrKXCOVaFq9x1kgag==}
-
-  graphlib@2.1.8:
-    resolution: {integrity: sha512-jcLLfkpoVGmH7/InMC/1hIvOPSUh38oJtGhvrOFGzioE1DZ+0YW16RgmOJhHiuWTvGiJQ9Z1Ik43JvkRPRvE+A==}
 
   graphql@16.9.0:
     resolution: {integrity: sha512-GGTKBX4SD7Wdb8mqeDLni2oaRGYQWjWHGKPQ24ZMnUtKfcsVoiv4uX8+LJr1K6U5VW2Lu1BwJnj7uiori0YtRw==}
@@ -6308,10 +6288,6 @@ snapshots:
 
   '@types/cookie@0.6.0': {}
 
-  '@types/cytoscape-dagre@2.3.3':
-    dependencies:
-      '@types/cytoscape': 3.21.8
-
   '@types/cytoscape@3.21.8': {}
 
   '@types/estree@1.0.6': {}
@@ -6483,28 +6459,6 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@2.1.8(@types/node@22.9.1)(playwright@1.49.0)(typescript@5.7.2)(vite@6.0.5(@types/node@22.9.1)(jiti@1.21.6)(terser@5.37.0)(yaml@2.6.1))(vitest@2.1.8)':
-    dependencies:
-      '@testing-library/dom': 10.4.0
-      '@testing-library/user-event': 14.5.2(@testing-library/dom@10.4.0)
-      '@vitest/mocker': 2.1.8(msw@2.6.6(@types/node@22.9.1)(typescript@5.7.2))(vite@6.0.5(@types/node@22.9.1)(jiti@1.21.6)(terser@5.37.0)(yaml@2.6.1))
-      '@vitest/utils': 2.1.8
-      magic-string: 0.30.13
-      msw: 2.6.6(@types/node@22.9.1)(typescript@5.7.2)
-      sirv: 3.0.0
-      tinyrainbow: 1.2.0
-      vitest: 2.1.8(@types/node@22.9.1)(@vitest/browser@2.1.8)(@vitest/ui@2.1.8)(happy-dom@15.11.7)(jsdom@25.0.1)(msw@2.6.6(@types/node@22.9.1)(typescript@5.7.2))(terser@5.37.0)
-      ws: 8.18.0
-    optionalDependencies:
-      playwright: 1.49.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - vite
-    optional: true
-
   '@vitest/coverage-v8@2.1.8(@vitest/browser@2.1.8)(vitest@2.1.8)':
     dependencies:
       '@ampproject/remapping': 2.3.0
@@ -6540,16 +6494,6 @@ snapshots:
     optionalDependencies:
       msw: 2.6.6(@types/node@22.9.1)(typescript@5.7.2)
       vite: 5.4.11(@types/node@22.9.1)(terser@5.37.0)
-
-  '@vitest/mocker@2.1.8(msw@2.6.6(@types/node@22.9.1)(typescript@5.7.2))(vite@6.0.5(@types/node@22.9.1)(jiti@1.21.6)(terser@5.37.0)(yaml@2.6.1))':
-    dependencies:
-      '@vitest/spy': 2.1.8
-      estree-walker: 3.0.3
-      magic-string: 0.30.13
-    optionalDependencies:
-      msw: 2.6.6(@types/node@22.9.1)(typescript@5.7.2)
-      vite: 6.0.5(@types/node@22.9.1)(jiti@1.21.6)(terser@5.37.0)(yaml@2.6.1)
-    optional: true
 
   '@vitest/pretty-format@2.1.8':
     dependencies:
@@ -7008,17 +6952,7 @@ snapshots:
 
   csstype@3.1.3: {}
 
-  cytoscape-dagre@2.5.0(cytoscape@3.30.4):
-    dependencies:
-      cytoscape: 3.30.4
-      dagre: 0.8.5
-
   cytoscape@3.30.4: {}
-
-  dagre@0.8.5:
-    dependencies:
-      graphlib: 2.1.8
-      lodash: 4.17.21
 
   dargs@8.1.0: {}
 
@@ -7710,10 +7644,6 @@ snapshots:
   graceful-fs@4.2.11: {}
 
   graphemer@1.4.0: {}
-
-  graphlib@2.1.8:
-    dependencies:
-      lodash: 4.17.21
 
   graphql@16.9.0: {}
 
@@ -9221,7 +9151,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.9.1
-      '@vitest/browser': 2.1.8(@types/node@22.9.1)(playwright@1.49.0)(typescript@5.7.2)(vite@6.0.5(@types/node@22.9.1)(jiti@1.21.6)(terser@5.37.0)(yaml@2.6.1))(vitest@2.1.8)
+      '@vitest/browser': 2.1.8(@types/node@22.9.1)(playwright@1.49.0)(typescript@5.7.2)(vite@5.4.11(@types/node@22.9.1)(terser@5.37.0))(vitest@2.1.8)
       '@vitest/ui': 2.1.8(vitest@2.1.8)
       happy-dom: 15.11.7
       jsdom: 25.0.1
