@@ -87,7 +87,9 @@ export class DebugStoreImpl extends StoreImpl implements DebugStore {
   getDependenciesGraph = (computed$: Computed<unknown>): Edge[] => {
     const stateMap = this.context.stateMap;
     function fillDependenciesGraph(computed$: Computed<unknown>, result: Edge[]) {
-      const computedState = stateMap.get(computed$) as ComputedState<unknown>;
+      const computedState = stateMap.get(computed$) as ComputedState<unknown> | undefined;
+      if (!computedState) return;
+
       for (const [child$, epoch] of computedState.dependencies.entries()) {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-non-null-assertion
         const childState = stateMap.get(child$)! as SignalState<unknown>;
