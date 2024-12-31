@@ -20,6 +20,17 @@ export interface DAGGraph {
   >;
 }
 
+function nodeToCytoscapeNode(node: { signal: Computed<unknown> | State<unknown>; epoch: number; val: unknown }) {
+  return {
+    label: node.signal.toString(),
+    shape: 'read' in node.signal ? 'circle' : 'square',
+    data: {
+      epoch: node.epoch,
+      value: node.val,
+    },
+  };
+}
+
 export function createDevtools() {
   const internalComputedWatches$: State<ComputedWatch[]> = state([]);
   const internalSelectedWatch$: State<ComputedWatch | null> = state(null);
@@ -73,22 +84,12 @@ export function createDevtools() {
       edges: graph.map(([from, to, value]) => [from.signal.id, to.signal.id, value]),
       nodes: graph.reduce(
         (prev, curr) => {
-          prev.set(curr[0].signal.id, {
-            label: curr[0].signal.toString(),
-            shape: 'read' in curr[0].signal ? 'circle' : 'square',
-            data: {
-              epoch: curr[0].epoch,
-              value: curr[0].val,
-            },
-          });
-          prev.set(curr[1].signal.id, {
-            label: curr[1].signal.toString(),
-            shape: 'read' in curr[1].signal ? 'circle' : 'square',
-            data: {
-              epoch: curr[1].epoch,
-              value: curr[1].val,
-            },
-          });
+          if (!prev.has(curr[0].signal.id)) {
+            prev.set(curr[0].signal.id, nodeToCytoscapeNode(curr[0]));
+          }
+          if (!prev.has(curr[1].signal.id)) {
+            prev.set(curr[1].signal.id, nodeToCytoscapeNode(curr[1]));
+          }
 
           return prev;
         },
