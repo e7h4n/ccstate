@@ -1,5 +1,11 @@
 # ccstate-solid
 
+## 4.4.0
+
+### Patch Changes
+
+- ccstate@4.4.0
+
 ## 4.3.0
 
 ### Patch Changes

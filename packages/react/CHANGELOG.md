@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 4.4.0
+
+### Minor Changes
+
+- de57ac4: fix: useSet should useCallback to keep stable
+
+### Patch Changes
+
+- ccstate@4.4.0
+
 ## 4.3.0
 
 ### Patch Changes
