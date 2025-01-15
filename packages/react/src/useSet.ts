@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useStore } from './provider';
 import type { Command, State, StateArg } from 'ccstate';
 
@@ -13,15 +14,14 @@ export function useSet<T, CommandArgs extends unknown[]>(
 ): ValueSetter<T> | CommandInvoker<T, CommandArgs> {
   const store = useStore();
 
-  if ('write' in signal) {
-    return (...args: CommandArgs): T => {
-      const ret = store.set(signal, ...args);
-
-      return ret;
-    };
-  }
-
-  return (value: StateArg<T>) => {
-    store.set(signal, value);
-  };
+  return useCallback(
+    'write' in signal
+      ? (...args: CommandArgs): T => {
+          return store.set(signal, ...args);
+        }
+      : (value: StateArg<T>) => {
+          store.set(signal, value);
+        },
+    [store, signal],
+  );
 }

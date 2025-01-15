@@ -260,3 +260,35 @@ describe('react', () => {
     expect(store.getSubscribeGraph()).toHaveLength(0);
   });
 });
+
+it('useSet should be stable', () => {
+  const count$ = state(0);
+
+  function Container() {
+    const count = useGet(count$);
+    return <Foo count={count} />;
+  }
+
+  function Foo({ count }: { count: number }) {
+    const setCount = useSet(count$);
+
+    return (
+      <>
+        count: {count}
+        <RenderCounter setCount={setCount} />
+      </>
+    );
+  }
+
+  const trace = vi.fn();
+  function RenderCounter({ setCount }: { setCount: (val: number) => void }) {
+    trace(setCount);
+    setCount(1);
+    return <div>Render</div>;
+  }
+
+  render(<Container />);
+
+  expect(trace).toHaveBeenCalledTimes(2);
+  expect(trace.mock.calls[0][0]).toBe(trace.mock.calls[1][0]);
+});
