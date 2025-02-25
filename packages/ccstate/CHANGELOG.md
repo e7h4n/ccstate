@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.5.0
+
+### Minor Changes
+
+- 9d65ed7: fix: distinct computed evaluation
+
 ## 4.4.0
 
 ## 4.3.0
