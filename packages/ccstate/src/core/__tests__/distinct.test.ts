@@ -15,3 +15,24 @@ it('default state & computed is distincted', () => {
   expect(traceBase).not.toHaveBeenCalled();
   expect(traceComputed).not.toHaveBeenCalled();
 });
+
+it('will distinct computed calls', () => {
+  const base$ = state({ a: 1 });
+  const computed$ = computed((get) => {
+    return get(base$).a;
+  });
+  const traceComputed = vi.fn();
+  const computed2$ = computed((get) => {
+    traceComputed();
+    return get(computed$);
+  });
+
+  getDefaultStore().sub(
+    computed2$,
+    command(() => void 0),
+  );
+  expect(traceComputed).toBeCalledTimes(1);
+
+  getDefaultStore().set(base$, { a: 1 });
+  expect(traceComputed).toBeCalledTimes(1);
+});

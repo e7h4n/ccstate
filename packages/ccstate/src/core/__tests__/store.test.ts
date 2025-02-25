@@ -26,7 +26,7 @@ it('should not fire subscription if primitive atom value is the same', () => {
   expect(callback).not.toBeCalled();
 });
 
-it('should fire subscription even if derived atom value is the same', () => {
+it('should not fire subscription if derived atom value is the same', () => {
   const store = createStore();
   const countAtom = state(0);
   const derivedAtom = computed((get) => get(countAtom) * 0);
@@ -34,7 +34,7 @@ it('should fire subscription even if derived atom value is the same', () => {
   store.sub(derivedAtom, command(callback));
   callback.mockClear();
   store.set(countAtom, 1);
-  expect(callback).toBeCalled();
+  expect(callback).not.toBeCalled();
 });
 
 it('should unmount with store.get', () => {
@@ -226,8 +226,8 @@ it('should notify subscription with tree dependencies', () => {
 
   expect(store.get(dep3_mirrorDoubleAtom)).toBe(2);
   store.set(valueAtom, (c) => c + 1);
-  expect(traceDep3).toBeCalledTimes(1);
   expect(store.get(dep3_mirrorDoubleAtom)).toBe(4);
+  expect(traceDep3).toBeCalledTimes(1);
 });
 
 it('should notify subscription with tree dependencies with bail-out', () => {
@@ -248,7 +248,7 @@ it('should notify subscription with tree dependencies with bail-out', () => {
   expect(store.get(dep3Atom)).toBe(4);
 });
 
-it('should trigger subscriber even if the same value with chained dependency', () => {
+it('should not trigger subscriber if the same value with chained dependency', () => {
   const store = createStore();
   const objAtom = state(
     { count: 1 },
@@ -285,7 +285,7 @@ it('should trigger subscriber even if the same value with chained dependency', (
   expect(deriveFurtherFn).toHaveBeenCalledTimes(1);
 
   store.set(objAtom, (obj) => ({ ...obj }));
-  expect(traceFurther).toHaveBeenCalledTimes(1);
+  expect(traceFurther).toHaveBeenCalledTimes(0);
 });
 
 it('read function should called during subscription', () => {
@@ -447,7 +447,10 @@ it('Unmount an atom that is no longer dependent within a derived atom', () => {
 
   const derivedAtom = computed(
     (get) => {
-      if (get(condAtom)) get(baseAtom);
+      if (get(condAtom)) {
+        return get(baseAtom);
+      }
+      return undefined;
     },
     {
       debugLabel: 'derivedAtom',
@@ -457,8 +460,10 @@ it('Unmount an atom that is no longer dependent within a derived atom', () => {
   const store = createStore();
   const trace = vi.fn();
   store.sub(derivedAtom, command(trace));
+  expect(store.get(derivedAtom)).toBe(0);
 
   store.set(condAtom, false);
+  expect(store.get(derivedAtom)).toBeUndefined();
   expect(trace).toHaveBeenCalledTimes(1);
 
   store.set(baseAtom, 2);

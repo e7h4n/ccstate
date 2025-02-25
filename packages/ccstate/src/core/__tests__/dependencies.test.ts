@@ -282,25 +282,40 @@ it('refreshes deps for each async read', async () => {
 
 it('should re-evaluate stable derived atom values in situations where dependencies are re-ordered (#2738)', () => {
   const callCounter = vi.fn();
-  const countAtom = state(0);
-  const rootAtom = state(false);
-  const stableDep = computed((get) => {
-    get(rootAtom);
-    return 1;
+  const countAtom = state(0, {
+    debugLabel: 'countAtom',
   });
-  const stableDepDep = computed((get) => {
-    get(stableDep);
-    callCounter();
-    return 2 + get(countAtom);
+  const rootAtom = state(false, {
+    debugLabel: 'rootAtom',
   });
+  const stableDep = computed(
+    (get) => {
+      get(rootAtom);
+      return 1;
+    },
+    {
+      debugLabel: 'stableDep',
+    },
+  );
+  const stableDepDep = computed(
+    (get) => {
+      get(stableDep);
+      callCounter();
+      return 2 + get(countAtom);
+    },
+    { debugLabel: 'stableDepDep' },
+  );
 
-  const newAtom = computed((get) => {
-    if (get(rootAtom) || get(countAtom) > 0) {
-      return get(stableDepDep);
-    }
+  const newAtom = computed(
+    (get) => {
+      if (get(rootAtom) || get(countAtom) > 0) {
+        return get(stableDepDep);
+      }
 
-    return get(stableDep);
-  });
+      return get(stableDep);
+    },
+    { debugLabel: 'newAtom' },
+  );
 
   const store = createStore();
   store.sub(
@@ -320,7 +335,7 @@ it('should re-evaluate stable derived atom values in situations where dependenci
 
   callCounter.mockClear();
   store.set(rootAtom, false);
-  expect(callCounter).toHaveBeenCalledTimes(1);
+  expect(callCounter).toHaveBeenCalledTimes(0);
 
   callCounter.mockClear();
   store.set(countAtom, 1);

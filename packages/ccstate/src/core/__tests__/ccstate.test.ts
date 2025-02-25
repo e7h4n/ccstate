@@ -164,8 +164,7 @@ test('sub multiple atoms', () => {
   const unsub = store.sub(
     computed(
       (get) => {
-        get(state1$);
-        get(state2$);
+        return `${String(get(state1$))}:${String(get(state2$))}`;
       },
       {
         debugLabel: 'cmpt',

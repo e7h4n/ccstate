@@ -42,10 +42,32 @@ function pullEvaluate(
     mutation.pendingListeners.add(listener);
   }
 
+  const oldValues = new Map<Computed<unknown>, unknown>();
+  while (queue.length > 0) {
+    const nextQueue: Computed<unknown>[] = [];
+    for (const computed$ of queue) {
+      const oldValue = context.stateMap.get(computed$)?.val;
+      oldValues.set(computed$, oldValue);
+
+      const readDepts = context.stateMap.get(computed$)?.mounted?.readDepts;
+      if (readDepts) {
+        for (const dep of Array.from(readDepts)) {
+          nextQueue.push(dep);
+        }
+      }
+    }
+    queue = nextQueue;
+  }
+
+  queue = Array.from(signalState.mounted?.readDepts ?? []);
+
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
       const computedState = readComputed(computed$, context, mutation);
+      if (oldValues.has(computed$) && oldValues.get(computed$) === computedState.val) {
+        continue;
+      }
 
       if (computedState.mounted?.listeners) {
         for (const listener of computedState.mounted.listeners) {
