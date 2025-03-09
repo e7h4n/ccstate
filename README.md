@@ -260,6 +260,66 @@ Here's a simple rule of thumb:
 
 That's it! Next, you can learn how to use CCState in React.
 
+## Patterns
+
+`CCState` has some unique programming patterns.
+
+### Computed with Arguments
+
+In some cases, the computation process of `Computed` relies on some external parameters. However, the function definition of `Computed` prevents it from receiving parameters, which is intentional, as the function's parameters do not have the ability to be reactively subscribed.
+
+There are two techniques that allow `Computed` to handle external parameters. Below is a simple example to introduce these two methods.
+
+#### Args as State/Computed
+
+Consider a simple scenario where the API for obtaining user information requires a userId. Defining this userId as a `State`/`Computed` allows it to be retrieved during the process of obtaining user information in Computed.
+
+```javascript
+const currentUserId$ = state<0>
+const currentUser$ = computed(get => {
+  const userId = get(currentUserId$)
+  return fetch(`/api/users/${userId}`);
+})
+```
+
+This technology is very useful for singleton data such as "currently logged-in user" and "currently opened product," as it directly reflects the responsive definition process of this data.
+
+But for some types of data like list items, this technique is difficult to define a global id list `State`/`Computed`.
+
+#### Args by function closure
+
+We could pass some data into the calculation process of `Computed` through closure, for example:
+
+```javascript
+function getUser(userId) {
+  return computed((get) => {
+    return fetch(`/api/users/${userId}`);
+  });
+}
+
+// Use such a list externally
+const userList$ = state([]);
+const addUser$ = command(({ set }, userId) => {
+  set(userList$, (x) => {
+    return [...x, getUser(userId)];
+  });
+});
+```
+
+It is easy to see that `userId` passed by the function parameters do not have reactive capabilities. Therefore, we can use this technique to distinguish the semantics of reactive arguments and non-reactive arguments.
+
+#### Other Technologies
+
+The `Command` has the ability to receive parameters, so we can encapsulate the above example into a `Command`:
+
+```javascript
+const getUser$ = command(({ set, get }, userId, sigal) => {
+  return fetch(`/api/users/${userId}`, { signal });
+});
+```
+
+However, this method requires that the caller must also be a `Command` in order to access the `set` method, which can easily lead to destructive passing of `Command`. If a `Command` itself does not produce side effects, then it should be considered to be written as a `Computed`.
+
 ## Using in React
 
 [Using in React](docs/react.md)
