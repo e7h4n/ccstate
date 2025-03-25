@@ -281,7 +281,7 @@ it('refreshes deps for each async read', async () => {
 });
 
 it('should re-evaluate stable derived atom values in situations where dependencies are re-ordered (#2738)', () => {
-  const callCounter = vi.fn();
+  const traceStableDepDep = vi.fn();
   const countAtom = state(0, {
     debugLabel: 'countAtom',
   });
@@ -300,7 +300,7 @@ it('should re-evaluate stable derived atom values in situations where dependenci
   const stableDepDep = computed(
     (get) => {
       get(stableDep);
-      callCounter();
+      traceStableDepDep();
       return 2 + get(countAtom);
     },
     { debugLabel: 'stableDepDep' },
@@ -327,19 +327,19 @@ it('should re-evaluate stable derived atom values in situations where dependenci
     command(() => void 0),
   );
   expect(store.get(stableDepDep)).toBe(2);
-  expect(callCounter).toHaveBeenCalledTimes(1);
+  expect(traceStableDepDep).toHaveBeenCalledTimes(1);
 
   store.set(rootAtom, true);
   expect(store.get(newAtom)).toBe(2);
-  expect(callCounter).toHaveBeenCalledTimes(2);
+  expect(traceStableDepDep).toHaveBeenCalledTimes(1);
 
-  callCounter.mockClear();
+  traceStableDepDep.mockClear();
   store.set(rootAtom, false);
-  expect(callCounter).toHaveBeenCalledTimes(0);
+  expect(traceStableDepDep).toHaveBeenCalledTimes(0);
 
-  callCounter.mockClear();
+  traceStableDepDep.mockClear();
   store.set(countAtom, 1);
-  expect(callCounter).toHaveBeenCalledTimes(1);
+  expect(traceStableDepDep).toHaveBeenCalledTimes(1);
   expect(store.get(newAtom)).toBe(3);
 });
 

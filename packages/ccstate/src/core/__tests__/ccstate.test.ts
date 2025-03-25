@@ -383,3 +383,70 @@ test('generator in func', () => {
   ret.next();
   expect(store.get(step)).toBe(3);
 });
+
+test('diamond deps and distinct compute', () => {
+  const trace = vi.fn();
+
+  const obj$ = state(
+    {
+      id: 1,
+      nodeId: 2,
+    },
+    { debugLabel: 'obj' },
+  );
+
+  const id$ = computed(
+    (get) => {
+      return get(obj$).id;
+    },
+    {
+      debugLabel: 'id',
+    },
+  );
+
+  const id2$ = computed(
+    (get) => {
+      trace();
+      return get(id$);
+    },
+    {
+      debugLabel: 'id2',
+    },
+  );
+
+  const nodeId$ = computed(
+    (get) => {
+      return get(obj$).nodeId;
+    },
+    {
+      debugLabel: 'nodeId',
+    },
+  );
+
+  const test$ = computed(
+    (get) => {
+      return get(id2$) + get(nodeId$);
+    },
+    {
+      debugLabel: 'test',
+    },
+  );
+
+  const store = createDebugStore([/./]);
+
+  store.sub(
+    test$,
+    command(() => void 0),
+  );
+
+  trace.mockClear();
+
+  store.set(obj$, (x) => {
+    return {
+      ...x,
+      nodeId: x.nodeId + 1,
+    };
+  });
+
+  expect(trace).not.toBeCalled();
+});

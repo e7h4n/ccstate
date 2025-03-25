@@ -42,15 +42,14 @@ export function tryGetCached<T>(
     return undefined;
   }
 
-  if (mutation?.dirtyMarkers.has(computed$.id)) {
-    return undefined;
-  }
-
-  if (signalState.mounted) {
+  if (!mutation?.dirtyMarkers.has(computed$.id) && signalState.mounted) {
     return signalState;
   }
 
   if (checkEpoch(readComputed, signalState, context, mutation)) {
+    if (mutation?.dirtyMarkers.has(computed$.id)) {
+      mutation.dirtyMarkers.delete(computed$.id);
+    }
     return signalState;
   }
 
