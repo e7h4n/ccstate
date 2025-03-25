@@ -42,13 +42,17 @@ export function tryGetCached<T>(
     return undefined;
   }
 
-  if (!mutation?.dirtyMarkers.has(computed$.id) && signalState.mounted) {
+  // If a computed is marked as potentially dirty, we should perform a
+  // thorough epoch check. Alternatively, we can check the mounted state since
+  // a mounted computed is always re-evaluated immediately.
+  const mayDirty = mutation?.potentialDirtyIds.has(computed$.id);
+  if (!mayDirty && signalState.mounted) {
     return signalState;
   }
 
   if (checkEpoch(readComputed, signalState, context, mutation)) {
-    if (mutation?.dirtyMarkers.has(computed$.id)) {
-      mutation.dirtyMarkers.delete(computed$.id);
+    if (mayDirty) {
+      mutation?.potentialDirtyIds.delete(computed$.id);
     }
     return signalState;
   }
@@ -144,6 +148,7 @@ export function evaluateComputed<T>(
       },
     },
   );
+  mutation?.potentialDirtyIds.delete(computed$.id);
 
   cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, mutation);
 

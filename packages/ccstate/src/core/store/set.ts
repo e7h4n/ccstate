@@ -10,13 +10,17 @@ import type {
 } from '../../../types/core/store';
 import { shouldDistinct } from '../signal/signal';
 
+// Dirty markers are just 'potentially' dirty because we don't know if
+// dependencies result will change. Pushing a computed to dirty markers doesn't
+// mean it will re-evaluate immediately, just marks it for epoch checking in
+// #tryGetCached. So the propagation is greedy to mark all dependants as dirty
 function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
-      mutation.dirtyMarkers.add(computed$.id);
+      mutation.potentialDirtyIds.add(computed$.id);
 
       const computedState = context.stateMap.get(computed$);
       // This computed$ is read from other computed$'s readDepts, so it must not be null and must have mounted
@@ -166,7 +170,7 @@ export function set<T, Args extends SetArgs<T, unknown[]>>(
  */
 export function createMutation(context: StoreContext, get: StoreGet, set: StoreSet): Mutation {
   const mutation: Mutation = {
-    dirtyMarkers: new Set(),
+    potentialDirtyIds: new Set(),
     pendingListeners: new Set(),
     visitor: {
       get: <T>(signal$: Signal<T>) => {

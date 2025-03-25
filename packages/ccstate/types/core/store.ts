@@ -53,7 +53,7 @@ export interface StoreContext {
 }
 
 export interface Mutation {
-  dirtyMarkers: Set<number>;
+  potentialDirtyIds: Set<number>;
   pendingListeners: Set<Command<unknown, []>>;
   visitor: {
     get: Getter;
