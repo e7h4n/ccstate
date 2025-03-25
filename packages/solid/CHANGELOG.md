@@ -1,5 +1,12 @@
 # ccstate-solid
 
+## 4.6.0
+
+### Patch Changes
+
+- Updated dependencies [6f9e2ad]
+  - ccstate@4.6.0
+
 ## 4.5.0
 
 ### Patch Changes

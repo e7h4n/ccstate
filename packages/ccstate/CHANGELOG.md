@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.6.0
+
+### Minor Changes
+
+- 6f9e2ad: fix: useless recomputed when diamond deps
+
 ## 4.5.0
 
 ### Minor Changes
