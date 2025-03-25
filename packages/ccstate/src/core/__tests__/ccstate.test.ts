@@ -432,7 +432,7 @@ test('diamond deps and distinct compute', () => {
     },
   );
 
-  const store = createDebugStore([/./]);
+  const store = createStore();
 
   store.sub(
     test$,

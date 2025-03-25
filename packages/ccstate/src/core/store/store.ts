@@ -31,8 +31,6 @@ const readComputed: ReadComputed = <T>(
     return cachedState;
   }
 
-  mutation?.dirtyMarkers.delete(computed$.id);
-
   return withComputedInterceptor(
     () => {
       return evaluateComputed(readSignal, mount, unmount, computed$, context, mutation);
