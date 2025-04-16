@@ -1,5 +1,11 @@
 # ccstate-babel
 
+## 4.7.0
+
+### Minor Changes
+
+- 269af07: fix(babel): add missing dependencies
+
 ## 4.6.0
 
 ## 4.5.0

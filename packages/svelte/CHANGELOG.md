@@ -1,5 +1,11 @@
 # ccstate-svelte
 
+## 4.7.0
+
+### Patch Changes
+
+- ccstate@4.7.0
+
 ## 4.6.0
 
 ### Patch Changes
