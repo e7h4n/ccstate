@@ -69,6 +69,10 @@ importers:
         version: 2.1.8(@types/node@22.9.1)(@vitest/browser@2.1.8)(@vitest/ui@2.1.8)(happy-dom@15.11.7)(jsdom@25.0.1)(msw@2.6.6(@types/node@22.9.1)(typescript@5.7.2))(terser@5.37.0)
 
   packages/babel:
+    dependencies:
+      '@babel/template':
+        specifier: ^7.25.7
+        version: 7.25.7
     devDependencies:
       '@babel/core':
         specifier: ^7.26.0
@@ -79,9 +83,6 @@ importers:
       '@babel/preset-typescript':
         specifier: ^7.26.0
         version: 7.26.0(@babel/core@7.26.0)
-      '@babel/template':
-        specifier: ^7.25.7
-        version: 7.25.7
       '@rollup/plugin-babel':
         specifier: ^6.0.4
         version: 6.0.4(@babel/core@7.26.0)(@types/babel__core@7.20.5)(rollup@4.28.1)
