@@ -1,5 +1,11 @@
 # ccstate-babel
 
+## 4.8.0
+
+### Minor Changes
+
+- 9e59ce8: feat(plugin): enhance debugLabel plugin to convert anonymous functions to named functions for computed and command calls
+
 ## 4.7.0
 
 ### Minor Changes
