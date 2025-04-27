@@ -49,7 +49,9 @@ it('Should add a debugLabel and cache to multiple atoms', () => {
     const count$ = globalThis.ccsAtomCache.get("/src/atoms.ts/count$", state(0, {
       debugLabel: "count$"
     }));
-    const double$ = globalThis.ccsAtomCache.get("/src/atoms.ts/double$", computed(get => get(count$) * 2, {
+    const double$ = globalThis.ccsAtomCache.get("/src/atoms.ts/double$", computed(function __ccs_cmpt_double$(get) {
+      return get(count$) * 2;
+    }, {
       debugLabel: "double$"
     }));"
   `);
@@ -78,7 +80,9 @@ it('Should add a cache and debugLabel for multiple exported atoms', () => {
     export const count$ = globalThis.ccsAtomCache.get("/src/atoms/index.ts/count$", state(0, {
       debugLabel: "count$"
     }));
-    export const double$ = globalThis.ccsAtomCache.get("/src/atoms/index.ts/double$", computed(get => get(count$) * 2, {
+    export const double$ = globalThis.ccsAtomCache.get("/src/atoms/index.ts/double$", computed(function __ccs_cmpt_double$(get) {
+      return get(count$) * 2;
+    }, {
       debugLabel: "double$"
     }));"
   `);
@@ -126,7 +130,9 @@ it('Should add a cache and debugLabel for mixed exports of atoms', () => {
     export const count$ = globalThis.ccsAtomCache.get("/src/atoms/index.ts/count$", state(0, {
       debugLabel: "count$"
     }));
-    const atoms = globalThis.ccsAtomCache.get("/src/atoms/index.ts/atoms", computed(get => get(count$) * 2, {
+    const atoms = globalThis.ccsAtomCache.get("/src/atoms/index.ts/atoms", computed(function __ccs_cmpt_atoms(get) {
+      return get(count$) * 2;
+    }, {
       debugLabel: "atoms"
     }));
     export default atoms;"

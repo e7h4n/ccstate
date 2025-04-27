@@ -44,7 +44,76 @@ export default function debugLabelPlugin({ types: t }: typeof babel, options?: P
           t.isCallExpression(path.node.init) &&
           isAtom(t, path.node.init.callee, options?.customAtomNames)
         ) {
-          const debugLabel = t.objectProperty(t.identifier('debugLabel'), t.stringLiteral(path.node.id.name));
+          // computed/command 执行函数具名化
+          const callee = path.node.init.callee;
+          const varName = path.node.id.name;
+          const firstArg = path.node.init.arguments[0];
+          // computed/command 的第一个参数是匿名函数时，替换为具名函数
+          if (
+            (t.isIdentifier(callee) && (callee.name === 'computed' || callee.name === 'command')) ||
+            (t.isMemberExpression(callee) &&
+              t.isIdentifier(callee.property) &&
+              (callee.property.name === 'computed' || callee.property.name === 'command'))
+          ) {
+            if (t.isArrowFunctionExpression(firstArg) || (t.isFunctionExpression(firstArg) && !firstArg.id)) {
+              // 检查箭头函数体内是否有 this
+              let containsThis = false;
+              if (t.isArrowFunctionExpression(firstArg)) {
+                // 用简单遍历检查 this
+                const checkThis = (node: babel.types.Node) => {
+                  if (t.isThisExpression(node)) {
+                    containsThis = true;
+                  }
+                };
+                // 递归遍历 body
+                const traverse = (node: babel.types.Node) => {
+                  checkThis(node);
+                  for (const key in node) {
+                    if (Object.prototype.hasOwnProperty.call(node, key)) {
+                      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+                      const value = (node as any)[key];
+                      if (Array.isArray(value)) {
+                        value.forEach(traverse);
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                      } else if (value && typeof value.type === 'string') {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+                        traverse(value);
+                      }
+                    }
+                  }
+                };
+                traverse(firstArg.body);
+              }
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              if (containsThis) {
+                // 不转换，直接跳过
+              } else {
+                // 区分 computed/command 前缀
+                let funcPrefix = '__ccs_cmpt_';
+                if (
+                  (t.isIdentifier(callee) && callee.name === 'command') ||
+                  (t.isMemberExpression(callee) &&
+                    t.isIdentifier(callee.property) &&
+                    callee.property.name === 'command')
+                ) {
+                  funcPrefix = '__ccs_cmd_';
+                }
+                const funcId = t.identifier(`${funcPrefix}${varName}`);
+                const funcExpr = t.functionExpression(
+                  funcId,
+                  firstArg.params,
+                  t.isBlockStatement(firstArg.body)
+                    ? firstArg.body
+                    : t.blockStatement([t.returnStatement(firstArg.body)]),
+                  false,
+                  firstArg.async,
+                );
+                path.node.init.arguments[0] = funcExpr;
+              }
+            }
+          }
+
+          const debugLabel = t.objectProperty(t.identifier('debugLabel'), t.stringLiteral(varName));
 
           if (path.node.init.arguments.length === 1) {
             path.node.init.arguments.push(t.objectExpression([debugLabel]));
