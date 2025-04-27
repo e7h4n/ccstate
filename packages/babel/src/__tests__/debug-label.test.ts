@@ -341,3 +341,11 @@ it('Should handle async arrow function with return statement', () => {
     });"
     `);
 });
+
+it('Should not convert state with arrow function as first argument', () => {
+  expect(transform(`const fn$ = state(() => 1);`)).toMatchInlineSnapshot(`
+    "const fn$ = state(() => 1, {
+      debugLabel: \"fn$\"
+    });"
+    `);
+});

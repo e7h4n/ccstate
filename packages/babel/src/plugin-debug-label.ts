@@ -86,18 +86,13 @@ export default function debugLabelPlugin({ types: t }: typeof babel, options?: P
               }
               // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
               if (containsThis) {
-                // 不转换，直接跳过
+                // Do not transform if 'this' is present in the function body
               } else {
-                // 区分 computed/command 前缀
                 let funcPrefix = '__ccs_cmpt_';
-                if (
-                  (t.isIdentifier(callee) && callee.name === 'command') ||
-                  (t.isMemberExpression(callee) &&
-                    t.isIdentifier(callee.property) &&
-                    callee.property.name === 'command')
-                ) {
+                if (t.isIdentifier(callee) && callee.name === 'command') {
                   funcPrefix = '__ccs_cmd_';
                 }
+
                 const funcId = t.identifier(`${funcPrefix}${varName}`);
                 const funcExpr = t.functionExpression(
                   funcId,
