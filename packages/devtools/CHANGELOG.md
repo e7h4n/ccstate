@@ -1,5 +1,12 @@
 # ccstate-devtools
 
+## 4.9.0
+
+### Patch Changes
+
+- Updated dependencies [89440c6]
+  - ccstate@4.9.0
+
 ## 4.8.0
 
 ### Patch Changes

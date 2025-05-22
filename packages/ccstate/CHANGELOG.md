@@ -1,5 +1,11 @@
 # ccstate
 
+## 4.9.0
+
+### Minor Changes
+
+- 89440c6: fix: capture exception in computed process
+
 ## 4.8.0
 
 ## 4.7.0
