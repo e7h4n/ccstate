@@ -129,6 +129,7 @@ export function subSingleSignal<T>(
 
 export function notify(context: StoreContext, mutation: Mutation) {
   const pendingListeners = mutation.pendingListeners;
+
   mutation.pendingListeners = new Set();
 
   for (const listener of pendingListeners) {

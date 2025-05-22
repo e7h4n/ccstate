@@ -28,7 +28,6 @@ test('computed value should work', () => {
       debugLabel: 'derived',
     },
   );
-
   expect(store.get(derived)).toBe(2);
 });
 

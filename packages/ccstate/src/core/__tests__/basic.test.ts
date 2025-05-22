@@ -1,5 +1,5 @@
-import { expect, it } from 'vitest';
-import { computed, command, state } from '..';
+import { expect, it, vi } from 'vitest';
+import { computed, command, state, createStore } from '..';
 
 it('creates atoms', () => {
   // primitive atom
@@ -25,4 +25,39 @@ it('creates atoms', () => {
   expect(setSumAtom).toHaveProperty('write');
   expect(decrementCountAtom).toHaveProperty('write');
   expect(sumAtom).toHaveProperty('read');
+});
+
+it('should catch error when computed throw exception', () => {
+  const base$ = state(0);
+
+  const cmptWithError$ = computed((get) => {
+    const num = get(base$);
+    if (num !== 0) {
+      throw new Error();
+    }
+    return num;
+  });
+
+  const store = createStore();
+  const trace = vi.fn();
+  store.sub(cmptWithError$, command(trace));
+
+  expect(trace).not.toHaveBeenCalled();
+
+  store.set(base$, 1);
+
+  expect(trace).toBeCalledTimes(1);
+
+  expect(() => {
+    store.get(cmptWithError$);
+  }).toThrow();
+
+  const normalComputed$ = computed((get) => {
+    return get(base$) + 1;
+  });
+  store.sub(normalComputed$, command(trace));
+  expect(trace).toBeCalledTimes(1);
+
+  store.set(base$, 2);
+  expect(trace).toBeCalledTimes(2);
 });

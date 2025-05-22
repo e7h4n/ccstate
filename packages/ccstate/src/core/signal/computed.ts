@@ -10,7 +10,7 @@ import type {
 } from '../../../types/core/store';
 import { withGeValInterceptor } from '../interceptor';
 import { canReadAsCompute } from '../typing-util';
-import { shouldDistinct } from './signal';
+import { shouldDistinct, shouldDistinctError } from './signal';
 
 function checkEpoch<T>(
   readComputed: ReadComputed,
@@ -85,6 +85,10 @@ function wrapGet<T>(
         }
       }
 
+      if ('error' in depState) {
+        throw depState.error;
+      }
+
       return depState.val;
     },
     readDeps,
@@ -121,6 +125,14 @@ function cleanupMissingDependencies<T>(
   }
 }
 
+type ComputedResult<T> =
+  | {
+      value: T;
+    }
+  | {
+      error: unknown;
+    };
+
 export function evaluateComputed<T>(
   readSignal: ReadSignal,
   mount: Mount,
@@ -136,24 +148,41 @@ export function evaluateComputed<T>(
   const [_get, dependencies] = wrapGet(readSignal, mount, computed$, computedState, context, mutation);
   computedState.dependencies = dependencies;
 
-  const evalVal = computed$.read(
-    function <U>(depAtom: Signal<U>) {
-      return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
-    },
-    {
-      get signal() {
-        computedState.abortController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
-        computedState.abortController = new AbortController();
-        return computedState.abortController.signal;
-      },
-    },
-  );
+  let result: ComputedResult<T>;
+  try {
+    result = {
+      value: computed$.read(
+        function <U>(depAtom: Signal<U>) {
+          return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
+        },
+        {
+          get signal() {
+            computedState.abortController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
+            computedState.abortController = new AbortController();
+            return computedState.abortController.signal;
+          },
+        },
+      ),
+    };
+  } catch (error) {
+    result = {
+      error,
+    };
+  }
+
   mutation?.potentialDirtyIds.delete(computed$.id);
 
   cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, mutation);
 
-  if (!shouldDistinct(computed$, evalVal, context)) {
-    computedState.val = evalVal;
+  if ('error' in result) {
+    if (!shouldDistinctError(computed$, context)) {
+      computedState.error = result.error;
+      delete computedState.val;
+      computedState.epoch += 1;
+    }
+  } else if (!shouldDistinct(computed$, result.value, context)) {
+    computedState.val = result.value;
+    delete computedState.error;
     computedState.epoch += 1;
   }
 

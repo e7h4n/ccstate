@@ -81,7 +81,12 @@ function sub<T>(
 const get: StoreGet = (signal, context, mutation) => {
   return withGetInterceptor(
     () => {
-      return readSignal(signal, context, mutation).val;
+      const signalState = readSignal(signal, context, mutation);
+      if ('error' in signalState) {
+        throw signalState.error as Error;
+      }
+
+      return signalState.val;
     },
     signal,
     context.interceptor?.get,

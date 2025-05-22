@@ -7,6 +7,7 @@ import type {
   StoreGet,
   StoreSet,
   SetArgs,
+  ComputedState,
 } from '../../../types/core/store';
 import { shouldDistinct } from '../signal/signal';
 
@@ -47,11 +48,13 @@ function pullEvaluate(
   }
 
   const oldValues = new Map<Computed<unknown>, unknown>();
+  const oldErrors = new Map<Computed<unknown>, unknown>();
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
-      const oldValue = context.stateMap.get(computed$)?.val;
-      oldValues.set(computed$, oldValue);
+      const oldState = context.stateMap.get(computed$) as ComputedState<unknown> | undefined;
+      oldValues.set(computed$, oldState?.val);
+      oldErrors.set(computed$, oldState?.error);
 
       const readDepts = context.stateMap.get(computed$)?.mounted?.readDepts;
       if (readDepts) {
@@ -69,7 +72,12 @@ function pullEvaluate(
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
       const computedState = readComputed(computed$, context, mutation);
-      if (oldValues.has(computed$) && oldValues.get(computed$) === computedState.val) {
+
+      const isSameWithOldValue =
+        !computedState.error && oldValues.has(computed$) && oldValues.get(computed$) === computedState.val;
+      const isSameError = computedState.error && Boolean(oldErrors.get(computed$));
+
+      if (isSameWithOldValue || isSameError) {
         continue;
       }
 

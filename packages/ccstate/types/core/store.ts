@@ -67,13 +67,23 @@ export interface StateState<T> {
   epoch: number;
 }
 
-export interface ComputedState<T> {
-  mounted?: Mounted;
-  val: T;
-  dependencies: Map<Signal<unknown>, number>;
-  epoch: number;
-  abortController?: AbortController;
-}
+export type ComputedState<T> =
+  | {
+      mounted?: Mounted;
+      val: T;
+      error: undefined;
+      dependencies: Map<Signal<unknown>, number>;
+      epoch: number;
+      abortController?: AbortController;
+    }
+  | {
+      mounted?: Mounted;
+      val: undefined;
+      error: unknown;
+      dependencies: Map<Signal<unknown>, number>;
+      epoch: number;
+      abortController?: AbortController;
+    };
 
 export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
