@@ -61,3 +61,36 @@ it('should catch error when computed throw exception', () => {
   store.set(base$, 2);
   expect(trace).toBeCalledTimes(2);
 });
+
+it('should throw error in derived computed', () => {
+  const cmptWithError$ = computed(() => {
+    throw new Error();
+  });
+
+  const derived$ = computed((get) => {
+    get(cmptWithError$);
+  });
+
+  const store = createStore();
+
+  expect(() => {
+    store.get(derived$);
+  }).toThrow();
+});
+
+it('should not throw error in sub', () => {
+  const cmptWithError$ = computed(() => {
+    throw new Error();
+  });
+
+  const derived$ = computed((get) => {
+    get(cmptWithError$);
+  });
+
+  const store = createStore();
+  const trace = vi.fn();
+
+  expect(() => {
+    store.sub(derived$, command(trace));
+  }).not.toThrow();
+});
