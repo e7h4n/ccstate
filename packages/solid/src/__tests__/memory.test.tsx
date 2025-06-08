@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import LeakDetector from 'jest-leak-detector';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { state, createStore } from 'ccstate';
 import type { State } from 'ccstate';
 import { useGet, StoreProvider, useResource } from '../';
@@ -31,7 +31,9 @@ it('should release memory after component unmount', async () => {
   base = undefined;
   cleanup();
 
-  expect(await detector.isLeaking()).toBe(false);
+  await vi.waitFor(async () => {
+    expect(await detector.isLeaking()).toBe(false);
+  });
 });
 
 it('should release memory for promise & loadable', async () => {

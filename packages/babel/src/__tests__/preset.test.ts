@@ -12,19 +12,20 @@ const transform = (code: string, filename?: string, customAtomNames?: string[]) 
 
 it('Should add a debugLabel and cache to an atom', () => {
   expect(transform(`const count$ = state(0);`, '/src/atoms.ts')).toMatchInlineSnapshot(`
-      "globalThis.ccsAtomCache = globalThis.ccsAtomCache || {
-        cache: new Map(),
-        get(name, inst) {
-          if (this.cache.has(name)) {
-            return this.cache.get(name);
-          }
-          this.cache.set(name, inst);
-          return inst;
+    "globalThis.ccsAtomCache = globalThis.ccsAtomCache || {
+      cache: new Map(),
+      get(name, inst) {
+        if (this.cache.has(name)) {
+          return this.cache.get(name);
         }
-      };
-      const count$ = globalThis.ccsAtomCache.get("/src/atoms.ts/count$", state(0, {
-        debugLabel: "count$"
-      }));"`);
+        this.cache.set(name, inst);
+        return inst;
+      }
+    };
+    const count$ = globalThis.ccsAtomCache.get("/src/atoms.ts/count$", state(0, {
+      debugLabel: "count$"
+    }));"
+  `);
 });
 
 it('Should add a debugLabel and cache to multiple atoms', () => {
