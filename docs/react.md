@@ -151,6 +151,32 @@ function App() {
 }
 ```
 
+## Strict Promise Handling
+
+> [!CAUTION]
+> asyncGetSettled$ 是一个试验性特性，将来可能会产生变化。
+
+使用 `useLoadable` 和 `useResolved` 会产生 floating promise。如果希望严肃地处理这些 promise，可以使用 `asyncGetSettled$`。这对于测试来说会非常有用，可以避免前一个测试的 exception 进入后一个测试产生 unhandledRejection。
+
+```ts
+afterEach(async () => {
+  await store.get(asyncGetSettled$); // 明确等待所有 useLoadable/useResolved 等  hook 中读取的 promise 结束
+});
+```
+
+或者是在 React 的测试之间，等待所有异步任务结束。这比设置 timeout 更加精准。
+
+```tsx
+test('ReactTest', async () => {
+  const store = createStore();
+  render(<ReactApp store={store} />);
+
+  await store.get(asyncGetSettled$); // wait all async promise settled in render process of <ReactApp />
+});
+```
+
+注意 `asyncGetSettled$` 只等待一轮 promise 的 settled。一个 React 应用很可能在渲染过程中还会产生新的 async promise。虽然这可以通过封装一个循环调用的 async await 来解决，但 ccstate-react 已经提供了足够的能力让用户来解决这个问题，因此在试验性的阶段中 ccstate-react 暂时还不会直接提供解决这个问题的 API。
+
 ## Creating Inline Atoms
 
 > [!CAUTION]
