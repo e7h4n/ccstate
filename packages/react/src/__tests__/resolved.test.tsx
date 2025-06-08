@@ -100,3 +100,16 @@ it('use lastLoadable should not update when new promise pending', async () => {
   await delay(0);
   expect(screen.getByText('num2')).toBeInTheDocument();
 });
+
+it('useResolved accept sync computed', async () => {
+  const base$ = state(0);
+  function App() {
+    const base = useResolved(base$);
+
+    return <div>{base}</div>;
+  }
+
+  render(<App />);
+
+  expect(await screen.findByText('0')).toBeInTheDocument();
+});

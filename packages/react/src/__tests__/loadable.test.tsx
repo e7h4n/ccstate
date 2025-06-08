@@ -530,3 +530,16 @@ it('use lastLoadable will will not use old promise error if new promise is made'
   await delay(0);
   expect(screen.getByText('num2')).toBeInTheDocument();
 });
+
+it('useLoadable accept sync computed', async () => {
+  const base$ = state(0);
+  function App() {
+    const base = useLoadable(base$);
+
+    return <div>{base.state}</div>;
+  }
+
+  render(<App />);
+
+  expect(await screen.findByText('hasData')).toBeInTheDocument();
+});

@@ -16,7 +16,7 @@ type Loadable<T> =
     };
 
 function useLoadableInternal<T>(
-  atom: State<Promise<T>> | Computed<Promise<T>>,
+  atom: State<Promise<T> | T> | Computed<Promise<T> | T>,
   keepLastResolved: boolean,
 ): Loadable<T> {
   const promise = useGet(atom);
@@ -27,6 +27,16 @@ function useLoadableInternal<T>(
   useEffect(() => {
     const ctrl = new AbortController();
     const signal = ctrl.signal;
+
+    if (!(promise instanceof Promise)) {
+      setPromiseResult({
+        state: 'hasData',
+        data: promise,
+      });
+      return () => {
+        ctrl.abort();
+      };
+    }
 
     if (!keepLastResolved) {
       setPromiseResult({
@@ -60,10 +70,14 @@ function useLoadableInternal<T>(
   return promiseResult;
 }
 
-export function useLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Loadable<T> {
+export function useLoadable<T>(
+  atom: State<Promise<Awaited<T>> | Awaited<T>> | Computed<Promise<Awaited<T>> | Awaited<T>>,
+): Loadable<Awaited<T>> {
   return useLoadableInternal(atom, false);
 }
 
-export function useLastLoadable<T>(atom: State<Promise<T>> | Computed<Promise<T>>): Loadable<T> {
+export function useLastLoadable<T>(
+  atom: State<Promise<Awaited<T>> | Awaited<T>> | Computed<Promise<Awaited<T>> | Awaited<T>>,
+): Loadable<Awaited<T>> {
   return useLoadableInternal(atom, true);
 }
