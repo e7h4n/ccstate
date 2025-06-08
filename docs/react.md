@@ -151,6 +151,31 @@ function App() {
 }
 ```
 
+## Strict Promise Handling
+
+> [!CAUTION] > `asyncGetSettled$` is an experimental feature and may be changed in the future.
+
+Using `useLoadable` and `useResolved` creates floating promises. If you want to handle these promises strictly, you can use `asyncGetSettled$`. This is very useful for testing, as it prevents exceptions from previous tests from entering subsequent tests and causing unhandledRejection.
+
+```ts
+afterEach(async () => {
+  await store.get(asyncGetSettled$); // Explicitly wait for all promises in useLoadable/useResolved hooks to settle
+});
+```
+
+Or between React tests, wait for all async tasks to complete. This is more precise than setting timeouts.
+
+```tsx
+test('ReactTest', async () => {
+  const store = createStore();
+  render(<ReactApp store={store} />);
+
+  await store.get(asyncGetSettled$); // wait all async promise settled in render process of <ReactApp />
+});
+```
+
+Note that `asyncGetSettled$` only waits for one round of promise settlement. A React application may likely generate new async promises during the rendering process. Although this can be solved by wrapping a loop-calling async await, ccstate-react has already provided sufficient capabilities for users to solve this problem, so during the experimental phase, ccstate-react will not directly provide an API to solve this problem for now.
+
 ## Creating Inline Atoms
 
 > [!CAUTION]
