@@ -1,5 +1,16 @@
 # ccstate-react
 
+## 4.10.0
+
+### Minor Changes
+
+- e00d4af: feat: useLoadable support non-promise signals
+- e00d4af: feat: collect floating promise in async computed
+
+### Patch Changes
+
+- ccstate@4.10.0
+
 ## 4.9.0
 
 ### Patch Changes
