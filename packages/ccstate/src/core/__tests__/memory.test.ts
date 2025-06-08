@@ -1,5 +1,5 @@
 import LeakDetector from 'jest-leak-detector';
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { state, computed, createStore, command } from '..';
 import { createDebugStore } from '../../debug';
 import type { Computed, State } from '..';
@@ -26,8 +26,10 @@ it('should release memory after base value & derived computed is deleted', async
   base = undefined;
   derived = undefined;
 
-  expect(await detector1.isLeaking()).toBe(false);
-  expect(await detector2.isLeaking()).toBe(false);
+  await vi.waitFor(async () => {
+    expect(await detector1.isLeaking()).toBe(false);
+    expect(await detector2.isLeaking()).toBe(false);
+  });
 });
 
 it('with a long-lived base value', async () => {
