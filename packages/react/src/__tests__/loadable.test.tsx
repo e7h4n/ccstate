@@ -3,14 +3,13 @@
 import '@testing-library/jest-dom/vitest';
 import { render, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 import { StrictMode, useEffect } from 'react';
 import { StoreProvider, useSet, useLoadable } from '..';
 import { delay } from 'signal-timers';
 import { useLastLoadable } from '../useLoadable';
-import { asyncGetSettled$, floatingPromises$ } from '../floating-promise';
 
 afterEach(() => {
   cleanup();
@@ -543,56 +542,4 @@ it('useLoadable accept sync computed', async () => {
   render(<App />);
 
   expect(await screen.findByText('hasData')).toBeInTheDocument();
-});
-
-it('will collect floating promises', async () => {
-  const trace = vi.fn();
-  const asyncComputed$ = computed(async () => {
-    await Promise.resolve();
-    trace();
-  });
-
-  const store = createStore();
-  function App() {
-    const result = useLoadable(asyncComputed$);
-
-    return <div>{result.state}</div>;
-  }
-
-  render(
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>,
-  );
-
-  expect(trace).not.toBeCalled();
-
-  await store.get(asyncGetSettled$);
-
-  expect(trace).toBeCalled();
-});
-
-it('will auto remove from collected floating promise when settled', async () => {
-  const asyncComputed$ = computed(async () => {
-    await Promise.resolve();
-  });
-
-  const store = createStore();
-  function App() {
-    const result = useLoadable(asyncComputed$);
-
-    return <div>{result.state}</div>;
-  }
-
-  render(
-    <StoreProvider value={store}>
-      <App />
-    </StoreProvider>,
-  );
-
-  expect(store.get(floatingPromises$)).toHaveLength(1);
-
-  await store.get(asyncGetSettled$);
-
-  expect(store.get(floatingPromises$)).toHaveLength(0);
 });

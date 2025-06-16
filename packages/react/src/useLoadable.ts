@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useGet } from './useGet';
 import type { Computed, State } from 'ccstate';
-import { useSet } from './useSet';
-import { collectFloatingPromise$ } from './floating-promise';
 
 type Loadable<T> =
   | {
@@ -22,7 +20,6 @@ function useLoadableInternal<T>(
   keepLastResolved: boolean,
 ): Loadable<T> {
   const promise = useGet(atom);
-  const collectFloatingPromise = useSet(collectFloatingPromise$);
 
   const [promiseResult, setPromiseResult] = useState<Loadable<T>>({
     state: 'loading',
@@ -39,7 +36,6 @@ function useLoadableInternal<T>(
     }
 
     const ctrl = new AbortController();
-    const settledController = new AbortController();
     const signal = ctrl.signal;
 
     if (!keepLastResolved) {
@@ -48,28 +44,23 @@ function useLoadableInternal<T>(
       });
     }
 
-    collectFloatingPromise(
-      promise.then(
-        (ret) => {
-          settledController.abort();
-          if (signal.aborted) return;
+    promise.then(
+      (ret) => {
+        if (signal.aborted) return;
 
-          setPromiseResult({
-            state: 'hasData',
-            data: ret,
-          });
-        },
-        (error: unknown) => {
-          settledController.abort();
-          if (signal.aborted) return;
+        setPromiseResult({
+          state: 'hasData',
+          data: ret,
+        });
+      },
+      (error: unknown) => {
+        if (signal.aborted) return;
 
-          setPromiseResult({
-            state: 'hasError',
-            error,
-          });
-        },
-      ),
-      AbortSignal.any([signal, settledController.signal]),
+        setPromiseResult({
+          state: 'hasError',
+          error,
+        });
+      },
     );
 
     return () => {
