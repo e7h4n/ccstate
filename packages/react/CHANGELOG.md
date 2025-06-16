@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 4.11.0
+
+### Minor Changes
+
+- 81795a2: remove asyncGetSettled$
+
+### Patch Changes
+
+- ccstate@4.11.0
+
 ## 4.10.0
 
 ### Minor Changes
