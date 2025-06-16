@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 import { StrictMode, useEffect } from 'react';
@@ -542,4 +542,55 @@ it('useLoadable accept sync computed', async () => {
   render(<App />);
 
   expect(await screen.findByText('hasData')).toBeInTheDocument();
+});
+
+describe('works with AbortError', () => {
+  let abortController: AbortController;
+  let promise: Promise<void>;
+
+  beforeEach(() => {
+    abortController = new AbortController();
+  });
+
+  afterEach(async () => {
+    abortController.abort();
+
+    try {
+      await promise;
+    } catch {}
+  });
+
+  it('should not throw abortError', () => {
+    const store = createStore();
+    const signal = abortController.signal;
+
+    promise = new Promise((_resolve, reject) => {
+      signal.addEventListener('abort', () => {
+        reject(signal.reason as Error);
+      });
+    });
+
+    const reload$ = state(0);
+    const promise$ = computed(async (get) => {
+      get(reload$);
+      await promise;
+    });
+
+    function App() {
+      useLoadable(promise$);
+
+      return <div>Test</div>;
+    }
+
+    render(
+      <StoreProvider value={store}>
+        <App />
+      </StoreProvider>,
+    );
+
+    expect(screen.getByText('Test')).toBeInTheDocument();
+
+    store.set(reload$, (x) => x + 1);
+    store.set(reload$, (x) => x + 1);
+  });
 });

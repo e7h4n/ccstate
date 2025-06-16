@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useGet } from './useGet';
+import { useGetInternal } from './useGet';
 import type { Computed, State } from 'ccstate';
 
 type Loadable<T> =
@@ -19,7 +19,9 @@ function useLoadableInternal<T>(
   atom: State<Promise<T> | T> | Computed<Promise<T> | T>,
   keepLastResolved: boolean,
 ): Loadable<T> {
-  const promise = useGet(atom);
+  const promise = useGetInternal(atom, {
+    silenceUnhandleRejection: true,
+  });
 
   const [promiseResult, setPromiseResult] = useState<Loadable<T>>({
     state: 'loading',

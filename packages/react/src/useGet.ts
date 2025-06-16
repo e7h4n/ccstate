@@ -3,7 +3,10 @@ import { useStore } from './provider';
 import { command } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 
-export function useGet<T>(atom: State<T> | Computed<T>) {
+export function useGetInternal<T>(
+  atom: State<T> | Computed<T>,
+  { silenceUnhandleRejection }: { silenceUnhandleRejection: boolean },
+) {
   const store = useStore();
   return useSyncExternalStore(
     (fn) => {
@@ -14,7 +17,15 @@ export function useGet<T>(atom: State<T> | Computed<T>) {
       };
     },
     () => {
-      return store.get(atom);
+      const val = store.get(atom);
+      if (val instanceof Promise && silenceUnhandleRejection) {
+        val.catch(() => void 0);
+      }
+      return val;
     },
   );
+}
+
+export function useGet<T>(atom: State<T> | Computed<T>) {
+  return useGetInternal(atom, { silenceUnhandleRejection: false });
 }
