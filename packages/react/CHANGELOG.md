@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 4.12.0
+
+### Minor Changes
+
+- c8f4fca: fix(react): add global error handler for floating promises in useLoadable
+
+### Patch Changes
+
+- ccstate@4.12.0
+
 ## 4.11.0
 
 ### Minor Changes

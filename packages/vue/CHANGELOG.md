@@ -1,5 +1,11 @@
 # ccstate-vue
 
+## 4.12.0
+
+### Patch Changes
+
+- ccstate@4.12.0
+
 ## 4.11.0
 
 ### Patch Changes
