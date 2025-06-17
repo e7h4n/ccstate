@@ -133,7 +133,4 @@ it('use sub in React component', async () => {
   await user.click(button);
   expect(screen.getByText('count: 1')).toBeInTheDocument();
   expect(await screen.findByText('double: 2')).toBeInTheDocument();
-
-  cleanup();
-  expect(store.getSubscribeGraph()).toEqual([]);
 });

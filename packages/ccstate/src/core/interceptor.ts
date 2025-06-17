@@ -1,13 +1,9 @@
 import type { Command, Computed, Signal, State } from '../../types/core/signal';
 import type {
-  CallbackFunc,
   ComputedState,
   InterceptorComputed,
   InterceptorGet,
-  InterceptorNotify,
   InterceptorSet,
-  InterceptorSub,
-  InterceptorUnsub,
   SetArgs,
 } from '../../types/core/store';
 
@@ -98,71 +94,6 @@ export function withGeValInterceptor<T>(fn: () => T, signal: Signal<T>, intercep
   let result = { called: false } as DataWithCalledState<T>;
 
   interceptor(signal, () => {
-    result = { called: true, data: fn() };
-    return result.data;
-  });
-
-  if (!result.called) {
-    throw new Error('interceptor must call fn sync');
-  }
-
-  return result.data;
-}
-
-export function withSubInterceptor<T>(
-  fn: () => void,
-  signal: Signal<T>,
-  callback$: Command<unknown, []>,
-  interceptor?: InterceptorSub,
-) {
-  if (!interceptor) {
-    fn();
-    return;
-  }
-
-  let result = { called: false } as DataWithCalledState<void>;
-
-  interceptor(signal, callback$, () => {
-    result = { called: true, data: undefined };
-    fn();
-  });
-
-  if (!result.called) {
-    throw new Error('interceptor must call fn sync');
-  }
-}
-
-export function withUnsubInterceptor<T>(
-  fn: () => void,
-  signal: Signal<T>,
-  callback$: Command<unknown, []>,
-  interceptor?: InterceptorUnsub,
-): void {
-  if (!interceptor) {
-    fn();
-    return;
-  }
-
-  let result = { called: false } as DataWithCalledState<void>;
-
-  interceptor(signal, callback$, () => {
-    result = { called: true, data: undefined };
-    fn();
-  });
-
-  if (!result.called) {
-    throw new Error('interceptor must call fn sync');
-  }
-}
-
-export function withNotifyInterceptor<T>(fn: () => T, callback$: CallbackFunc<T>, interceptor?: InterceptorNotify): T {
-  if (!interceptor) {
-    return fn();
-  }
-
-  let result = { called: false } as DataWithCalledState<T>;
-
-  interceptor(callback$, () => {
     result = { called: true, data: fn() };
     return result.data;
   });

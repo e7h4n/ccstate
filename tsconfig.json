@@ -6,9 +6,6 @@
       "path": "packages/ccstate"
     },
     {
-      "path": "packages/devtools"
-    },
-    {
       "path": "packages/babel"
     }
   ]

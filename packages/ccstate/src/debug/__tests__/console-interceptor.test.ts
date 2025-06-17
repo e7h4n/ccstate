@@ -144,7 +144,7 @@ it('use regex to filter atoms', () => {
 });
 
 it('createDebugStore', () => {
-  const store = createDebugStore(['base'], ['sub']);
+  const store = createDebugStore(['base'], ['mount']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);
@@ -152,7 +152,7 @@ it('createDebugStore', () => {
 });
 
 it('createDebugStore with regex', () => {
-  const store = createDebugStore([/./], ['sub']);
+  const store = createDebugStore([/./], ['mount']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);

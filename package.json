@@ -21,7 +21,6 @@
     "build:extra:vue": "pnpm -F ccstate-vue build",
     "build:extra:solid": "pnpm -F ccstate-solid build",
     "build:extra:svelte": "pnpm -F ccstate-svelte build",
-    "build:extra:devtools": "pnpm -F ccstate-devtools build",
     "lint": "pnpm '/^lint:.*/'",
     "lint:type": "pnpm -F ccstate exec tsc --noEmit && pnpm -F ccstate-babel exec tsc --noEmit",
     "lint:eslint": "eslint .",

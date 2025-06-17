@@ -181,9 +181,9 @@ it('will unmount when component cleanup', async () => {
   ));
 
   const user = userEvent.setup();
-  expect(store.getSubscribeGraph()).toHaveLength(1);
+  expect(store.isMounted(base$)).toBeTruthy();
   const button = screen.getByText('hide');
   await user.click(button);
   expect(await screen.findByText('unmounted')).toBeInTheDocument();
-  expect(store.getSubscribeGraph()).toHaveLength(0);
+  expect(store.isMounted(base$)).toBeFalsy();
 });

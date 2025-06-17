@@ -1,4 +1,4 @@
-import type { CallbackFunc, SetArgs, StoreEventType, StoreInterceptor } from '../../types/core/store';
+import type { SetArgs, StoreEventType, StoreInterceptor } from '../../types/core/store';
 import type { DebugStore } from '../../types/debug/debug-store';
 import type { Computed, Command, State } from '../core';
 import { createDebugStoreInternal } from './debug-store';
@@ -66,28 +66,6 @@ export class ConsoleInterceptor implements StoreInterceptor {
     console.groupEnd();
   };
 
-  sub = <T>(atom$: State<T> | Computed<T>, callback$: CallbackFunc<T>, fn: () => void) => {
-    if (!this.shouldLog(atom$, 'sub')) {
-      fn();
-      return;
-    }
-
-    console.group('[R][SUB] ' + atom$.toString() + ', callback=' + callback$.toString());
-    fn();
-    console.groupEnd();
-  };
-
-  unsub = <T>(atom$: State<T> | Computed<T>, callback$: CallbackFunc<T>, fn: () => void) => {
-    if (!this.shouldLog(atom$, 'unsub')) {
-      fn();
-      return;
-    }
-
-    console.group('[R][UNS] ' + atom$.toString() + ', callback=' + callback$.toString());
-    fn();
-    console.groupEnd();
-  };
-
   mount = <T>(atom$: State<T> | Computed<T>) => {
     if (!this.shouldLog(atom$, 'mount')) {
       return;
@@ -102,17 +80,6 @@ export class ConsoleInterceptor implements StoreInterceptor {
     }
 
     console.log('[R][UNM] ' + atom$.toString());
-  };
-
-  notify = <T>(callback$: CallbackFunc<T>, fn: () => T) => {
-    if (!this.shouldLog(callback$, 'notify')) {
-      fn();
-      return;
-    }
-
-    console.group('[R][NTF] ' + callback$.toString());
-    console.log('ret:', fn());
-    console.groupEnd();
   };
 }
 
