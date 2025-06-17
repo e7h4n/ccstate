@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { command, type Computed, type State } from 'ccstate';
 import { useStore } from './provider';
 
@@ -8,70 +8,46 @@ type Loadable<T> =
     }
   | {
       state: 'hasData';
-      data: T;
+      data: Awaited<T>;
     }
   | {
       state: 'hasError';
       error: unknown;
     };
 
-/**
- * Handles a specific behavior of useSyncExternalStore. In React, there are situations where the getSnapshot function of
- * useSyncExternalStore executes, but the Render function doesn't execute.
- *
- * This can cause the promise generated in that round to not be caught, and userspace has no opportunity to handle this
- * promise. Therefore, this issue needs to be handled in useGetPromise.
- *
- * @param atom
- * @returns
- */
-function useGetPromise<T, U extends Promise<T> | T>(atom: State<U> | Computed<U>): [U, () => void] {
+function useGetPromise<T, U extends Promise<Awaited<T>> | Awaited<T>>(atom: State<U> | Computed<U>): U {
   const store = useStore();
-  const lastPromise = useRef<Promise<unknown> | undefined>(undefined);
-  const promiseProcessed = useRef(false);
-
-  const promise = useSyncExternalStore(
-    (fn) => store.sub(atom, command(fn)),
-    () => {
-      const val = store.get(atom);
-
-      // If the last promise is not processed and the current value is a promise,
-      // we need to silence the last promise to avoid unhandled rejections.
-      if (lastPromise.current !== undefined && lastPromise.current !== val && !promiseProcessed.current) {
-        lastPromise.current.catch(() => void 0);
-      }
-
-      if (lastPromise.current !== val) {
-        promiseProcessed.current = false;
-        lastPromise.current = val instanceof Promise ? val : undefined;
-      }
-
-      return val;
-    },
+  return useSyncExternalStore(
+    (fn) =>
+      store.sub(
+        atom,
+        command(({ get }) => {
+          const val = get(atom);
+          if (val instanceof Promise) {
+            val.catch(() => void 0);
+          }
+          fn();
+        }),
+      ),
+    () => store.get(atom),
   );
-
-  return [
-    promise,
-    () => {
-      promiseProcessed.current = true;
-    },
-  ];
 }
 
-function useLoadableInternal<T>(
-  atom: State<Promise<T> | T> | Computed<Promise<T> | T>,
+function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
+  signal: State<U> | Computed<U>,
   keepLastResolved: boolean,
 ): Loadable<T> {
-  const [promise, setPromiseProcessed] = useGetPromise(atom);
+  const promise: Promise<Awaited<T>> | Awaited<T> = useGetPromise(signal);
   const [promiseResult, setPromiseResult] = useState<Loadable<T>>({
     state: 'loading',
   });
 
   useEffect(() => {
     if (!(promise instanceof Promise)) {
+      const data: Awaited<T> = promise;
       setPromiseResult({
         state: 'hasData',
-        data: promise,
+        data,
       });
 
       return;
@@ -84,8 +60,6 @@ function useLoadableInternal<T>(
         state: 'loading',
       });
     }
-
-    setPromiseProcessed();
 
     promise.then(
       (ret) => {
@@ -116,12 +90,12 @@ function useLoadableInternal<T>(
 
 export function useLoadable<T>(
   atom: State<Promise<Awaited<T>> | Awaited<T>> | Computed<Promise<Awaited<T>> | Awaited<T>>,
-): Loadable<Awaited<T>> {
+): Loadable<T> {
   return useLoadableInternal(atom, false);
 }
 
 export function useLastLoadable<T>(
   atom: State<Promise<Awaited<T>> | Awaited<T>> | Computed<Promise<Awaited<T>> | Awaited<T>>,
-): Loadable<Awaited<T>> {
+): Loadable<T> {
   return useLoadableInternal(atom, true);
 }
