@@ -1,7 +1,7 @@
 import { render, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { computed, createStore, command, state, createDebugStore, getDefaultStore } from 'ccstate';
+import { computed, createStore, command, state, createDebugStore } from 'ccstate';
 import { StoreProvider, useGet, useSet } from '..';
 import { StrictMode, useState } from 'react';
 import '@testing-library/jest-dom/vitest';
@@ -198,21 +198,21 @@ describe('react', () => {
     expect(await screen.findByText('1')).toBeInTheDocument();
   });
 
-  it('should use default store if no provider', () => {
+  it('throw error if no store provide', () => {
     const count$ = state(0);
-    getDefaultStore().set(count$, 10);
 
     function App() {
       const count = useGet(count$);
       return <div>{count}</div>;
     }
 
-    render(
-      <StrictMode>
-        <App />
-      </StrictMode>,
-    );
-    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(() => {
+      render(
+        <StrictMode>
+          <App />
+        </StrictMode>,
+      );
+    }).toThrowError('useStore must be used within a StoreProvider');
   });
 
   it('will unmount when component cleanup', async () => {
@@ -291,7 +291,12 @@ it('useSet should be stable', () => {
     return <div>Render</div>;
   }
 
-  render(<Container />);
+  const store = createStore();
+  render(
+    <StoreProvider value={store}>
+      <Container />
+    </StoreProvider>,
+  );
 
   expect(trace).toHaveBeenCalledTimes(2);
   expect(trace.mock.calls[0][0]).toBe(trace.mock.calls[1][0]);

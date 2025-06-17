@@ -1,4 +1,4 @@
-export { state, computed, command, createStore, getDefaultStore } from './core';
+export { state, computed, command, createStore } from './core';
 
 export type {
   State,

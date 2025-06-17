@@ -1,7 +1,7 @@
 import { render } from '@solidjs/testing-library';
 import userEvent from '@testing-library/user-event';
 import { expect, it } from 'vitest';
-import { computed, command, state, createDebugStore, getDefaultStore } from 'ccstate';
+import { computed, command, state, createDebugStore, createStore } from 'ccstate';
 import { StoreProvider, useGet, useSet } from '..';
 import { createSignal } from 'solid-js';
 import '@testing-library/jest-dom/vitest';
@@ -14,10 +14,15 @@ it('using ccstate in solid', async () => {
     return <div>{ret()}</div>;
   }
 
-  const screen = render(() => <App />);
+  const store = createStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
 
   expect(screen.getByText('0')).toBeInTheDocument();
-  getDefaultStore().set(base$, 1);
+  store.set(base$, 1);
   expect(await screen.findByText('1')).toBeInTheDocument();
 });
 
@@ -30,10 +35,15 @@ it('computed should re-render', async () => {
     return <div>{ret()}</div>;
   }
 
-  const screen = render(() => <App />);
+  const store = createStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
 
   expect(screen.getByText('0')).toBeInTheDocument();
-  getDefaultStore().set(base$, 1);
+  store.set(base$, 1);
   expect(await screen.findByText('2')).toBeInTheDocument();
 });
 
@@ -51,7 +61,12 @@ it('user click counter should increment', async () => {
     return <button onClick={onClick}>{ret()}</button>;
   }
 
-  const screen = render(() => <App />);
+  const store = createStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -72,11 +87,16 @@ it('two atom changes should re-render once', async () => {
     return <div>{ret1() + ret2()}</div>;
   }
 
-  const screen = render(() => <App />);
+  const store = createDebugStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
   expect(screen.getByText('0')).toBeInTheDocument();
 
-  getDefaultStore().set(state1$, 1);
-  getDefaultStore().set(state2$, 2);
+  store.set(state1$, 1);
+  store.set(state2$, 2);
   await Promise.resolve();
   expect(screen.getByText('3')).toBeInTheDocument();
 });
@@ -103,7 +123,12 @@ it('async callback will trigger rerender', async () => {
     );
   }
 
-  const screen = render(() => <App />);
+  const store = createDebugStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -126,7 +151,12 @@ it('floating promise trigger rerender', async () => {
     return <button onClick={onClick}>{val()}</button>;
   }
 
-  const screen = render(() => <App />);
+  const store = createDebugStore();
+  const screen = render(() => (
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>
+  ));
   const button = screen.getByText('0');
   expect(button).toBeInTheDocument();
 
@@ -135,17 +165,17 @@ it('floating promise trigger rerender', async () => {
   expect(await screen.findByText('1')).toBeInTheDocument();
 });
 
-it('should use default store if no provider', () => {
+it('should throw Error store if no provider', () => {
   const count$ = state(0);
-  getDefaultStore().set(count$, 10);
 
   function App() {
     const count = useGet(count$);
     return <div>{count()}</div>;
   }
 
-  const screen = render(() => <App />);
-  expect(screen.getByText('10')).toBeInTheDocument();
+  expect(() => {
+    render(() => <App />);
+  }).toThrowError('useStore must be used within a StoreProvider');
 });
 
 it('will unmount when component cleanup', async () => {

@@ -2,7 +2,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, cleanup, screen } from '@testing-library/vue';
 import { afterEach, expect, it } from 'vitest';
-import { command, createStore, getDefaultStore, state } from 'ccstate';
+import { command, createStore, state } from 'ccstate';
 import { provideStore } from '../provider';
 import { useGet, useSet } from '..';
 
@@ -89,7 +89,8 @@ it('call command by useSet', async () => {
 
 it('should use default store if no provider', () => {
   const count$ = state(0);
-  getDefaultStore().set(count$, 10);
+  const store = createStore();
+  store.set(count$, 10);
 
   const Component = {
     setup() {
@@ -106,6 +107,9 @@ it('should use default store if no provider', () => {
   render({
     components: { Component },
     template: `<div><Component /></div>`,
+    setup() {
+      provideStore(store);
+    },
   });
 
   expect(screen.getByText('10')).toBeInTheDocument();

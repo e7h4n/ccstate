@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { computed, createStore, command, state, getDefaultStore } from '..';
+import { computed, createStore, command, state } from '..';
 import type { Getter } from '..';
 import { suspense } from './utils';
 import { createDebugStore } from '../../debug';
@@ -836,12 +836,6 @@ it('shoule unmount base$ atom in this complex scenario 4', () => {
   store.set(branch$, false);
 
   expect(store.isMounted(base$)).toBeTruthy();
-});
-
-it('get default store should be same', () => {
-  const store1 = getDefaultStore();
-  const store2 = getDefaultStore();
-  expect(store1).toBe(store2);
 });
 
 it('branch computed', () => {

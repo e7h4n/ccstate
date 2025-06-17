@@ -539,7 +539,12 @@ it('useLoadable accept sync computed', async () => {
     return <div>{base.state}</div>;
   }
 
-  render(<App />);
+  const store = createStore();
+  render(
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>,
+  );
 
   expect(await screen.findByText('hasData')).toBeInTheDocument();
 });

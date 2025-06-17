@@ -1,6 +1,6 @@
 import { render, cleanup, screen } from '@testing-library/svelte';
 import { afterEach, expect, it } from 'vitest';
-import { createStore, getDefaultStore, state } from 'ccstate';
+import { createStore, state } from 'ccstate';
 import '@testing-library/jest-dom/vitest';
 import Loadable from './Loadable.svelte';
 import LastLoadable from './LastLoadable.svelte';
@@ -36,11 +36,13 @@ afterEach(() => {
 });
 
 it('simple loadable', async () => {
+  const store = createStore();
   const promise$ = state(Promise.resolve('bar'));
   render(Loadable, {
     props: {
       promise$: () => promise$,
     },
+    context: new Map([[StoreKey, store]]),
   });
 
   expect(screen.getByText('Loading')).toBeInTheDocument();
@@ -49,11 +51,13 @@ it('simple loadable', async () => {
 });
 
 it('error loadable', async () => {
+  const store = createStore();
   const promise$ = state(Promise.reject(new Error('INTEST')));
   render(Loadable, {
     props: {
       promise$: () => promise$,
     },
+    context: new Map([[StoreKey, store]]),
   });
 
   expect(screen.getByText('Loading')).toBeInTheDocument();
@@ -157,6 +161,7 @@ it('simple resolved', async () => {
     props: {
       promise$: () => promise$,
     },
+    context: new Map([[StoreKey, createStore()]]),
   });
 
   expect(screen.getByText('Loading')).toBeInTheDocument();
@@ -165,11 +170,13 @@ it('simple resolved', async () => {
 });
 
 it('simple last resolved', async () => {
+  const store = createStore();
   const promise$ = state(Promise.resolve('bar'));
   render(LastResolved, {
     props: {
       promise$: () => promise$,
     },
+    context: new Map([[StoreKey, store]]),
   });
 
   expect(screen.getByText('Loading')).toBeInTheDocument();
@@ -177,7 +184,7 @@ it('simple last resolved', async () => {
   expect(screen.getByText('Result: bar')).toBeInTheDocument();
 
   const deferred = makeDefered<string>();
-  getDefaultStore().set(promise$, deferred.promise);
+  store.set(promise$, deferred.promise);
   await expect(screen.findByText('Loading')).rejects.toThrow();
   deferred.resolve('second');
   expect(await screen.findByText('Result: second')).toBeInTheDocument();

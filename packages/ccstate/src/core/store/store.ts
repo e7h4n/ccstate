@@ -150,11 +150,3 @@ export class StoreImpl implements Store {
 export function createStore(): Store {
   return new StoreImpl();
 }
-
-let defaultStore: Store | undefined = undefined;
-export function getDefaultStore(): Store {
-  if (!defaultStore) {
-    defaultStore = createStore();
-  }
-  return defaultStore;
-}

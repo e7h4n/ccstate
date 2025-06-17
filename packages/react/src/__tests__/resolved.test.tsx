@@ -109,7 +109,12 @@ it('useResolved accept sync computed', async () => {
     return <div>{base}</div>;
   }
 
-  render(<App />);
+  const store = createStore();
+  render(
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>,
+  );
 
   expect(await screen.findByText('0')).toBeInTheDocument();
 });

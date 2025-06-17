@@ -1,10 +1,11 @@
 import { afterEach, expect, it } from 'vitest';
-import { useGet, useSet } from '..';
+import { StoreProvider, useGet, useSet } from '..';
 import '@testing-library/jest-dom/vitest';
 import { screen, cleanup, render } from '@testing-library/react';
 import { StrictMode } from 'react';
 import userEvent from '@testing-library/user-event';
 import { useCCState, useCommand, useComputed } from '../experimental';
+import { createStore } from 'ccstate';
 
 afterEach(() => {
   cleanup();
@@ -61,9 +62,12 @@ it('use atom in React component', async () => {
     );
   }
 
+  const store = createStore();
   render(
     <StrictMode>
-      <Counter />
+      <StoreProvider value={store}>
+        <Counter />
+      </StoreProvider>
     </StrictMode>,
   );
   expect(screen.getByText('count: 0')).toBeInTheDocument();

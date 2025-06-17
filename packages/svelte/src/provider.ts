@@ -1,4 +1,3 @@
-import { getDefaultStore } from 'ccstate';
 import type { Store } from 'ccstate';
 import { getContext, setContext } from 'svelte';
 
@@ -12,7 +11,7 @@ export const useStore = (): Store => {
   const store = getContext(StoreKey);
 
   if (!store) {
-    return getDefaultStore();
+    throw new Error('useStore must be used within a StoreProvider');
   }
 
   return store as Store;

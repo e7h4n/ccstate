@@ -1,6 +1,12 @@
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { computed, state } from '../signal/factory';
-import { getDefaultStore } from '../store/store';
+import { createStore } from '../store/store';
+import type { Store } from '../../../types/core/store';
+
+let store: Store;
+beforeEach(() => {
+  store = createStore();
+});
 
 it('default state & computed is distincted', () => {
   const base$ = state(0);
@@ -8,11 +14,11 @@ it('default state & computed is distincted', () => {
 
   const traceBase = vi.fn();
   const traceComputed = vi.fn();
-  getDefaultStore().watch((get) => {
+  store.watch((get) => {
     get(base$);
     traceBase();
   });
-  getDefaultStore().watch((get) => {
+  store.watch((get) => {
     get(computed$);
     traceComputed();
   });
@@ -20,7 +26,7 @@ it('default state & computed is distincted', () => {
   traceBase.mockClear();
   traceComputed.mockClear();
 
-  getDefaultStore().set(base$, 0);
+  store.set(base$, 0);
   expect(traceBase).not.toHaveBeenCalled();
   expect(traceComputed).not.toHaveBeenCalled();
 });
@@ -36,11 +42,11 @@ it('will distinct computed calls', () => {
     return get(computed$);
   });
 
-  getDefaultStore().watch((get) => {
+  store.watch((get) => {
     get(computed2$);
   });
   expect(traceComputed).toBeCalledTimes(1);
 
-  getDefaultStore().set(base$, { a: 1 });
+  store.set(base$, { a: 1 });
   expect(traceComputed).toBeCalledTimes(1);
 });

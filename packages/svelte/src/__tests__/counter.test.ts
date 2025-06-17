@@ -1,6 +1,6 @@
 import { render, cleanup, screen } from '@testing-library/svelte';
 import { afterEach, expect, it } from 'vitest';
-import { createStore, getDefaultStore } from 'ccstate';
+import { createStore } from 'ccstate';
 import '@testing-library/jest-dom/vitest';
 import App from './App.svelte';
 import { count$ } from './store';
@@ -13,10 +13,11 @@ afterEach(() => {
 const user = userEvent.setup();
 
 it('simple counter', async () => {
-  render(App);
+  const store = createStore();
+  render(App, { props: { store } });
 
   expect(screen.getByText('count: 0')).toBeInTheDocument();
-  getDefaultStore().set(count$, 1);
+  store.set(count$, 1);
 
   expect(await screen.findByText('count: 1')).toBeInTheDocument();
 

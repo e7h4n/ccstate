@@ -1,5 +1,5 @@
 export { state, computed, command } from './signal/factory';
-export { createStore, getDefaultStore } from './store/store';
+export { createStore } from './store/store';
 
 export type {
   State,
