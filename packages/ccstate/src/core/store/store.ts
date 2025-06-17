@@ -55,7 +55,7 @@ function mount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation
   return innerMount(readSignal, signal$, context, mutation);
 }
 
-const get: StoreGet = (signal, context, mutation) => {
+const storeGet: StoreGet = (signal, context, mutation) => {
   return withGetInterceptor(
     () => {
       const signalState = readSignal(signal, context, mutation);
@@ -70,14 +70,14 @@ const get: StoreGet = (signal, context, mutation) => {
   );
 };
 
-const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
+const storeSet: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   atom: State<T> | Command<T, Args>,
   context: StoreContext,
   ...args: Args
 ): T | undefined => {
   return withSetInterceptor<T, Args>(
     () => {
-      const mutation = createMutation(context, get, set);
+      const mutation = createMutation(context, storeGet, storeSet);
 
       return innerSet<T, Args>(readComputed, atom, context, mutation, ...args);
     },
@@ -87,7 +87,7 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-const watch: StoreWatch = (watcher: Watch, context: StoreContext, options?: WatchOptions) => {
+const storeWatch: StoreWatch = (watcher: Watch, context: StoreContext, options?: WatchOptions) => {
   const computed$ = computed(
     (get, { signal }) => {
       let childSignal: AbortSignal | undefined;
@@ -132,18 +132,18 @@ export class StoreImpl implements Store {
   }
 
   get: Getter = <T>(atom: Signal<T>): T => {
-    return get(atom, this.context);
+    return storeGet(atom, this.context);
   };
 
   set: Setter = <T, Args extends SetArgs<T, unknown[]>>(
     atom: State<T> | Command<T, Args>,
     ...args: Args
   ): undefined | T => {
-    return set<T, Args>(atom, this.context, ...args);
+    return storeSet<T, Args>(atom, this.context, ...args);
   };
 
-  watch: Watcher = (watcher: Watch, options?: WatchOptions) => {
-    watch(watcher, this.context, options);
+  watch: Watcher = (watchFn: Watch, options?: WatchOptions) => {
+    storeWatch(watchFn, this.context, options);
   };
 }
 
