@@ -53,3 +53,9 @@ it('useStore custom store', async () => {
 
   expect(store.get(count$)).toBe(101);
 });
+
+it('should throw error when store is not provided', () => {
+  expect(() => {
+    render(App);
+  }).toThrowError('useStore must be used within a StoreProvider');
+});
