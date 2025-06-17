@@ -81,4 +81,24 @@ describe('effect', () => {
 
     expect(trace).toHaveBeenCalledTimes(1);
   });
+
+  it('should abort when signal is aborted', async () => {
+    const trace = vi.fn();
+    const innerUpdate$ = effect((_, signal: AbortSignal) => {
+      void (async () => {
+        await Promise.resolve();
+        if (signal.aborted) {
+          trace('aborted');
+        }
+      })();
+    });
+
+    const store = createStore();
+    const ctrl = new AbortController();
+    store.mount(innerUpdate$, { signal: ctrl.signal });
+    ctrl.abort();
+
+    await Promise.resolve();
+    expect(trace).toBeCalledTimes(1);
+  });
 });
