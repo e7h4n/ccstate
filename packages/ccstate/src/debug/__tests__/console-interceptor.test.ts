@@ -31,10 +31,19 @@ function runStore(interceptor: ConsoleInterceptor) {
   const store = createDebugStoreInternal(interceptor);
   store.set(base1$, 1);
   store.set(base2$, 2);
-  const unsub = store.sub(doubleBase1$, callback$);
+  const controller = new AbortController();
+  store.watch(
+    (get) => {
+      get(doubleBase1$);
+      store.set(callback$);
+    },
+    {
+      signal: controller.signal,
+    },
+  );
   store.get(base1$);
   store.set(base1$, 3);
-  unsub();
+  controller.abort();
 }
 
 it('should log specified atoms to console', () => {
@@ -76,45 +85,6 @@ it('should log unmount', () => {
   expect(console.log).toBeCalledTimes(1);
 });
 
-it('should log sub', () => {
-  const interceptor = new ConsoleInterceptor([
-    {
-      target: doubleBase1$,
-      actions: new Set(['sub']),
-    },
-  ]);
-
-  runStore(interceptor);
-
-  expect(console.group).toBeCalledTimes(1);
-});
-
-it('should log unsub', () => {
-  const interceptor = new ConsoleInterceptor([
-    {
-      target: doubleBase1$,
-      actions: new Set(['unsub']),
-    },
-  ]);
-
-  runStore(interceptor);
-
-  expect(console.group).toBeCalledTimes(1);
-});
-
-it('should log notify', () => {
-  const interceptor = new ConsoleInterceptor([
-    {
-      target: callback$,
-      actions: new Set(['notify']),
-    },
-  ]);
-
-  runStore(interceptor);
-
-  expect(console.group).toBeCalledTimes(1);
-});
-
 it('should log computed', () => {
   const interceptor = new ConsoleInterceptor([
     {
@@ -146,7 +116,7 @@ it('should log everything of specified atom', () => {
 
   runStore(interceptor);
 
-  expect(console.group).toBeCalledTimes(11);
+  expect(console.group).toBeCalledTimes(12);
 });
 
 it('use string to filter atoms', () => {
@@ -174,7 +144,7 @@ it('use regex to filter atoms', () => {
 });
 
 it('createDebugStore', () => {
-  const store = createDebugStore(['base'], ['sub']);
+  const store = createDebugStore(['base'], ['mount']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);
@@ -182,7 +152,7 @@ it('createDebugStore', () => {
 });
 
 it('createDebugStore with regex', () => {
-  const store = createDebugStore([/./], ['sub']);
+  const store = createDebugStore([/./], ['mount']);
   const base$ = state(0, { debugLabel: 'base$' });
   store.set(base$, 1);
   store.get(base$);

@@ -13,13 +13,12 @@ it('should trigger multiple times when hierarchy func is set', () => {
 
   const trace = vi.fn();
   const store = createStore();
-  store.sub(
-    base$,
-    command(() => {
-      trace();
-    }),
-  );
+  store.watch((get) => {
+    get(base$);
+    trace();
+  });
 
+  trace.mockClear();
   store.set(update$);
 
   expect(trace).toHaveBeenCalledTimes(2);
@@ -34,13 +33,12 @@ it('should trigger subscriber if func throws', () => {
 
   const trace = vi.fn();
   const store = createStore();
-  store.sub(
-    base$,
-    command(() => {
-      trace();
-    }),
-  );
+  store.watch((get) => {
+    get(base$);
+    trace();
+  });
 
+  trace.mockClear();
   expect(() => {
     store.set(action$);
   }).toThrow('test');

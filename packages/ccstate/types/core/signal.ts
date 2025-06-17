@@ -31,6 +31,6 @@ export interface Command<T, Args extends unknown[]> {
   toString: () => string;
 }
 
-export type ExternalEffect = (get: Getter, options: GetterOptions) => void;
+export type Watcher = (get: Getter, options: GetterOptions) => void;
 
 export type Signal<T> = State<T> | Computed<T>;

@@ -1,18 +1,9 @@
-import type {
-  Command,
-  Getter,
-  Setter,
-  Signal,
-  State,
-  Computed,
-  ExternalEffect as ExternalEffect,
-} from '../../../types/core/signal';
+import type { Command, Getter, Setter, Signal, State, Computed, Watcher } from '../../../types/core/signal';
 import type {
   StateMap,
   Store,
   StoreContext,
   StoreOptions,
-  SubscribeOptions,
   ComputedState,
   Mounted,
   Mutation,
@@ -27,7 +18,7 @@ import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from 
 import { createMutation, set as innerSet } from './set';
 import { readState } from '../signal/state';
 import { canReadAsCompute } from '../typing-util';
-import { mount as innerMount, unmount, subSingleSignal, notify } from './sub';
+import { mount as innerMount, unmount, subSingleSignal } from './sub';
 import { command, computed } from '../signal/factory';
 
 const readComputed: ReadComputed = <T>(
@@ -61,32 +52,6 @@ function mount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation
   return innerMount(readSignal, signal$, context, mutation);
 }
 
-function sub<T>(
-  signals$: Signal<T>[] | Signal<T>,
-  callback$: Command<unknown, []>,
-  context: StoreContext,
-  options?: SubscribeOptions,
-): () => void {
-  if (Array.isArray(signals$) && signals$.length === 0) {
-    return () => void 0;
-  }
-
-  const controller = new AbortController();
-  const signal = options?.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
-
-  if (!Array.isArray(signals$)) {
-    subSingleSignal(readSignal, signals$, callback$, context, signal);
-  } else {
-    signals$.forEach((atom) => {
-      subSingleSignal(readSignal, atom, callback$, context, signal);
-    });
-  }
-
-  return () => {
-    controller.abort();
-  };
-}
-
 const get: StoreGet = (signal, context, mutation) => {
   return withGetInterceptor(
     () => {
@@ -111,13 +76,7 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
     () => {
       const mutation = createMutation(context, get, set);
 
-      let ret: T | undefined;
-      try {
-        ret = innerSet<T, Args>(readComputed, atom, context, mutation, ...args);
-      } finally {
-        notify(context, mutation);
-      }
-      return ret;
+      return innerSet<T, Args>(readComputed, atom, context, mutation, ...args);
     },
     atom,
     context.interceptor?.set,
@@ -125,14 +84,10 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-export function syncExternal(
-  externalEffect: ExternalEffect,
-  context: StoreContext,
-  options?: { signal?: AbortSignal },
-) {
+export function watch(watcher: Watcher, context: StoreContext, options?: { signal?: AbortSignal }) {
   const computed$ = computed((get, { signal }) => {
     let childSignal: AbortSignal | undefined;
-    const effectOptions = {
+    const obOptions = {
       get signal() {
         if (!childSignal) {
           childSignal = options?.signal ? AbortSignal.any([options.signal, signal]) : signal;
@@ -141,14 +96,15 @@ export function syncExternal(
       },
     };
 
-    externalEffect(get, effectOptions);
+    watcher(get, obOptions);
   });
 
-  sub(
+  subSingleSignal(
+    readSignal,
     computed$,
     command(() => void 0),
     context,
-    options,
+    options?.signal,
   );
 }
 
@@ -174,16 +130,8 @@ export class StoreImpl implements Store {
     return set<T, Args>(atom, this.context, ...args);
   };
 
-  sub(
-    targets$: Signal<unknown>[] | Signal<unknown>,
-    cb$: Command<unknown, unknown[]>,
-    options?: SubscribeOptions,
-  ): () => void {
-    return sub(targets$, cb$, this.context, options);
-  }
-
-  _syncExternal(externalEffect: ExternalEffect, options?: { signal?: AbortSignal }) {
-    syncExternal(externalEffect, this.context, options);
+  watch(watcher: Watcher, options?: { signal?: AbortSignal }) {
+    watch(watcher, this.context, options);
   }
 }
 

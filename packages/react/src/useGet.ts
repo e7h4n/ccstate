@@ -7,7 +7,7 @@ export function useGet<T>(atom: State<T> | Computed<T>) {
   const store = useStore();
   const onChange = useRef((fn: () => void) => {
     const controller = new AbortController();
-    store._syncExternal(
+    store.watch(
       (get) => {
         const val = get(atom);
         if (val instanceof Promise) {

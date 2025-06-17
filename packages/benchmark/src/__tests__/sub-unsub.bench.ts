@@ -17,7 +17,7 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
     const { atoms: atomsCCState, store: storeCCState } = setupStoreWithoutSub(depth, ccstateStrategy);
     bench('ccstate', () => {
       const controller = new AbortController();
-      storeCCState._syncExternal((get) => get(atomsCCState[atomsCCState.length - 1][0]), {
+      storeCCState.watch((get) => get(atomsCCState[atomsCCState.length - 1][0]), {
         signal: controller.signal,
       });
       controller.abort();

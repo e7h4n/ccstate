@@ -14,7 +14,7 @@ export const ccstateStrategy: Strategy<State<number> | Computed<number>, ReturnT
   },
   sub(store, atom, callback) {
     const controller = new AbortController();
-    store._syncExternal(
+    store.watch(
       (get) => {
         get(atom);
         callback();

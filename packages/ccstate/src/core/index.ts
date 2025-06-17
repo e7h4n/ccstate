@@ -11,7 +11,7 @@ export type {
   Read,
   Write,
   StateArg,
-  ExternalEffect,
+  Watcher,
 } from '../../types/core/signal';
 
-export type { Subscribe, Store, SetArgs } from '../../types/core/store';
+export type { Store, SetArgs } from '../../types/core/store';
