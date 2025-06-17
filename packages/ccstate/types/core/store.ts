@@ -10,6 +10,7 @@ export type Watch = (
   observer: Watcher,
   options?: {
     signal?: AbortSignal;
+    debugLabel?: string;
   },
 ) => void;
 
@@ -43,7 +44,6 @@ export interface StoreContext {
 
 export interface Mutation {
   potentialDirtyIds: Set<number>;
-  pendingListeners: Set<Command<unknown, []>>;
   visitor: {
     get: Getter;
     set: Setter;
@@ -78,7 +78,6 @@ export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
 
 export interface Mounted {
-  listeners: Set<Command<unknown, []>>;
   readDepts: Set<Computed<unknown>>;
 }
 

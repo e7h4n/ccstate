@@ -64,7 +64,7 @@ it('unsubscribe on atom should release memory', async () => {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       get(objAtom!);
     },
-    { signal: controller.signal },
+    { signal: controller.signal, debugLabel: 'watched' },
   );
 
   controller.abort();

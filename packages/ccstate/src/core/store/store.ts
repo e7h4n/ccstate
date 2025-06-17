@@ -18,8 +18,8 @@ import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from 
 import { createMutation, set as innerSet } from './set';
 import { readState } from '../signal/state';
 import { canReadAsCompute } from '../typing-util';
-import { mount as innerMount, unmount, subSingleSignal } from './sub';
-import { command, computed } from '../signal/factory';
+import { mount as innerMount, unmount } from './sub';
+import { computed } from '../signal/factory';
 
 const readComputed: ReadComputed = <T>(
   computed$: Computed<T>,
@@ -84,27 +84,40 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-export function watch(watcher: Watcher, context: StoreContext, options?: { signal?: AbortSignal }) {
-  const computed$ = computed((get, { signal }) => {
-    let childSignal: AbortSignal | undefined;
-    const obOptions = {
-      get signal() {
-        if (!childSignal) {
-          childSignal = options?.signal ? AbortSignal.any([options.signal, signal]) : signal;
-        }
-        return childSignal;
-      },
-    };
+export function watch(
+  watcher: Watcher,
+  context: StoreContext,
+  options?: { signal?: AbortSignal; debugLabel?: string },
+) {
+  const computed$ = computed(
+    (get, { signal }) => {
+      let childSignal: AbortSignal | undefined;
+      const obOptions = {
+        get signal() {
+          if (!childSignal) {
+            childSignal = options?.signal ? AbortSignal.any([options.signal, signal]) : signal;
+          }
+          return childSignal;
+        },
+      };
 
-    watcher(get, obOptions);
-  });
+      watcher(get, obOptions);
+    },
+    {
+      debugLabel: options?.debugLabel,
+    },
+  );
 
-  subSingleSignal(
-    readSignal,
-    computed$,
-    command(() => void 0),
-    context,
-    options?.signal,
+  innerMount(readSignal, computed$, context);
+
+  options?.signal?.addEventListener(
+    'abort',
+    () => {
+      unmount(computed$, context);
+    },
+    {
+      once: true,
+    },
   );
 }
 

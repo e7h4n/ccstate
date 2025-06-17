@@ -169,7 +169,6 @@ export function set<T, Args extends SetArgs<T, unknown[]>>(
 export function createMutation(context: StoreContext, get: StoreGet, set: StoreSet): Mutation {
   const mutation: Mutation = {
     potentialDirtyIds: new Set(),
-    pendingListeners: new Set(),
     visitor: {
       get: <T>(signal$: Signal<T>) => {
         return get(signal$, context, mutation);

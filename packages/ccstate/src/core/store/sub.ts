@@ -1,4 +1,4 @@
-import type { Command, Computed, Signal } from '../../../types/core/signal';
+import type { Computed, Signal } from '../../../types/core/signal';
 import type {
   ComputedState,
   Mounted,
@@ -40,7 +40,6 @@ function initMount<T>(readSignal: ReadSignal, signal$: Signal<T>, context: Store
   const signalState = readSignal(signal$, context, mutation);
 
   signalState.mounted = signalState.mounted ?? {
-    listeners: new Set(),
     readDepts: new Set(),
   };
 
@@ -82,32 +81,9 @@ function doUnmount<T>(
 
 export function unmount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): void {
   const signalState = context.stateMap.get(signal$);
-  if (!signalState?.mounted || signalState.mounted.listeners.size || signalState.mounted.readDepts.size) {
+  if (!signalState?.mounted || signalState.mounted.readDepts.size) {
     return;
   }
 
   doUnmount(signal$, signalState, context, mutation);
-}
-
-export function subSingleSignal<T>(
-  readSignal: ReadSignal,
-  signal$: Signal<T>,
-  callback$: Command<unknown, []>,
-  context: StoreContext,
-  signal?: AbortSignal,
-) {
-  const mounted = mount(readSignal, signal$, context);
-  mounted.listeners.add(callback$);
-
-  const unsub = () => {
-    mounted.listeners.delete(callback$);
-
-    if (mounted.readDepts.size === 0 && mounted.listeners.size === 0) {
-      unmount(signal$, context);
-    }
-  };
-
-  signal?.addEventListener('abort', unsub, {
-    once: true,
-  });
 }
