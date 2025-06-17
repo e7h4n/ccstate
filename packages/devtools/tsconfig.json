@@ -1,7 +1,0 @@
-{
-  "extends": "../../tsconfig.options.json",
-  "compilerOptions": {
-    "lib": ["ES2020", "DOM", "DOM.Iterable"]
-  },
-  "include": ["src", "vitest.config.ts"]
-}
