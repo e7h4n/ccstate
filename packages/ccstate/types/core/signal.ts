@@ -31,4 +31,6 @@ export interface Command<T, Args extends unknown[]> {
   toString: () => string;
 }
 
+export type Effect = Command<void, [AbortSignal]>;
+
 export type Signal<T> = State<T> | Computed<T>;

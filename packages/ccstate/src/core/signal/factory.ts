@@ -1,4 +1,4 @@
-import type { Computed, Command, Read, State, Write } from '../../../types/core/signal';
+import type { Computed, Command, Read, State, Write, Effect } from '../../../types/core/signal';
 
 interface Options {
   debugLabel?: string;
@@ -45,6 +45,19 @@ export function command<T, Args extends unknown[]>(write: Write<T, Args>, option
     id,
     write,
     toString: generateToString(id, 'CMD', options?.debugLabel),
+  };
+  if (options?.debugLabel) {
+    ret.debugLabel = options.debugLabel;
+  }
+  return ret;
+}
+
+export function effect(write: Write<void, [AbortSignal]>, options?: Options): Effect {
+  const id = globalId++;
+  const ret: Effect = {
+    id,
+    write,
+    toString: generateToString(id, 'EFT', options?.debugLabel),
   };
   if (options?.debugLabel) {
     ret.debugLabel = options.debugLabel;

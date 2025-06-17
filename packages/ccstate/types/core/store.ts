@@ -1,9 +1,10 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Effect } from './signal';
 
 export interface Store {
   get: Getter;
   set: Setter;
   sub: Subscribe;
+  mount: EffectMounter;
 }
 
 export interface SubscribeOptions {
@@ -17,6 +18,13 @@ export type Subscribe = (
   callback: CallbackFunc<unknown>,
   options?: SubscribeOptions,
 ) => () => void;
+
+export type EffectMounter = (
+  effect$: Effect,
+  options?: {
+    signal?: AbortSignal;
+  },
+) => void;
 
 export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {

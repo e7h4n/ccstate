@@ -145,6 +145,10 @@ export class StoreImpl implements Store {
   ): () => void {
     return sub(targets$, cb$, this.context, options);
   }
+
+  mount(effect$: Effect, options?: { signal?: AbortSignal }): () => void {
+    return () => void 0;
+  }
 }
 
 export function createStore(): Store {
