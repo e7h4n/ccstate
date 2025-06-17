@@ -87,30 +87,24 @@ it('call command by useSet', async () => {
   expect(screen.getByText('Times clicked: 30')).toBeInTheDocument();
 });
 
-it('should use default store if no provider', () => {
+it('should throw error if no store provide', () => {
   const count$ = state(0);
   const store = createStore();
   store.set(count$, 10);
 
   const Component = {
     setup() {
-      const count = useGet(count$);
-      return { count };
+      useGet(count$);
     },
     template: `
-    <div>
-      <p>{{ count }}</p>
-    </div>
+    <div></div>
   `,
   };
 
-  render({
-    components: { Component },
-    template: `<div><Component /></div>`,
-    setup() {
-      provideStore(store);
-    },
-  });
-
-  expect(screen.getByText('10')).toBeInTheDocument();
+  expect(() => {
+    render({
+      components: { Component },
+      template: `<div><Component /></div>`,
+    });
+  }).toThrowError('useStore must be used within a provideStore');
 });
