@@ -1,10 +1,10 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Effect } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg, ExternalEffect } from './signal';
 
 export interface Store {
   get: Getter;
   set: Setter;
   sub: Subscribe;
-  effect: MountEffect;
+  syncExternal: SyncExternal;
 }
 
 export interface SubscribeOptions {
@@ -19,8 +19,8 @@ export type Subscribe = (
   options?: SubscribeOptions,
 ) => () => void;
 
-export type MountEffect = (
-  effect: Effect,
+export type SyncExternal = (
+  externalEffect: ExternalEffect,
   options?: {
     signal?: AbortSignal;
   },
@@ -100,7 +100,7 @@ export interface EffectState {
 
 export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
-export type EffectMap = Map<Effect, EffectState>;
+export type EffectMap = Map<ExternalEffect, EffectState>;
 
 export interface Mounted {
   listeners: Set<Command<unknown, []>>;
