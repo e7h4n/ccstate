@@ -79,3 +79,22 @@ describe('effect', () => {
     expect(trace).toBeCalledWith('aborted');
   });
 });
+
+it('should execute when dependency changes', () => {
+  const base$ = state(0);
+  const trace = vi.fn();
+
+  const store = createStore();
+
+  store._syncExternal((get) => {
+    trace(get(base$));
+  });
+
+  expect(trace).toHaveBeenCalledTimes(1);
+
+  store.set(base$, (x) => x + 1);
+  store.set(base$, (x) => x + 1);
+  store.set(base$, (x) => x + 1);
+  store.set(base$, (x) => x + 1);
+  expect(trace).toHaveBeenCalledTimes(5);
+});

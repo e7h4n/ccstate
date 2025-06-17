@@ -99,14 +99,8 @@ export function subSingleSignal<T>(
 ) {
   withSubInterceptor(
     () => {
-      const beforeState = context.stateMap.get(signal$);
       const mounted = mount(readSignal, signal$, context);
       mounted.listeners.add(callback$);
-
-      const afterState = context.stateMap.get(signal$);
-      if (beforeState?.epoch !== afterState?.epoch && afterState?.val instanceof Promise) {
-        afterState.val.catch(() => void 0);
-      }
 
       const unsub = () => {
         withUnsubInterceptor(

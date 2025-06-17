@@ -628,9 +628,12 @@ test('useLoadable should catch errors', () => {
       </StoreProvider>
     </StrictMode>,
   );
+  expect(traceCatch).toHaveBeenCalledTimes(2); // strict mode renders twice
+
+  store.set(reload$, (x) => x + 1);
+  expect(traceCatch).toHaveBeenCalledTimes(3);
 
   store.set(reload$, (x) => x + 1);
   store.set(reload$, (x) => x + 1);
-
-  expect(traceCatch).toHaveBeenCalledTimes(4);
+  expect(traceCatch).toHaveBeenCalledTimes(5);
 });
