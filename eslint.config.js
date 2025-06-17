@@ -21,6 +21,7 @@ export default config(
     },
     rules: {
       ...vitest.configs.recommended.rules,
+      '@typescript-eslint/no-deprecated': 'off',
     },
   },
   importPlugin.flatConfigs.recommended,
@@ -40,6 +41,7 @@ export default config(
     },
     rules: {
       'import/no-extraneous-dependencies': ['error'],
+      'import/no-cycle': ['error'],
     },
   },
   {

@@ -1,5 +1,5 @@
 import type { Strategy } from './type';
-import { createStore, computed, command, state } from 'ccstate';
+import { createStore, computed, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 
 export const ccstateStrategy: Strategy<State<number> | Computed<number>, ReturnType<typeof createStore>> = {
@@ -13,12 +13,20 @@ export const ccstateStrategy: Strategy<State<number> | Computed<number>, ReturnT
     return computed((get) => compute(get));
   },
   sub(store, atom, callback) {
-    return store.sub(
-      atom,
-      command(() => {
+    const controller = new AbortController();
+    store._syncExternal(
+      (get) => {
+        get(atom);
         callback();
-      }),
+      },
+      {
+        signal: controller.signal,
+      },
     );
+
+    return () => {
+      controller.abort();
+    };
   },
   get(store, atom) {
     return store.get(atom);

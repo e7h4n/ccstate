@@ -95,7 +95,7 @@ export function subSingleSignal<T>(
   signal$: Signal<T>,
   callback$: Command<unknown, []>,
   context: StoreContext,
-  signal: AbortSignal,
+  signal?: AbortSignal,
 ) {
   withSubInterceptor(
     () => {
@@ -123,7 +123,7 @@ export function subSingleSignal<T>(
         );
       };
 
-      signal.addEventListener('abort', unsub, {
+      signal?.addEventListener('abort', unsub, {
         once: true,
       });
     },

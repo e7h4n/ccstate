@@ -632,5 +632,5 @@ test('useLoadable should catch errors', () => {
   store.set(reload$, (x) => x + 1);
   store.set(reload$, (x) => x + 1);
 
-  expect(traceCatch).toHaveBeenCalledTimes(2);
+  expect(traceCatch).toHaveBeenCalledTimes(4);
 });

@@ -221,7 +221,7 @@ describe('react', () => {
 
     function App() {
       const ret = useGet(base$);
-      return <div>{ret}</div>;
+      return <div>ret:{ret}</div>;
     }
 
     function Container() {
@@ -252,12 +252,16 @@ describe('react', () => {
     );
 
     const user = userEvent.setup();
-    expect(store.getSubscribeGraph()).toHaveLength(1);
+
+    expect(screen.getByText('ret:0')).toBeInTheDocument();
     const button = screen.getByText('hide');
+
+    expect(store.getReadDependents(base$)).toHaveLength(2);
+
     expect(button).toBeInTheDocument();
     await user.click(button);
     expect(await screen.findByText('unmounted')).toBeInTheDocument();
-    expect(store.getSubscribeGraph()).toHaveLength(0);
+    expect(store.getReadDependents(base$)).toHaveLength(1);
   });
 });
 

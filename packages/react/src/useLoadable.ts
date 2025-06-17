@@ -1,6 +1,6 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { command, type Computed, type State } from 'ccstate';
-import { useStore } from './provider';
+import { useEffect, useState } from 'react';
+import { type Computed, type State } from 'ccstate';
+import { useGet } from './useGet';
 
 type Loadable<T> =
   | {
@@ -15,29 +15,11 @@ type Loadable<T> =
       error: unknown;
     };
 
-function useGetPromise<T, U extends Promise<Awaited<T>> | Awaited<T>>(atom: State<U> | Computed<U>): U {
-  const store = useStore();
-  return useSyncExternalStore(
-    (fn) =>
-      store.sub(
-        atom,
-        command(({ get }) => {
-          const val = get(atom);
-          if (val instanceof Promise) {
-            val.catch(() => void 0);
-          }
-          fn();
-        }),
-      ),
-    () => store.get(atom),
-  );
-}
-
 function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
   signal: State<U> | Computed<U>,
   keepLastResolved: boolean,
 ): Loadable<T> {
-  const promise: Promise<Awaited<T>> | Awaited<T> = useGetPromise(signal);
+  const promise: Promise<Awaited<T>> | Awaited<T> = useGet(signal);
   const [promiseResult, setPromiseResult] = useState<Loadable<T>>({
     state: 'loading',
   });

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 import { useStore } from './provider';
 import { command } from 'ccstate';
 import type { Computed, State } from 'ccstate';

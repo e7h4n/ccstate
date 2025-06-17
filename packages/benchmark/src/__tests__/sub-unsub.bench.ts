@@ -1,6 +1,5 @@
 import { bench, describe } from 'vitest';
 import { setupStoreWithoutSub } from './case';
-import { command } from 'ccstate';
 import { ccstateStrategy } from './strategy/ccstate';
 import { jotaiStrategy } from './strategy/jotai';
 import { alienSignalStrategy } from './strategy/alien-signals';
@@ -17,11 +16,11 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
   describe(`sub & unsub top atom, ${String(Math.pow(10, depth))} atoms pyramid`, () => {
     const { atoms: atomsCCState, store: storeCCState } = setupStoreWithoutSub(depth, ccstateStrategy);
     bench('ccstate', () => {
-      const unsub = storeCCState.sub(
-        atomsCCState[atomsCCState.length - 1][0],
-        command(() => void 0),
-      );
-      unsub();
+      const controller = new AbortController();
+      storeCCState._syncExternal((get) => get(atomsCCState[atomsCCState.length - 1][0]), {
+        signal: controller.signal,
+      });
+      controller.abort();
     });
 
     const { atoms: atomsJotai, store: storeJotai } = setupStoreWithoutSub(depth, jotaiStrategy);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { command, computed, state, type Command, type Computed, type State, type Subscribe } from 'ccstate';
 import { useEffect, useRef } from 'react';
 import { useStore } from './provider';

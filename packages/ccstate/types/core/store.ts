@@ -3,8 +3,18 @@ import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Extern
 export interface Store {
   get: Getter;
   set: Setter;
+
+  /**
+   * @deprecated use `syncExternal` instead. This method will be replaced with syncExternal in next major release.
+   */
   sub: Subscribe;
-  syncExternal: SyncExternal;
+
+  /**
+   * Syncs an external effect with the store. The effect will be executed immediately and whenever the dependencies change.
+   *
+   * This method will replace the `sub` method in the next major release.
+   */
+  _syncExternal: SyncExternal;
 }
 
 export interface SubscribeOptions {
@@ -57,7 +67,6 @@ export interface StoreOptions {
 
 export interface StoreContext {
   stateMap: StateMap;
-  effectMap: EffectMap;
   interceptor?: StoreInterceptor;
 }
 
@@ -94,13 +103,8 @@ export type ComputedState<T> =
       abortController?: AbortController;
     };
 
-export interface EffectState {
-  abortController: AbortController;
-}
-
 export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
-export type EffectMap = Map<ExternalEffect, EffectState>;
 
 export interface Mounted {
   listeners: Set<Command<unknown, []>>;

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
+
 import { useStore } from './provider';
 import { command, type Computed, type State } from 'ccstate';
 import { createSignal, onCleanup } from 'solid-js';

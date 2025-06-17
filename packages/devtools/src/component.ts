@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import { command, computed, getDefaultStore, type Computed, type DebugStore } from 'ccstate';
 import { styles } from './styles';
 import { html, render } from 'lit-html';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-deprecated */
 import type { ComputedState, SignalState, StoreInterceptor, SubscribeOptions } from '../../types/core/store';
 import type { DebugStore, Edge, NestedAtom } from '../../types/debug/debug-store';
 import type { Computed, Command, Subscribe, State } from '../core';
