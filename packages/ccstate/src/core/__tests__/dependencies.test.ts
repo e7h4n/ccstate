@@ -118,14 +118,14 @@ it('do not keep atoms mounted between async recalculations', async () => {
 
   const store = createDebugStore();
   expect(store.getReadDependents(base)).toEqual([base]);
-  store.sub(
-    derived,
-    command(() => void 0),
-  );
+  store.watch((get) => {
+    void get(derived);
+  });
   restore();
   await Promise.resolve();
 
-  expect(store.getReadDependents(base)).toEqual([base, [derived]]);
+  expect(store.getReadDependents(base)[0]).toBe(base);
+  expect(store.getReadDependents(base)[1]).toContain(derived);
   store.set(base, (c) => c + 1);
   restore();
   expect(store.getReadDependents(base)).toEqual([base]);
@@ -154,14 +154,12 @@ it('should not provide stale values to conditional dependents', () => {
   });
 
   const store = createStore();
-  store.sub(
-    derivedAtom,
-    command(() => undefined),
-  );
-  store.sub(
-    stageAtom,
-    command(() => undefined),
-  );
+  store.watch((get) => {
+    get(derivedAtom);
+  });
+  store.watch((get) => {
+    get(stageAtom);
+  });
 
   expect(store.get(stageAtom)).toBe('no-filter');
   store.set(hasFilterAtom, true);
@@ -189,14 +187,13 @@ it('settles never resolving async derivations with deps picked up sync', async (
     trace('NEVER');
   });
 
-  store.sub(
-    asyncAtom,
-    command(async ({ get }) => {
+  store.watch((get) => {
+    void (async () => {
       traceSub();
       await get(asyncAtom);
       trace('OK');
-    }),
-  );
+    })();
+  });
 
   store.set(syncAtom, {
     promise: pause(),
@@ -206,7 +203,7 @@ it('settles never resolving async derivations with deps picked up sync', async (
   await delay(0);
   expect(trace).toHaveBeenCalledTimes(1);
   expect(trace).toBeCalledWith('OK');
-  expect(traceSub).toHaveBeenCalledTimes(1);
+  expect(traceSub).toHaveBeenCalledTimes(2);
 });
 
 it('settles never resolving async derivations with deps picked up async', async () => {
@@ -226,14 +223,13 @@ it('settles never resolving async derivations with deps picked up async', async 
   void store.get(asyncAtom).then(() => {
     trace('NEVER');
   });
-  store.sub(
-    asyncAtom,
-    command(async ({ get }) => {
+  store.watch((get) => {
+    void (async () => {
       trace('SUB');
       await get(asyncAtom);
       trace('OK');
-    }),
-  );
+    })();
+  });
 
   await delay(0);
   store.set(syncAtom, {
@@ -241,9 +237,10 @@ it('settles never resolving async derivations with deps picked up async', async 
   });
 
   await delay(0);
-  expect(trace).toHaveBeenCalledTimes(2);
+  expect(trace).toHaveBeenCalledTimes(3);
   expect(trace).nthCalledWith(1, 'SUB');
-  expect(trace).nthCalledWith(2, 'OK');
+  expect(trace).nthCalledWith(2, 'SUB');
+  expect(trace).nthCalledWith(3, 'OK');
 });
 
 it('refreshes deps for each async read', async () => {
@@ -318,14 +315,12 @@ it('should re-evaluate stable derived atom values in situations where dependenci
   );
 
   const store = createStore();
-  store.sub(
-    stableDepDep,
-    command(() => void 0),
-  );
-  store.sub(
-    newAtom,
-    command(() => void 0),
-  );
+  store.watch((get) => {
+    get(stableDepDep);
+  });
+  store.watch((get) => {
+    get(newAtom);
+  });
   expect(store.get(stableDepDep)).toBe(2);
   expect(traceStableDepDep).toHaveBeenCalledTimes(1);
 

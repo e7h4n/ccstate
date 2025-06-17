@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { command, computed, state } from '../signal/factory';
+import { computed, state } from '../signal/factory';
 import { getDefaultStore } from '../store/store';
 
 it('default state & computed is distincted', () => {
@@ -8,8 +8,17 @@ it('default state & computed is distincted', () => {
 
   const traceBase = vi.fn();
   const traceComputed = vi.fn();
-  getDefaultStore().sub(base$, command(traceBase));
-  getDefaultStore().sub(computed$, command(traceComputed));
+  getDefaultStore().watch((get) => {
+    get(base$);
+    traceBase();
+  });
+  getDefaultStore().watch((get) => {
+    get(computed$);
+    traceComputed();
+  });
+
+  traceBase.mockClear();
+  traceComputed.mockClear();
 
   getDefaultStore().set(base$, 0);
   expect(traceBase).not.toHaveBeenCalled();
@@ -27,10 +36,9 @@ it('will distinct computed calls', () => {
     return get(computed$);
   });
 
-  getDefaultStore().sub(
-    computed2$,
-    command(() => void 0),
-  );
+  getDefaultStore().watch((get) => {
+    get(computed2$);
+  });
   expect(traceComputed).toBeCalledTimes(1);
 
   getDefaultStore().set(base$, { a: 1 });

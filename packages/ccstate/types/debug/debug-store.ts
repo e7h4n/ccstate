@@ -14,5 +14,4 @@ export interface DebugStore extends Store {
   getDependenciesGraph: (atom: Computed<unknown>) => Edge[];
   getReadDependents: (atom: State<unknown> | Computed<unknown>) => NestedAtom;
   isMounted: (atom: State<unknown> | Computed<unknown>) => boolean;
-  getSubscribeGraph: () => NestedAtom;
 }

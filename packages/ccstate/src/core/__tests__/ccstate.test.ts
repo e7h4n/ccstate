@@ -102,19 +102,12 @@ test('set an atom should trigger subscribe', () => {
     debugLabel: 'base',
   });
   const trace = vi.fn();
-  store.sub(
-    base$,
-    command(
-      () => {
-        trace();
-      },
-      {
-        debugLabel: 'func',
-      },
-    ),
-  );
+  store.watch((get) => {
+    get(base$);
+    trace();
+  });
   store.set(base$, 2);
-  expect(trace).toBeCalledTimes(1);
+  expect(trace).toBeCalledTimes(2);
 });
 
 test('set an atom in func should trigger multiple times', () => {
@@ -123,17 +116,10 @@ test('set an atom in func should trigger multiple times', () => {
     debugLabel: 'base',
   });
   const trace = vi.fn();
-  store.sub(
-    base$,
-    command(
-      () => {
-        trace();
-      },
-      {
-        debugLabel: 'callback$',
-      },
-    ),
-  );
+  store.watch((get) => {
+    get(base$);
+    trace();
+  });
   store.set(
     command(
       ({ set }) => {
@@ -147,7 +133,7 @@ test('set an atom in func should trigger multiple times', () => {
     ),
   );
 
-  expect(trace).toBeCalledTimes(3);
+  expect(trace).toBeCalledTimes(4);
 });
 
 test('sub multiple atoms', () => {
@@ -160,28 +146,15 @@ test('sub multiple atoms', () => {
   });
 
   const trace = vi.fn();
-  const unsub = store.sub(
-    computed(
-      (get) => {
-        return `${String(get(state1$))}:${String(get(state2$))}`;
-      },
-      {
-        debugLabel: 'cmpt',
-      },
-    ),
-    command(
-      () => {
-        trace();
-      },
-      {
-        debugLabel: 'func',
-      },
-    ),
-  );
+
+  store.watch((get) => {
+    trace();
+    return `${String(get(state1$))}:${String(get(state2$))}`;
+  });
+
   store.set(state1$, (x) => x + 1);
   store.set(state2$, (x) => x + 1);
   expect(trace).toBeCalled();
-  unsub();
 });
 
 test('sub computed atom', () => {
@@ -199,15 +172,14 @@ test('sub computed atom', () => {
   );
 
   const trace = vi.fn();
-  store.sub(
-    derived$,
-    command(() => {
-      trace();
-    }),
-  );
-  expect(trace).not.toBeCalled();
+  store.watch((get) => {
+    get(derived$);
+    trace();
+  });
+
+  expect(trace).toBeCalled();
   store.set(base$, 2);
-  expect(trace).toBeCalledTimes(1);
+  expect(trace).toBeCalledTimes(2);
 });
 
 test('get read deps', () => {
@@ -299,17 +271,10 @@ test('outdated deps should not trigger sub', async () => {
   );
 
   const traceSub = vi.fn();
-  store.sub(
-    derived$,
-    command(
-      () => {
-        traceSub();
-      },
-      {
-        debugLabel: 'func',
-      },
-    ),
-  );
+  store.watch((get) => {
+    void get(derived$);
+    traceSub();
+  });
   await expect(store.get(derived$)).resolves.toBe('A');
 
   store.set(branch$, 'B');
@@ -433,10 +398,9 @@ test('diamond deps and distinct compute', () => {
 
   const store = createStore();
 
-  store.sub(
-    test$,
-    command(() => void 0),
-  );
+  store.watch((get) => {
+    get(test$);
+  });
 
   trace.mockClear();
 

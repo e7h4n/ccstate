@@ -40,22 +40,31 @@ it('should catch error when computed throw exception', () => {
 
   const store = createStore();
   const trace = vi.fn();
-  store.sub(cmptWithError$, command(trace));
+  store.watch((get) => {
+    try {
+      get(cmptWithError$);
+    } catch {}
+    trace();
+  });
 
-  expect(trace).not.toHaveBeenCalled();
+  expect(trace).toBeCalledTimes(1);
 
   store.set(base$, 1);
 
-  expect(trace).toBeCalledTimes(1);
+  expect(trace).toBeCalledTimes(2);
 
   expect(() => {
     store.get(cmptWithError$);
   }).toThrow();
 
+  trace.mockClear();
   const normalComputed$ = computed((get) => {
     return get(base$) + 1;
   });
-  store.sub(normalComputed$, command(trace));
+  store.watch((get) => {
+    get(normalComputed$);
+    trace();
+  });
   expect(trace).toBeCalledTimes(1);
 
   store.set(base$, 2);
@@ -91,6 +100,9 @@ it('should not throw error in sub', () => {
   const trace = vi.fn();
 
   expect(() => {
-    store.sub(derived$, command(trace));
+    store.watch((get) => {
+      get(derived$);
+      trace();
+    });
   }).not.toThrow();
 });

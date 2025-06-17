@@ -1,11 +1,11 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg, ExternalEffect } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Observer } from './signal';
 
 export interface Store {
   get: Getter;
   set: Setter;
 
   /**
-   * @deprecated use `syncExternal` instead. This method will be replaced with syncExternal in next major release.
+   * @deprecated use `watch` instead. This method will be replaced with watch in next major release.
    */
   sub: Subscribe;
 
@@ -14,7 +14,7 @@ export interface Store {
    *
    * This method will replace the `sub` method in the next major release.
    */
-  _syncExternal: SyncExternal;
+  watch: Watch;
 }
 
 export interface SubscribeOptions {
@@ -29,8 +29,8 @@ export type Subscribe = (
   options?: SubscribeOptions,
 ) => () => void;
 
-export type SyncExternal = (
-  externalEffect: ExternalEffect,
+export type Watch = (
+  observer: Observer,
   options?: {
     signal?: AbortSignal;
   },

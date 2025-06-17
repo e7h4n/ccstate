@@ -1,5 +1,5 @@
 import { it, vi, expect, describe } from 'vitest';
-import { state, computed, command, createStore, type State, type Computed } from '../..';
+import { state, computed, createStore, type State, type Computed } from '../..';
 
 it('test glitch 1', () => {
   const base$ = state(0, { debugLabel: 'base$' });
@@ -17,10 +17,9 @@ it('test glitch 1', () => {
   );
 
   const store = createStore();
-  store.sub(
-    alwaysTrue$,
-    command(() => void 0),
-  );
+  store.watch((get) => {
+    get(alwaysTrue$);
+  });
 
   expect(store.get(alwaysTrue$)).toBe(true);
   trace.mockClear();
@@ -44,10 +43,9 @@ it('test glitch 2', () => {
   );
 
   const store = createStore();
-  store.sub(
-    alwaysTrue$,
-    command(() => void 0),
-  );
+  store.watch((get) => {
+    get(alwaysTrue$);
+  });
 
   expect(store.get(alwaysTrue$)).toBe(true);
   trace.mockClear();
@@ -160,10 +158,9 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'left', traceComputed);
 
     const store = createStore();
-    store.sub(
-      top$,
-      command(() => void 0),
-    );
+    store.watch((get) => {
+      get(top$);
+    });
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -175,10 +172,9 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'right', traceComputed);
 
     const store = createStore();
-    store.sub(
-      top$,
-      command(() => void 0),
-    );
+    store.watch((get) => {
+      get(top$);
+    });
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -190,10 +186,9 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'alternate', traceComputed);
 
     const store = createStore();
-    store.sub(
-      top$,
-      command(() => void 0),
-    );
+    store.watch((get) => {
+      get(top$);
+    });
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -205,10 +200,9 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'random', traceComputed);
 
     const store = createStore();
-    store.sub(
-      top$,
-      command(() => void 0),
-    );
+    store.watch((get) => {
+      get(top$);
+    });
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -222,10 +216,9 @@ describe('diamond deps evaluation performance', () => {
     const [base$, , top$] = createDiamondDeps(100, 'random', traceComputed);
 
     const store = createStore();
-    store.sub(
-      top$,
-      command(() => void 0),
-    );
+    store.watch((get) => {
+      get(top$);
+    });
 
     traceComputed.mockClear();
     store.set(base$, (x) => x + 1);

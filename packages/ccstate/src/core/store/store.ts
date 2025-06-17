@@ -5,7 +5,7 @@ import type {
   Signal,
   State,
   Computed,
-  ExternalEffect as ExternalEffect,
+  Observer as Observer,
 } from '../../../types/core/signal';
 import type {
   StateMap,
@@ -125,14 +125,10 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-export function syncExternal(
-  externalEffect: ExternalEffect,
-  context: StoreContext,
-  options?: { signal?: AbortSignal },
-) {
+export function watch(observer: Observer, context: StoreContext, options?: { signal?: AbortSignal }) {
   const computed$ = computed((get, { signal }) => {
     let childSignal: AbortSignal | undefined;
-    const effectOptions = {
+    const obOptions = {
       get signal() {
         if (!childSignal) {
           childSignal = options?.signal ? AbortSignal.any([options.signal, signal]) : signal;
@@ -141,7 +137,7 @@ export function syncExternal(
       },
     };
 
-    externalEffect(get, effectOptions);
+    observer(get, obOptions);
   });
 
   sub(
@@ -182,8 +178,8 @@ export class StoreImpl implements Store {
     return sub(targets$, cb$, this.context, options);
   }
 
-  _syncExternal(externalEffect: ExternalEffect, options?: { signal?: AbortSignal }) {
-    syncExternal(externalEffect, this.context, options);
+  watch(externalEffect: Observer, options?: { signal?: AbortSignal }) {
+    watch(externalEffect, this.context, options);
   }
 }
 
