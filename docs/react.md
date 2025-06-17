@@ -46,7 +46,7 @@ function App() {
 
 `useGet` returns a `State` or a `Computed` value, and when the value changes, `useGet` triggers a re-render of the component.
 
-`useGet` does not do anything special with `Promise` values. In fact, `useGet` is equivalent to a single `store.get` call, plus a `store.sub` to ensure reactive updates to the React component.
+`useGet` does not do anything special with `Promise` values. In fact, `useGet` is equivalent to a single `store.get` call, plus a `store.watch` to ensure reactive updates to the React component.
 
 Two other useful hooks are available when dealing with `Promise` values. First, we introduce `useLoadable`.
 
@@ -209,18 +209,3 @@ function App() {
 ```
 
 `useCommand` is nothing special but should useful for passing a callback command to other components as props or another `Command`.
-
-`useSub` is useful for migrating existing `useEffect` code. Although `sub` should be a restricted method in CCState, legacy React projects often contain numerous `useEffect` calls. Therefore, using `useSub` to replace some `useEffect` calls in a controlled manner, while gradually reducing the usage of `useSub`, can be helpful.
-
-```jsx
-import { useSub } from 'ccstate-react/experimental';
-
-function App() {
-  const count$ = useCCState(0);
-  const double$ = useCCState(0);
-  const onCountChange$ = useCommand(({ get, set }) => {
-    set(double$, get(count$) * 2);
-  });
-  useSub(count$, onCountChange$);
-}
-```

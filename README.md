@@ -191,11 +191,10 @@ Since `Command` can call the `set` method, it produces side effects on the `Stor
 
 - Calling a `Command` through `store.set`
 - Being called by the `set` method within other `Command`s
-- Being triggered by subscription relationships established through `store.sub`
 
-### Subscribing to Changes
+### Watching to Changes
 
-CCState provides a `sub` method on the store to establish subscription relationships.
+CCState provides a `watch` method on the store to observe state change.
 
 ```typescript
 import { createStore, state, computed, command } from 'ccstate';
@@ -204,35 +203,40 @@ const base$ = state(0);
 const double$ = computed((get) => get(base$) * 2);
 
 const store = createStore();
-store.sub(
-  double$,
-  command(({ get }) => {
-    console.log('double', get(double$));
-  }),
-);
+store.watch((get) => {
+  console.log('double', get(double$));
+});
 
 store.set(base$, 10); // will log to console 'double 20'
 ```
 
-There are two ways to unsubscribe:
-
-1. Using the `unsub` function returned by `store.sub`
-2. Using an AbortSignal to control the subscription
-
-The `sub` method is powerful but should be used carefully. In most cases, `Computed` is a better choice than `sub` because `Computed` doesn't generate new `set` operations.
+Using an AbortSignal to cancel any watcher.
 
 ```typescript
-// 🙅 use sub
+const ctrl = new AbortController();
+store.watch(
+  (get) => {
+    console.log('double', get(double$));
+  },
+  {
+    signal: ctrl.signal,
+  },
+);
+
+ctrl.abort(); // will cancel watch
+```
+
+Watchers intentionally do not have access to the store's `set` method. CCState encourages implementing derived computation logic through `Computed` rather than modifying data through change callbacks.
+
+```typescript
+// 🙅 use watch & store.set
 const user$ = state(undefined);
 const userId$ = state(0);
-store.sub(
-  userId$,
-  command(({ set, get }) => {
-    const userId = get(userId$);
-    const user = fetch('/api/users/' + userId).then((resp) => resp.json());
-    set(user$, user);
-  }),
-);
+store.watch((get) => {
+  const userId = get(userId$);
+  const user = fetch('/api/users/' + userId).then((resp) => resp.json());
+  store.set(user$, user);
+});
 
 // ✅ use computed
 const userId$ = state(0);
@@ -252,11 +256,11 @@ Here's a simple rule of thumb:
 
 ### Comprasion
 
-| Type     | get | set | sub target | as sub callback |
-| -------- | --- | --- | ---------- | --------------- |
-| State    | ✅  | ✅  | ✅         | ❌              |
-| Computed | ✅  | ❌  | ✅         | ❌              |
-| Command  | ❌  | ✅  | ❌         | ✅              |
+| Type     | get | set |
+| -------- | --- | --- |
+| State    | ✅  | ✅  |
+| Computed | ✅  | ❌  |
+| Command  | ❌  | ✅  |
 
 That's it! Next, you can learn how to use CCState in React.
 
@@ -365,12 +369,8 @@ import { createDebugStore, state, computed, command } from 'ccstate';
 const base$ = state(1, { debugLabel: 'base$' });
 const derived$ = computed((get) => get(base$) * 2);
 
-const store = createDebugStore([base$, 'derived'], ['set', 'sub']); // log sub & set actions
+const store = createDebugStore([base$, 'derived'], ['set']); // log set actions
 store.set(base$, 1); // console: SET [V0:base$] 1
-store.sub(
-  derived$,
-  command(() => void 0),
-); // console: SUB [V0:derived$]
 ```
 
 ## Concept behind CCState
@@ -397,28 +397,9 @@ Like Jotai, CCState is also an Atom State solution. However, unlike Jotai, CCSta
 
 ### Subscription System
 
-CCState's subscription system is different from Jotai's. First, CCState's subscription callback must be an `Command`.
+CCState's subscription system is very different from Jotai's. First, the method name `watch` itself implies this is a read-only operation for observing state changes, not for modifying state.
 
-```typescript
-export const userId$ = state(1);
-
-export const userIdChange$ = command(({ get, set }) => {
-  const userId = get(userId$);
-  // ...
-});
-
-// ...
-import { userId$, userIdChange$ } from './signals';
-
-function setupPage() {
-  const store = createStore();
-  // ...
-  store.sub(userId$, userIdChange$);
-  // ...
-}
-```
-
-The consideration here is to avoid having callbacks depend on the Store object, which was a key design consideration when creating CCState. In CCState, `sub` is the only API with reactive capabilities, and CCState reduces the complexity of reactive computations by limiting Store usage.
+Secondly, the subscription callback receives a `get` parameter, the consideration here is to avoid having callbacks depend on the Store object, which was a key design consideration when creating CCState. In CCState, `watch` is the only API with reactive capabilities, and CCState reduces the complexity of reactive computations by limiting Store usage.
 
 In Jotai, there are no restrictions on writing code that uses sub within a sub callback:
 
@@ -432,27 +413,26 @@ store.sub(targetAtom, () => {
 });
 ```
 
-In CCState, we can prevent this situation by moving the `Command` definition to a separate file and protecting the Store.
+In CCState, we can prevent this situation by moving the `Watcher` definition to a separate file and protecting the Store.
 
 ```typescript
 // main.ts
-import { callback$ } from './callbacks'
-import { foo$ } from './states
+import { fooWatcher } from './watchers';
 
 function initApp() {
-  const store = createStore()
-  store.sub(foo$, callback$)
+  const store = createStore();
+  store.watch(fooWatcher);
   // do not expose store to outside
 }
 
-// callbacks.ts
-
-export const callback$ = command(({ get, set }) => {
-  // there is no way to use store sub
-})
+// watchers.ts
+export const fooWatcher = (get) => {
+  // there is no way to use store watch here
+  get(foo$);
+};
 ```
 
-Therefore, in CCState, the capability of `sub` is intentionally limited. CCState encourages developers to handle data consistency updates within `Command`, rather than relying on subscription capabilities for reactive data updates. In fact, in a React application, CCState's `sub` is likely only used in conjunction with `useSyncExternalStore` to update views, while in all other scenarios, the code is completely moved into Commands.
+Therefore, in CCState, the capability of `watcher` is intentionally limited. CCState encourages developers to handle data consistency updates within `Computed` and `Watcher`, rather than relying on subscription capabilities for reactive data updates. In fact, in a React application, CCState's `watch` is likely only used in conjunction with `useSyncExternalStore` to update views, or other external state system out of CCState.
 
 ### Avoid `useEffect` in React
 
@@ -579,12 +559,11 @@ function App() {
 
 // A more recommended approach is to enable side effects outside of React
 // main.ts
-store.sub(
-  // sub is always effect-less to any State
-  count$,
-  command(() => {
-    // ... onCount
-  }),
+store.watch(
+  // watch is always effect-less to any State
+  (get) => {
+    get(count$); // ... onCount
+  },
 );
 store.set(setupTimer$); // must setup effect explicitly
 
@@ -734,13 +713,10 @@ At this point, the dependency array of `derived$` is `[branch$]`, because `deriv
 store.set(branch$, 'D'); // will not trigger derived$'s read, until next get(derived$)
 ```
 
-Once we mount `derived$` by `sub`, all its direct and indirect dependencies will enter the _mounted_ state.
+Once we mount `derived$` by `watch`, all its direct and indirect dependencies will enter the _mounted_ state.
 
 ```typescript
-store.sub(
-  derived$,
-  command(() => void 0),
-);
+store.watch((get) => get(derived$));
 ```
 
 The mount graph in CCState is `[derived$, [branch$]]`. When `branch$` is reset, `derived$` will be re-evaluated immediately, and all subscribers will be notified.
