@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { render, cleanup, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 import { StrictMode, useEffect } from 'react';
@@ -583,9 +583,11 @@ describe('works with AbortError', () => {
     }
 
     render(
-      <StoreProvider value={store}>
-        <App />
-      </StoreProvider>,
+      <StrictMode>
+        <StoreProvider value={store}>
+          <App />
+        </StoreProvider>
+      </StrictMode>,
     );
 
     expect(screen.getByText('Test')).toBeInTheDocument();
@@ -593,4 +595,42 @@ describe('works with AbortError', () => {
     store.set(reload$, (x) => x + 1);
     store.set(reload$, (x) => x + 1);
   });
+});
+
+test('useLoadable should catch errors', () => {
+  const reload$ = state(0);
+
+  const traceCatch = vi.fn();
+  const promise$ = computed((get) => {
+    get(reload$);
+
+    const p = Promise.resolve();
+    const originalCatch = p.catch.bind(p);
+    vi.spyOn(p, 'catch').mockImplementation((...args) => {
+      traceCatch();
+      return originalCatch(...args);
+    });
+    return p;
+  });
+
+  const store = createStore();
+
+  function App() {
+    useLoadable(promise$);
+
+    return null;
+  }
+
+  render(
+    <StrictMode>
+      <StoreProvider value={store}>
+        <App />
+      </StoreProvider>
+    </StrictMode>,
+  );
+
+  store.set(reload$, (x) => x + 1);
+  store.set(reload$, (x) => x + 1);
+
+  expect(traceCatch).toHaveBeenCalledTimes(1);
 });
