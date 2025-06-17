@@ -148,8 +148,8 @@ export class StoreImpl implements Store {
     return sub(targets$, cb$, this.context, options);
   }
 
-  mount(effect$: Effect, options?: { signal?: AbortSignal }) {
-    mountEffect(readSignal, set, effect$, this.context, options);
+  effect(effect: Effect, options?: { signal?: AbortSignal }) {
+    mountEffect(readSignal, set, effect, this.context, options);
   }
 }
 

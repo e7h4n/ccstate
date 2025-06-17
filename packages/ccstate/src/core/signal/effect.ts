@@ -4,19 +4,19 @@ import type { ReadSignal, StoreContext, StoreSet } from '../../../types/core/sto
 export function mountEffect(
   readSignal: ReadSignal,
   set: StoreSet,
-  effect$: Effect,
+  effect: Effect,
   context: StoreContext,
   options?: { signal?: AbortSignal },
 ) {
-  if (context.effectMap.has(effect$)) {
-    return;
+  if (context.effectMap.has(effect)) {
+    throw new Error('Effect is already mounted');
   }
 
   const ctrl = new AbortController();
   options?.signal?.addEventListener('abort', () => {
-    context.effectMap.delete(effect$);
+    context.effectMap.delete(effect);
   });
-  context.effectMap.set(effect$, {
+  context.effectMap.set(effect, {
     abortController: ctrl,
   });
 
@@ -28,7 +28,7 @@ export function mountEffect(
 
   const signal = AbortSignal.any([options?.signal ?? ctrl.signal]);
 
-  effect$.write(
+  effect(
     {
       get: wrappedGet,
       set,

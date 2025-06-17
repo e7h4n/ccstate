@@ -4,7 +4,7 @@ export interface Store {
   get: Getter;
   set: Setter;
   sub: Subscribe;
-  mount: EffectMounter;
+  effect: MountEffect;
 }
 
 export interface SubscribeOptions {
@@ -19,8 +19,8 @@ export type Subscribe = (
   options?: SubscribeOptions,
 ) => () => void;
 
-export type EffectMounter = (
-  effect$: Effect,
+export type MountEffect = (
+  effect: Effect,
   options?: {
     signal?: AbortSignal;
   },
