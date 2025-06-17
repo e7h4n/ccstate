@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 4.13.0
+
+### Minor Changes
+
+- 8f06427: refactor: avoid unhandledRejection in useLoadable
+
+### Patch Changes
+
+- ccstate@4.13.0
+
 ## 4.12.0
 
 ### Minor Changes
