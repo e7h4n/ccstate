@@ -57,6 +57,7 @@ export interface StoreOptions {
 
 export interface StoreContext {
   stateMap: StateMap;
+  effectMap: EffectMap;
   interceptor?: StoreInterceptor;
 }
 
@@ -93,8 +94,13 @@ export type ComputedState<T> =
       abortController?: AbortController;
     };
 
+export interface EffectState {
+  abortController: AbortController;
+}
+
 export type SignalState<T> = StateState<T> | ComputedState<T>;
 export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
+export type EffectMap = Map<Effect, EffectState>;
 
 export interface Mounted {
   listeners: Set<Command<unknown, []>>;

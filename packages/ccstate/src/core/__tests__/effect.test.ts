@@ -1,4 +1,4 @@
-import { expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createStore, command, state } from '..';
 import { effect } from '../signal/factory';
 
@@ -48,18 +48,37 @@ it('should trigger subscriber if func throws', () => {
   expect(trace).toHaveBeenCalledTimes(1);
 });
 
-it('should support effect as sub & command callback', () => {
-  const base$ = state(0);
-  const trace = vi.fn();
-  const innerUpdate$ = effect(({ get }, signal: AbortSignal) => {
-    trace(get(base$));
-    signal.addEventListener('abort', () => {
-      trace('aborted');
+describe('effect', () => {
+  it('should execute immediately', () => {
+    const base$ = state(0);
+    const trace = vi.fn();
+    const innerUpdate$ = effect(({ get }, signal: AbortSignal) => {
+      trace(get(base$));
+      signal.addEventListener('abort', () => {
+        trace('aborted');
+      });
     });
+
+    const store = createStore();
+    store.mount(innerUpdate$);
+
+    expect(trace).toHaveBeenCalledTimes(1);
   });
 
-  const store = createStore();
-  store.mount(innerUpdate$);
+  it('should do nothing when mount a mounted effect', () => {
+    const base$ = state(0);
+    const trace = vi.fn();
+    const innerUpdate$ = effect(({ get }) => {
+      trace(get(base$));
+    });
 
-  expect(trace).toHaveBeenCalledTimes(1);
+    const store = createStore();
+    store.mount(innerUpdate$);
+
+    expect(trace).toHaveBeenCalledTimes(1);
+
+    store.mount(innerUpdate$);
+
+    expect(trace).toHaveBeenCalledTimes(1);
+  });
 });

@@ -1,4 +1,4 @@
-import type { Command, Getter, Setter, Signal, State, Computed } from '../../../types/core/signal';
+import type { Command, Getter, Setter, Signal, State, Computed, Effect } from '../../../types/core/signal';
 import type {
   StateMap,
   Store,
@@ -20,6 +20,7 @@ import { createMutation, set as innerSet } from './set';
 import { readState } from '../signal/state';
 import { canReadAsCompute } from '../typing-util';
 import { mount as innerMount, unmount, subSingleSignal, notify } from './sub';
+import { mountEffect } from '../signal/effect';
 
 const readComputed: ReadComputed = <T>(
   computed$: Computed<T>,
@@ -123,6 +124,7 @@ export class StoreImpl implements Store {
   constructor(protected readonly options?: StoreOptions) {
     this.context = {
       stateMap: this.stateMap,
+      effectMap: new Map(),
       interceptor: this.options?.interceptor,
     };
   }
@@ -146,8 +148,8 @@ export class StoreImpl implements Store {
     return sub(targets$, cb$, this.context, options);
   }
 
-  mount(effect$: Effect, options?: { signal?: AbortSignal }): () => void {
-    return () => void 0;
+  mount(effect$: Effect, options?: { signal?: AbortSignal }) {
+    mountEffect(readSignal, set, effect$, this.context, options);
   }
 }
 
