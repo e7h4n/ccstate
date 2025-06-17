@@ -15,11 +15,10 @@ describe('unhandled rejections', () => {
     process.on('unhandledRejection', trace);
     reload$ = state(0);
     let count = 0;
-    promise$ = computed((get) => {
+    promise$ = computed(async (get) => {
       get(reload$);
-      return Promise.resolve().then(() => {
-        throw new Error(`test error ${String(count++)}`);
-      });
+      await Promise.resolve();
+      throw new Error(`test error ${String(count++)}`);
     });
 
     store = createStore();
@@ -29,14 +28,14 @@ describe('unhandled rejections', () => {
     process.off('unhandledRejection', trace);
   });
 
-  test('sub will raise unhandled rejection', async () => {
+  test('sub will not raise unhandled rejection', async () => {
     store.sub(
       promise$,
       command(() => void 0),
     );
 
     await delay(0);
-    expect(trace).toHaveBeenCalledTimes(0);
+    expect(trace).not.toBeCalled();
   });
 
   test('set to a mounted computed will raise unhandled rejection', async () => {
@@ -54,7 +53,7 @@ describe('unhandled rejections', () => {
     expect(trace).toHaveBeenCalledTimes(1);
   });
 
-  test('manual process unhandled rejection', async () => {
+  test('manual process unhandled rejection will prevent unhandled rejection', async () => {
     store.sub(
       promise$,
       command(({ get }) => {
@@ -68,7 +67,7 @@ describe('unhandled rejections', () => {
     store.set(reload$, (x) => x + 1);
 
     await delay(0);
-    expect(trace).toHaveBeenCalledTimes(0);
+    expect(trace).not.toBeCalled();
   });
 });
 
@@ -84,16 +83,11 @@ test('promise should be handled once in sub', () => {
     return promise;
   });
 
+  const cb$ = command(() => void 0);
   const store = createStore();
-  store.sub(
-    computed$,
-    command(() => void 0),
-  );
+  store.sub(computed$, cb$);
   expect(trace).toHaveBeenCalledTimes(1);
 
-  store.sub(
-    computed$,
-    command(() => void 0),
-  );
+  store.sub(computed$, cb$);
   expect(trace).toHaveBeenCalledTimes(1);
 });
