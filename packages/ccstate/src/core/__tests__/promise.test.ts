@@ -72,7 +72,7 @@ describe('unhandled rejections', () => {
   });
 });
 
-describe('promise should be handled once in sub', () => {
+test('promise should be handled once in sub', () => {
   const trace = vi.fn();
   const computed$ = computed(() => {
     const promise = Promise.resolve();
