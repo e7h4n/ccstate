@@ -4,15 +4,13 @@ import { type Computed, type State } from 'ccstate';
 
 export function useGet<Value>(atom: Computed<Value> | State<Value>): Readonly<ShallowRef<Value>> {
   const store = useStore();
-  const initialValue = store.get(atom);
 
-  const vueState = shallowRef(initialValue);
+  const vueState = shallowRef(store.get(atom));
 
   const controller = new AbortController();
   store.watch(
     (get) => {
-      const value = get(atom);
-      vueState.value = value;
+      vueState.value = get(atom);
     },
     {
       signal: controller.signal,

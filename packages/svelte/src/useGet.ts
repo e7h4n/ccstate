@@ -6,6 +6,7 @@ export function useGet<T>(atom: State<T> | Computed<T>) {
   return {
     subscribe(fn: (payload: T) => void) {
       const controller = new AbortController();
+
       store.watch(
         (get) => {
           fn(get(atom));
@@ -14,7 +15,7 @@ export function useGet<T>(atom: State<T> | Computed<T>) {
           signal: controller.signal,
         },
       );
-      fn(store.get(atom));
+
       return () => {
         controller.abort();
       };
