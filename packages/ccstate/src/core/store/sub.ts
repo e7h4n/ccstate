@@ -39,7 +39,7 @@ function initMount<T>(readSignal: ReadSignal, signal$: Signal<T>, context: Store
 
   const signalState = readSignal(signal$, context, mutation);
 
-  signalState.mounted = signalState.mounted ?? {
+  signalState.mounted = {
     readDepts: new Set(),
   };
 

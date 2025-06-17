@@ -87,7 +87,7 @@ const storeSet: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-const storeWatch: StoreWatch = (watcher: Watch, context: StoreContext, options?: WatchOptions) => {
+const storeWatch: StoreWatch = (watchFn: Watch, context: StoreContext, options?: WatchOptions) => {
   const computed$ = computed(
     (get, { signal }) => {
       let childSignal: AbortSignal | undefined;
@@ -100,7 +100,7 @@ const storeWatch: StoreWatch = (watcher: Watch, context: StoreContext, options?:
         },
       };
 
-      watcher(get, obOptions);
+      watchFn(get, obOptions);
     },
     {
       debugLabel: options?.debugLabel,
