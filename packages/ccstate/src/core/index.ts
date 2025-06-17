@@ -11,7 +11,7 @@ export type {
   Read,
   Write,
   StateArg,
-  Watcher,
+  Watch as Watcher,
 } from '../../types/core/signal';
 
 export type { Store, SetArgs } from '../../types/core/store';

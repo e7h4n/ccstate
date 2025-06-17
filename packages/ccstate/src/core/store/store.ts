@@ -1,4 +1,4 @@
-import type { Command, Getter, Setter, Signal, State, Computed, Watcher } from '../../../types/core/signal';
+import type { Command, Getter, Setter, Signal, State, Computed, Watch } from '../../../types/core/signal';
 import type {
   StateMap,
   Store,
@@ -12,6 +12,9 @@ import type {
   StoreGet,
   StoreSet,
   SetArgs,
+  Watcher,
+  StoreWatch,
+  WatchOptions,
 } from '../../../types/core/store';
 import { evaluateComputed, tryGetCached } from '../signal/computed';
 import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from '../interceptor';
@@ -84,11 +87,7 @@ const set: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-export function watch(
-  watcher: Watcher,
-  context: StoreContext,
-  options?: { signal?: AbortSignal; debugLabel?: string },
-) {
+const watch: StoreWatch = (watcher: Watch, context: StoreContext, options?: WatchOptions) => {
   const computed$ = computed(
     (get, { signal }) => {
       let childSignal: AbortSignal | undefined;
@@ -119,7 +118,7 @@ export function watch(
       once: true,
     },
   );
-}
+};
 
 export class StoreImpl implements Store {
   protected readonly stateMap: StateMap = new WeakMap();
@@ -143,9 +142,9 @@ export class StoreImpl implements Store {
     return set<T, Args>(atom, this.context, ...args);
   };
 
-  watch(watcher: Watcher, options?: { signal?: AbortSignal }) {
+  watch: Watcher = (watcher: Watch, options?: WatchOptions) => {
     watch(watcher, this.context, options);
-  }
+  };
 }
 
 export function createStore(): Store {

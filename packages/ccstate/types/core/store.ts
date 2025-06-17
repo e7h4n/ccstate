@@ -1,18 +1,17 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Watcher } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Watch } from './signal';
 
 export interface Store {
   get: Getter;
   set: Setter;
-  watch: Watch;
+  watch: Watcher;
 }
 
-export type Watch = (
-  observer: Watcher,
-  options?: {
-    signal?: AbortSignal;
-    debugLabel?: string;
-  },
-) => void;
+export interface WatchOptions {
+  signal?: AbortSignal;
+  debugLabel?: string;
+}
+
+export type Watcher = (watch: Watch, options?: WatchOptions) => void;
 
 export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {
@@ -90,6 +89,8 @@ export type StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
 ) => T | undefined;
 
 export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation) => T;
+
+export type StoreWatch = (watch: Watch, context: StoreContext, options?: WatchOptions) => void;
 
 export type ReadComputed = <T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation) => ComputedState<T>;
 export type ReadSignal = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => SignalState<T>;

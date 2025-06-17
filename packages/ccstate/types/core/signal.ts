@@ -11,6 +11,7 @@ export interface GetterOptions {
 }
 export type Read<T> = (get: Getter, options: GetterOptions) => T;
 export type Write<T, Args extends unknown[]> = (visitor: { get: Getter; set: Setter }, ...args: Args) => T;
+export type Watch = Read<void>;
 
 export interface State<T> {
   id: number;
@@ -30,7 +31,5 @@ export interface Command<T, Args extends unknown[]> {
   debugLabel?: string;
   toString: () => string;
 }
-
-export type Watcher = (get: Getter, options: GetterOptions) => void;
 
 export type Signal<T> = State<T> | Computed<T>;
