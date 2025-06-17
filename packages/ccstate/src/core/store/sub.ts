@@ -96,14 +96,8 @@ export function subSingleSignal<T>(
   context: StoreContext,
   signal?: AbortSignal,
 ) {
-  const beforeState = context.stateMap.get(signal$);
   const mounted = mount(readSignal, signal$, context);
   mounted.listeners.add(callback$);
-
-  const afterState = context.stateMap.get(signal$);
-  if (beforeState?.epoch !== afterState?.epoch && afterState?.val instanceof Promise) {
-    afterState.val.catch(() => void 0);
-  }
 
   const unsub = () => {
     mounted.listeners.delete(callback$);
@@ -116,14 +110,4 @@ export function subSingleSignal<T>(
   signal?.addEventListener('abort', unsub, {
     once: true,
   });
-}
-
-export function notify(context: StoreContext, mutation: Mutation) {
-  const pendingListeners = mutation.pendingListeners;
-
-  mutation.pendingListeners = new Set();
-
-  for (const listener of pendingListeners) {
-    listener.write(mutation.visitor);
-  }
 }

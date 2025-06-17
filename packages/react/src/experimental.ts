@@ -1,1 +1,1 @@
-export { useCCState, useComputed, useCommand, useSub } from './useInlineAtom';
+export { useCCState, useComputed, useCommand } from './useInlineAtom';

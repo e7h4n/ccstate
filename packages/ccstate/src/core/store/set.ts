@@ -43,10 +43,6 @@ function pullEvaluate(
 ) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
-  for (const listener of signalState.mounted?.listeners ?? []) {
-    mutation.pendingListeners.add(listener);
-  }
-
   const oldValues = new Map<Computed<unknown>, unknown>();
   const oldErrors = new Map<Computed<unknown>, unknown>();
   while (queue.length > 0) {
@@ -79,12 +75,6 @@ function pullEvaluate(
 
       if (isSameWithOldValue || isSameError) {
         continue;
-      }
-
-      if (computedState.mounted?.listeners) {
-        for (const listener of computedState.mounted.listeners) {
-          mutation.pendingListeners.add(listener);
-        }
       }
 
       const readDepts = computedState.mounted?.readDepts;

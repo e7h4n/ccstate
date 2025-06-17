@@ -1,36 +1,13 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Observer } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Watcher } from './signal';
 
 export interface Store {
   get: Getter;
   set: Setter;
-
-  /**
-   * @deprecated use `watch` instead. This method will be replaced with watch in next major release.
-   */
-  sub: Subscribe;
-
-  /**
-   * Syncs an external effect with the store. The effect will be executed immediately and whenever the dependencies change.
-   *
-   * This method will replace the `sub` method in the next major release.
-   */
   watch: Watch;
 }
 
-export interface SubscribeOptions {
-  signal?: AbortSignal;
-}
-
-type CallbackFunc<T> = Command<T, []>;
-
-export type Subscribe = (
-  atoms$: Signal<unknown>[] | Signal<unknown>,
-  callback: CallbackFunc<unknown>,
-  options?: SubscribeOptions,
-) => () => void;
-
 export type Watch = (
-  observer: Observer,
+  observer: Watcher,
   options?: {
     signal?: AbortSignal;
   },
