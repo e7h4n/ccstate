@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 import { type Computed, type State } from 'ccstate';
-import { useGet } from './useGet';
+import { useStore } from './provider';
 
 type Loadable<T> =
   | {
@@ -16,58 +16,81 @@ type Loadable<T> =
     };
 
 function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
-  signal: State<U> | Computed<U>,
+  promise$: State<U> | Computed<U>,
   keepLastResolved: boolean,
 ): Loadable<T> {
-  const promise: Promise<Awaited<T>> | Awaited<T> = useGet(signal);
-  const [promiseResult, setPromiseResult] = useState<Loadable<T>>({
+  const promiseResult = useRef<Loadable<T>>({
     state: 'loading',
   });
 
-  useEffect(() => {
-    if (!(promise instanceof Promise)) {
-      const data: Awaited<T> = promise;
-      setPromiseResult({
-        state: 'hasData',
-        data,
-      });
+  const store = useStore();
+  const subStore = useCallback(
+    (fn: () => void) => {
+      function updateResult(result: Loadable<T>, signal: AbortSignal) {
+        if (signal.aborted) return;
+        promiseResult.current = result;
+        fn();
+      }
 
-      return;
-    }
+      const controller = new AbortController();
 
-    let cancelled = false;
+      store.watch(
+        (get, { signal }) => {
+          const promise: Promise<Awaited<T>> | Awaited<T> = get(promise$);
+          if (!(promise instanceof Promise)) {
+            updateResult(
+              {
+                state: 'hasData',
+                data: promise,
+              },
+              signal,
+            );
+            return;
+          }
 
-    if (!keepLastResolved) {
-      setPromiseResult({
-        state: 'loading',
-      });
-    }
+          if (!keepLastResolved) {
+            updateResult(
+              {
+                state: 'loading',
+              },
+              signal,
+            );
+          }
 
-    promise.then(
-      (ret) => {
-        if (cancelled) return;
+          promise.then(
+            (ret) => {
+              updateResult(
+                {
+                  state: 'hasData',
+                  data: ret,
+                },
+                signal,
+              );
+            },
+            (error: unknown) => {
+              updateResult(
+                {
+                  state: 'hasError',
+                  error,
+                },
+                signal,
+              );
+            },
+          );
+        },
+        {
+          signal: controller.signal,
+        },
+      );
 
-        setPromiseResult({
-          state: 'hasData',
-          data: ret,
-        });
-      },
-      (error: unknown) => {
-        if (cancelled) return;
+      return () => {
+        controller.abort();
+      };
+    },
+    [store],
+  );
 
-        setPromiseResult({
-          state: 'hasError',
-          error,
-        });
-      },
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [promise]);
-
-  return promiseResult;
+  return useSyncExternalStore(subStore, () => promiseResult.current);
 }
 
 export function useLoadable<T>(

@@ -9,10 +9,7 @@ export function useGet<T>(atom: State<T> | Computed<T>) {
     const controller = new AbortController();
     store.watch(
       (get) => {
-        const val = get(atom);
-        if (val instanceof Promise) {
-          val.catch(() => void 0);
-        }
+        get(atom);
         fn();
       },
       {

@@ -610,10 +610,10 @@ test('useLoadable should catch errors', () => {
     get(reload$);
 
     const p = Promise.resolve();
-    const originalCatch = p.catch.bind(p);
-    vi.spyOn(p, 'catch').mockImplementation((...args) => {
+    const originalThen = p.then.bind(p);
+    vi.spyOn(p, 'then').mockImplementation((...args) => {
       traceCatch();
-      return originalCatch(...args);
+      return originalThen(...args);
     });
     return p;
   });
