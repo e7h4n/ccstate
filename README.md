@@ -317,16 +317,16 @@ It is easy to see that `userId` passed by the function parameters do not have re
 The `Command` has the ability to receive parameters, so we can encapsulate the above example into a `Command`:
 
 ```javascript
-const getUser$ = command(({ set, get }, userId, sigal) => {
+const getUser$ = command(({ set, get }, userId, signal) => {
   return fetch(`/api/users/${userId}`, { signal });
 });
 ```
 
 However, this method requires that the caller must also be a `Command` in order to access the `set` method, which can easily lead to destructive passing of `Command`. If a `Command` itself does not produce side effects, then it should be considered to be written as a `Computed`.
 
-### Serious Async Flow Cancellation
+### Robust Async Flow Cancellation
 
-CCState's design philosophy aims to use the language's native capabilities for flow control as much as possible, including direct support for async/await. For Promise cancellation issues brought by asynchronous operations, CCState prefers to handle them using AbortSignal like fetch. When the following rules are satisfied, CCState can achieve very serious Async Flow cancellation capabilities, preventing unexpected side effects from occurring after the upstream task is aborted.
+CCState's design philosophy aims to use the language's native capabilities for flow control as much as possible, including direct support for async/await. For Promise cancellation issues brought by asynchronous operations, CCState prefers to handle them using AbortSignal like fetch. When the following rules are satisfied, CCState can achieve very robust Async Flow cancellation capabilities, preventing unexpected side effects from occurring after the upstream task is aborted.
 
 #### Rule 1: await in commands must perform abort signal check
 
