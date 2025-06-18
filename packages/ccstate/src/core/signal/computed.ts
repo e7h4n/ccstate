@@ -166,7 +166,9 @@ export function evaluateComputed<T>(
           get signal() {
             computedState.abortController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
             computedState.abortController = new AbortController();
-            return computedState.abortController.signal;
+            return readOptions?.signal
+              ? AbortSignal.any([computedState.abortController.signal, readOptions.signal])
+              : computedState.abortController.signal;
           },
         },
       ),

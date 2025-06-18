@@ -55,10 +55,10 @@ function mount<T>(signal$: Signal<T>, context: StoreContext, readOptions?: ReadO
   return innerMount(readSignal, signal$, context, readOptions);
 }
 
-const storeGet: StoreGet = (signal, context, mutation) => {
+const storeGet: StoreGet = (signal, context, options) => {
   return withGetInterceptor(
     () => {
-      const signalState = readSignal(signal, context, mutation);
+      const signalState = readSignal(signal, context, options);
       if ('error' in signalState) {
         throw signalState.error as Error;
       }
