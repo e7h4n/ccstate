@@ -1,5 +1,22 @@
 # ccstate-react
 
+## 5.0.0
+
+### Major Changes
+
+- 2fdba09: feat: provide watch method to replace sub
+
+### Minor Changes
+
+- 211f5b5: refactor: better promise rejection handling
+- 52c52fd: refactor: remove defaultStore
+
+### Patch Changes
+
+- Updated dependencies [2fdba09]
+- Updated dependencies [52c52fd]
+  - ccstate@5.0.0
+
 ## 4.13.0
 
 ### Minor Changes

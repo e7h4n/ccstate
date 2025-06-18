@@ -1,5 +1,15 @@
 # ccstate
 
+## 5.0.0
+
+### Major Changes
+
+- 2fdba09: feat: provide watch method to replace sub
+
+### Minor Changes
+
+- 52c52fd: refactor: remove defaultStore
+
 ## 4.13.0
 
 ## 4.12.0
