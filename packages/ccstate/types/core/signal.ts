@@ -5,7 +5,7 @@ export interface Setter {
   <T>(state: State<T>, val: StateArg<T>): void;
   <T, Args extends unknown[]>(command: Command<T, Args>, ...args: Args): T;
 }
-export type Getter = <T>(readable: Signal<T>) => T;
+export type Getter = <T>(readable: Signal<T>, options?: { signal?: AbortSignal }) => T;
 export interface GetterOptions {
   signal: AbortSignal;
 }

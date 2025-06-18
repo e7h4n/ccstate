@@ -88,11 +88,20 @@ export type StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   ...args: Args
 ) => T | undefined;
 
-export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation) => T;
+export interface ReadOptions {
+  mutation?: Mutation;
+  signal?: AbortSignal;
+}
+
+export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, options?: ReadOptions) => T;
 
 export type StoreWatch = (watch: Watch, context: StoreContext, options?: WatchOptions) => void;
 
-export type ReadComputed = <T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation) => ComputedState<T>;
-export type ReadSignal = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => SignalState<T>;
-export type Mount = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => Mounted;
+export type ReadComputed = <T>(
+  computed$: Computed<T>,
+  context: StoreContext,
+  readOptions?: ReadOptions,
+) => ComputedState<T>;
+export type ReadSignal = <T>(signal$: Signal<T>, context: StoreContext, readOptions?: ReadOptions) => SignalState<T>;
+export type Mount = <T>(signal$: Signal<T>, context: StoreContext, readOptions?: ReadOptions) => Mounted;
 export type Unmount = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => void;

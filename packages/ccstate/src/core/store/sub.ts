@@ -3,6 +3,7 @@ import type {
   ComputedState,
   Mounted,
   Mutation,
+  ReadOptions,
   ReadSignal,
   SignalState,
   StoreContext,
@@ -26,25 +27,30 @@ function mountComputedDependencies<T>(
   computed$: Computed<T>,
   computedState: ComputedState<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ) {
   for (const [dep] of Array.from(computedState.dependencies)) {
-    const mounted = mount(readSignal, dep, context, mutation);
+    const mounted = mount(readSignal, dep, context, readOptions);
     mounted.readDepts.add(computed$ as Computed<unknown>);
   }
 }
 
-function initMount<T>(readSignal: ReadSignal, signal$: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
+function initMount<T>(
+  readSignal: ReadSignal,
+  signal$: Signal<T>,
+  context: StoreContext,
+  readOptions?: ReadOptions,
+): Mounted {
   context.interceptor?.mount?.(signal$);
 
-  const signalState = readSignal(signal$, context, mutation);
+  const signalState = readSignal(signal$, context, readOptions);
 
   signalState.mounted = {
     readDepts: new Set(),
   };
 
   if (isComputedState(signalState)) {
-    mountComputedDependencies(readSignal, signal$ as Computed<unknown>, signalState, context, mutation);
+    mountComputedDependencies(readSignal, signal$ as Computed<unknown>, signalState, context, readOptions);
   }
 
   return signalState.mounted;
@@ -54,14 +60,14 @@ export function mount<T>(
   readSignal: ReadSignal,
   signal$: Signal<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): Mounted {
   const mounted = context.stateMap.get(signal$)?.mounted;
   if (mounted) {
     return mounted;
   }
 
-  return initMount(readSignal, signal$, context, mutation);
+  return initMount(readSignal, signal$, context, readOptions);
 }
 
 function doUnmount<T>(

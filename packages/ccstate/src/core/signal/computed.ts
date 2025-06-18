@@ -4,6 +4,7 @@ import type {
   Mount,
   Mutation,
   ReadComputed,
+  ReadOptions,
   ReadSignal,
   StoreContext,
   Unmount,
@@ -16,11 +17,11 @@ function checkEpoch<T>(
   readComputed: ReadComputed,
   computedState: ComputedState<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): boolean {
   for (const [dep, epoch] of computedState.dependencies.entries()) {
     const depEpoch = canReadAsCompute(dep)
-      ? readComputed(dep, context, mutation).epoch
+      ? readComputed(dep, context, readOptions).epoch
       : context.stateMap.get(dep)?.epoch;
 
     if (depEpoch !== epoch) {
@@ -35,7 +36,7 @@ export function tryGetCached<T>(
   readComputed: ReadComputed,
   computed$: Computed<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): ComputedState<T> | undefined {
   const signalState = context.stateMap.get(computed$) as ComputedState<T> | undefined;
   if (!signalState) {
@@ -45,14 +46,14 @@ export function tryGetCached<T>(
   // If a computed is marked as potentially dirty, we should perform a
   // thorough epoch check. Alternatively, we can check the mounted state since
   // a mounted computed is always re-evaluated immediately.
-  const mayDirty = mutation?.potentialDirtyIds.has(computed$.id);
+  const mayDirty = readOptions?.mutation?.potentialDirtyIds.has(computed$.id);
   if (!mayDirty && signalState.mounted) {
     return signalState;
   }
 
-  if (checkEpoch(readComputed, signalState, context, mutation)) {
+  if (checkEpoch(readComputed, signalState, context, readOptions)) {
     if (mayDirty) {
-      mutation?.potentialDirtyIds.delete(computed$.id);
+      readOptions?.mutation?.potentialDirtyIds.delete(computed$.id);
     }
     return signalState;
   }
@@ -66,20 +67,20 @@ function wrapGet<T>(
   callerComputed$: Computed<T>,
   callerState: ComputedState<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): [Getter, Map<Signal<unknown>, number>] {
   const readDeps = new Map<Signal<unknown>, number>();
 
   return [
     (dep$) => {
-      const depState = readSignal(dep$, context, mutation);
+      const depState = readSignal(dep$, context, readOptions);
 
       if (callerState.dependencies === readDeps) {
         readDeps.set(dep$, depState.epoch);
 
         const callerMounted = !!callerState.mounted;
         if (callerMounted && !depState.mounted) {
-          mount(dep$, context, mutation).readDepts.add(callerComputed$);
+          mount(dep$, context, readOptions).readDepts.add(callerComputed$);
         } else if (callerMounted && depState.mounted) {
           depState.mounted.readDepts.add(callerComputed$);
         }
@@ -139,13 +140,13 @@ export function evaluateComputed<T>(
   unmount: Unmount,
   computed$: Computed<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): ComputedState<T> {
   const computedState = getOrInitComputedState(computed$, context);
 
   const lastDeps = computedState.dependencies;
 
-  const [_get, dependencies] = wrapGet(readSignal, mount, computed$, computedState, context, mutation);
+  const [_get, dependencies] = wrapGet(readSignal, mount, computed$, computedState, context, readOptions);
   computedState.dependencies = dependencies;
 
   let result: ComputedResult<T>;
@@ -153,7 +154,13 @@ export function evaluateComputed<T>(
     result = {
       value: computed$.read(
         function <U>(depAtom: Signal<U>) {
-          return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
+          return withGeValInterceptor(
+            () => {
+              return _get(depAtom);
+            },
+            depAtom,
+            context.interceptor?.get,
+          );
         },
         {
           get signal() {
@@ -170,9 +177,9 @@ export function evaluateComputed<T>(
     };
   }
 
-  mutation?.potentialDirtyIds.delete(computed$.id);
+  readOptions?.mutation?.potentialDirtyIds.delete(computed$.id);
 
-  cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, mutation);
+  cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, readOptions?.mutation);
 
   if ('error' in result) {
     if (!shouldDistinctError(computed$, context)) {

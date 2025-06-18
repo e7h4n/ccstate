@@ -6,7 +6,6 @@ import type {
   StoreOptions,
   ComputedState,
   Mounted,
-  Mutation,
   ReadComputed,
   SignalState,
   StoreGet,
@@ -15,6 +14,7 @@ import type {
   Watcher,
   StoreWatch,
   WatchOptions,
+  ReadOptions,
 } from '../../../types/core/store';
 import { evaluateComputed, tryGetCached } from '../signal/computed';
 import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from '../interceptor';
@@ -27,32 +27,32 @@ import { computed } from '../signal/factory';
 const readComputed: ReadComputed = <T>(
   computed$: Computed<T>,
   context: StoreContext,
-  mutation?: Mutation,
+  readOptions?: ReadOptions,
 ): ComputedState<T> => {
-  const cachedState = tryGetCached(readComputed, computed$, context, mutation);
+  const cachedState = tryGetCached(readComputed, computed$, context, readOptions);
   if (cachedState) {
     return cachedState;
   }
 
   return withComputedInterceptor(
     () => {
-      return evaluateComputed(readSignal, mount, unmount, computed$, context, mutation);
+      return evaluateComputed(readSignal, mount, unmount, computed$, context, readOptions);
     },
     computed$,
     context.interceptor?.computed,
   );
 };
 
-function readSignal<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
+function readSignal<T>(signal$: Signal<T>, context: StoreContext, readOptions?: ReadOptions): SignalState<T> {
   if (canReadAsCompute(signal$)) {
-    return readComputed(signal$, context, mutation);
+    return readComputed(signal$, context, readOptions);
   }
 
   return readState(signal$, context);
 }
 
-function mount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {
-  return innerMount(readSignal, signal$, context, mutation);
+function mount<T>(signal$: Signal<T>, context: StoreContext, readOptions?: ReadOptions): Mounted {
+  return innerMount(readSignal, signal$, context, readOptions);
 }
 
 const storeGet: StoreGet = (signal, context, mutation) => {
@@ -131,8 +131,8 @@ export class StoreImpl implements Store {
     };
   }
 
-  get: Getter = <T>(atom: Signal<T>): T => {
-    return storeGet(atom, this.context);
+  get: Getter = <T>(atom: Signal<T>, options?: { signal?: AbortSignal }): T => {
+    return storeGet(atom, this.context, options);
   };
 
   set: Setter = <T, Args extends SetArgs<T, unknown[]>>(
