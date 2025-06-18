@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test, vi, type Mock } from 'vitest';
-import { computed, state } from '../signal/factory';
+import { afterEach, beforeEach, describe, expect, it, test, vi, type Mock } from 'vitest';
+import { command, computed, state } from '../signal/factory';
 import { createStore } from '../store/store';
 import { delay } from 'signal-timers';
 import type { Computed, State } from '../../../types/core/signal';
@@ -59,5 +59,47 @@ describe('unhandled rejections', () => {
 
     await delay(0);
     expect(trace).not.toBeCalled();
+  });
+});
+
+describe('signal in computed', () => {
+  it('should abort when next calculation is triggered', async () => {
+    const base$ = state(0);
+    const trace = vi.fn();
+    const cmpt$ = computed(async (get, { signal }) => {
+      get(base$);
+      await Promise.resolve();
+      signal.throwIfAborted();
+      trace();
+      return get(base$) + 1;
+    });
+
+    const store = createStore();
+    const firstRunPromise = store.get(cmpt$);
+    store.set(base$, 1);
+    await store.get(cmpt$);
+
+    await expect(firstRunPromise).rejects.toThrow();
+    expect(trace).toBeCalledTimes(1);
+  });
+
+  it.skip('should abort when caller command is aborted', async () => {
+    const trace = vi.fn();
+    const cmpt$ = computed(async (get, { signal }) => {
+      await Promise.resolve();
+      signal.throwIfAborted();
+      trace();
+      return 0;
+    });
+
+    const fetch$ = command(async ({ get }, signal: AbortSignal) => {
+      return await get(cmpt$, { signal });
+    });
+
+    const store = createStore();
+    const controller = new AbortController();
+    const promise = store.set(fetch$, controller.signal);
+    controller.abort();
+    await expect(promise).rejects.toThrow();
   });
 });

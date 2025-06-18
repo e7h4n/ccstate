@@ -40,6 +40,7 @@ function pullEvaluate(
   signalState: StateState<unknown>,
   context: StoreContext,
   mutation: Mutation,
+  signal?: AbortSignal,
 ) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
@@ -67,7 +68,7 @@ function pullEvaluate(
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
-      const computedState = readComputed(computed$, context, mutation);
+      const computedState = readComputed(computed$, context, { mutation, signal });
 
       const isSameWithOldValue =
         !computedState.error && oldValues.has(computed$) && oldValues.get(computed$) === computedState.val;
@@ -171,7 +172,7 @@ export function createMutation(context: StoreContext, get: StoreGet, set: StoreS
     potentialDirtyIds: new Set(),
     visitor: {
       get: <T>(signal$: Signal<T>) => {
-        return get(signal$, context, mutation);
+        return get(signal$, context, { mutation });
       },
       set: <T, Args extends SetArgs<T, unknown[]>>(
         signal$: State<T> | Command<T, Args>,
