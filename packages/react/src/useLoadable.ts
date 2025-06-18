@@ -87,7 +87,7 @@ function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
         controller.abort();
       };
     },
-    [store],
+    [store, promise$],
   );
 
   return useSyncExternalStore(subStore, () => promiseResult.current);
