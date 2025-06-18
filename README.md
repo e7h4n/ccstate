@@ -136,7 +136,7 @@ const otherStore = createStore(); // another new Map()
 otherStore.get(count$); // anotherMap[$count] ?? $count.init, returns 0
 ```
 
-This should be easy to understand. If `Store` only needed to support `State` types, a simple Map would be sufficient. However, CCState needs to support two additional signal types. Next, let's introduce `Computed`, CCState's reactive computation unit.
+This should be easy to understand. If `Store` only needed to support `State` types, a simple Map would be sufficient. However, CCState needs to support another signal type. Next, let's introduce `Computed`, CCState's reactive computation unit.
 
 ### Computed
 
@@ -323,6 +323,78 @@ const getUser$ = command(({ set, get }, userId, sigal) => {
 ```
 
 However, this method requires that the caller must also be a `Command` in order to access the `set` method, which can easily lead to destructive passing of `Command`. If a `Command` itself does not produce side effects, then it should be considered to be written as a `Computed`.
+
+### Serious Async Flow Cancellation
+
+CCState's design philosophy aims to use the language's native capabilities for flow control as much as possible, including direct support for async/await. For Promise cancellation issues brought by asynchronous operations, CCState prefers to handle them using AbortSignal like fetch. When the following rules are satisfied, CCState can achieve very serious Async Flow cancellation capabilities, preventing unexpected side effects from occurring after the upstream task is aborted.
+
+#### Rule 1: await in commands must perform abort signal check
+
+```typescript
+const updateUser$ = command(async ({ get }, signal: AbortSignal) => {
+  const currentUser = await get(currentUser$); // Here we assume currentUser$ returns a Promise<User>
+  signal.throwIfAbort(); // Must perform throwIfAbort check on the line after await
+});
+```
+
+If the function after await accepts AbortSignal as a parameter, then the caller has no responsibility to perform throwIfAbort check, as it's assumed the callee has already done such check.
+
+```typescript
+const updateUser$ = command(async ({ get, set }, name: string, signal: AbortSignal) => {
+  const currentUser = await get(currentUser$);
+  signal.throwIfAbort();
+
+  await set(updateUserName$, currentUser.id, name, signal); // Here we pass signal to the next command, so the current command doesn't need to check
+});
+```
+
+`Computed` doesn't need such checks because Computed is side-effect free.
+
+In `watch`, although it cannot produce side effects on the Store, it may produce external side effects. In this case, signal check is also needed.
+
+```typescript
+store.watch(
+  (get, { signal }) => {
+    void (async () => {
+      const user = await get(currentUser$);
+      signal.throwIfAbort();
+
+      syncExternalState(user); // this code will not execute when externalAbortSignal abort
+    })();
+  },
+  {
+    signal: externalAbortSignal,
+  },
+);
+```
+
+### Rule 2: Do not intercept AbortError in try/catch
+
+```typescript
+const isAbortError = (error: unknown): boolean => {
+  if ((error instanceof Error || error instanceof DOMException) && error.name === 'AbortError') {
+    return true;
+  }
+
+  return false;
+};
+
+function throwIfAbort(e: unknown) {
+  if (isAbortError(e)) {
+    throw e;
+  }
+}
+
+const updateUser$ = command(async ({ get, set }, name: string, signal: AbortSignal) => {
+  // ...
+  try {
+    await set(updateUserName$, currentUser.id, name, signal);
+  } catch (error: unknown) {
+    throwIfAbort(error); // do not catch any AbortError
+    // .. error handling
+  }
+});
+```
 
 ## Using in React
 
