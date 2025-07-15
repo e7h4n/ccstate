@@ -2,6 +2,7 @@
 
 ---
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/e7h4n/ccstate)
 [![Coverage Status](https://coveralls.io/repos/github/e7h4n/ccstate/badge.svg?branch=main)](https://coveralls.io/github/e7h4n/ccstate?branch=main)
 ![NPM Type Definitions](https://img.shields.io/npm/types/ccstate)
 ![NPM Version](https://img.shields.io/npm/v/ccstate)
