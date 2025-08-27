@@ -912,6 +912,50 @@ Now, we are in the execution context that persists across async tasks; we hope t
 
 So, I think the only way to implement `Computed`'s effect-less is to separate the atom and the accessor.
 
+## Comparison with Jotai
+
+- **Positioning & philosophy**
+  - CCState: fewer concepts and less "magic"; explicit read/write capability isolation and cancellable async; designed for medium-to-large apps.
+  - Jotai: highly flexible atomic composition with rich ecosystem; React-first with broader feature surface.
+
+- **Core model**
+  - CCState: three signal types — `State` (read/write), `Computed` (read-only, side-effect-free, supports async), `Command` (write/side-effects) — accessed via `store.get/set/watch`.
+  - Jotai: single `atom` primitive composed into read/write/derived behaviors via different getter/setter definitions.
+
+- **Side effects & lifecycle**
+  - CCState: side effects live in `Command`; no `onMount`; `watch` is read-only to avoid nested reactive side effects.
+  - Jotai: supports `onMount` etc.; subscriptions can trigger effects and require care with StrictMode/external stores.
+
+- **Async handling**
+  - CCState: native async/await/try-catch; robust cancellation with `AbortSignal`; avoids implicit Promise wrapping.
+  - Jotai: utilities like `loadable`/`unwrap` flatten Promises for renderability, at the cost of extra mechanism.
+
+- **Subscription model**
+  - CCState: discourages heavy subscription patterns; encourage expressing logic in `Computed`/`Command`; `watch` cannot write.
+  - Jotai: more flexible subscribe/useAtom patterns that can lead to complex subscription trees if overused.
+
+- **React coupling**
+  - CCState: framework-agnostic core with React/Vue/Solid/Svelte adapters; favors starting effects outside React.
+  - Jotai: React-centric developer experience; logic often tied to component lifecycle via hooks.
+
+- **Maintainability & team mental load**
+  - CCState: strict separation of pure computation vs side effects reduces cross-layer mutations; smaller API surface.
+  - Jotai: powerful and flexible; teams may need conventions to keep compositions maintainable at scale.
+
+- **Tooling & performance**
+  - CCState: aims for very high test coverage and predictable evaluation/mount semantics; debug store available.
+  - Jotai: mature community tooling; excellent performance, but modeling many atoms/async flows needs discipline.
+
+- **When to choose which**
+  - Choose CCState: you want explicit, cancellable async flows; strict capability isolation; cross-framework usage; large-app governance.
+  - Choose Jotai: React-first product; you value ecosystem and flexibility; team already aligned on Jotai practices.
+
+- **Migration hints (Jotai → CCState)**
+  - Read-only atoms → `Computed`
+  - Writable/process atoms → `Command`
+  - Primitive atoms → `State`
+  - `onMount`/subscription-triggered effects → move to `Command` and trigger explicitly at app boundaries
+
 ## Changelog & TODO
 
 [Changelog](packages/ccstate/CHANGELOG.md)
