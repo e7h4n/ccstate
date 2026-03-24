@@ -18,10 +18,6 @@
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./experimental": {
-      "import": "./dist/experimental.js",
-      "require": "./dist/experimental.cjs"
     }
   },
   "peerDependencies": {
