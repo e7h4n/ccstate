@@ -83,9 +83,4 @@ export default [
     targetCJS: './dist/index.cjs',
     targetES: './dist/index.js',
   }),
-  ...generateTarget({
-    input: './src/experimental.ts',
-    targetCJS: './dist/experimental.cjs',
-    targetES: './dist/experimental.js',
-  }),
 ];
