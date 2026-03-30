@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 5.1.0
+
+### Minor Changes
+
+- 6f3cdae: Add `useLoadableSet` hook
+
+### Patch Changes
+
+- ccstate@5.1.0
+
 ## 5.0.0
 
 ### Major Changes
