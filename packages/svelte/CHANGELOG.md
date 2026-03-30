@@ -1,5 +1,11 @@
 # ccstate-svelte
 
+## 5.1.0
+
+### Patch Changes
+
+- ccstate@5.1.0
+
 ## 5.0.0
 
 ### Major Changes
