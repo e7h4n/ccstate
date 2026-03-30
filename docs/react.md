@@ -116,6 +116,26 @@ export function useResolved<T>(atom: State<Promise<T>> | Computed<Promise<T>>): 
 }
 ```
 
+## useLoadableSet
+
+A common scenario is when a user clicks a button to send a network request. While the request is in flight, the button should be disabled. This can be achieved with `useLoadableSet`.
+
+```typescript
+import { useLoadableSet } from 'ccstate-react';
+import { sendRequest$ } from './data/request';
+
+function App() {
+  const [loadable, sendRequest] = useLoadableSet(sendRequest$);
+  const isLoading = loadable.state === 'loading';
+
+  return (
+    <button onClick={() => sendRequest()} disabled={isLoading}>
+      Send Request
+    </button>
+  );
+}
+```
+
 ## useLastLoadable & useLastResolved
 
 In some scenarios, we want a refreshable Promise Computed to maintain its previous result during the refresh process instead of showing a loading state. CCState provides `useLastLoadable` and `useLastResolved` to achieve this functionality.
