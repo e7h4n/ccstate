@@ -52,7 +52,7 @@ it('convert a async command to loadable', async () => {
     return (
       <button
         onClick={() => {
-          setFoo();
+          void setFoo();
         }}
       >
         Click
@@ -93,7 +93,7 @@ it('async command reject turns into hasError', async () => {
     return (
       <button
         onClick={() => {
-          setFoo();
+          void setFoo();
         }}
       >
         Click
@@ -125,7 +125,7 @@ it('sync command resolves immediately to hasData', async () => {
     return (
       <button
         onClick={() => {
-          setFoo();
+          void setFoo();
         }}
       >
         Click
@@ -192,7 +192,7 @@ it('second invoke cancels first pending promise', async () => {
     return (
       <button
         onClick={() => {
-          setFoo();
+          void setFoo();
         }}
       >
         Click
@@ -218,4 +218,38 @@ it('second invoke cancels first pending promise', async () => {
   deferred1.resolve('first');
   await delay(0);
   expect(screen.queryByText('data:first')).toBeNull();
+});
+
+it('invoke return value is identical to command return value', async () => {
+  const deferred = makeDefered<string>();
+  const setFoo$ = command(async () => {
+    return await deferred.promise;
+  });
+
+  let invokeResult: Promise<string> | undefined;
+
+  const App = () => {
+    const [, setFoo] = useLoadableSet(setFoo$);
+    return (
+      <button
+        onClick={() => {
+          invokeResult = setFoo();
+        }}
+      >
+        Click
+      </button>
+    );
+  };
+
+  const store = createStore();
+  render(
+    <StoreProvider value={store}>
+      <App />
+    </StoreProvider>,
+    { wrapper: StrictMode },
+  );
+
+  await userEvent.click(await screen.findByText('Click'));
+  deferred.resolve('foo');
+  expect(await invokeResult).toBe('foo');
 });

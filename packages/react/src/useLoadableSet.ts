@@ -11,10 +11,10 @@ type LoadableSetResult<T> =
 export function useLoadableSet<T>(signal: State<T>): [LoadableSetResult<void>, (val: StateArg<T>) => void];
 export function useLoadableSet<T, CommandArgs extends unknown[]>(
   signal: Command<T, CommandArgs>,
-): [LoadableSetResult<Awaited<T>>, (...args: CommandArgs) => void];
+): [LoadableSetResult<Awaited<T>>, (...args: CommandArgs) => T];
 export function useLoadableSet<T, CommandArgs extends unknown[]>(
   signal: State<T> | Command<T, CommandArgs>,
-): [LoadableSetResult<unknown>, (...args: unknown[]) => void] {
+): [LoadableSetResult<unknown>, (...args: unknown[]) => unknown] {
   const store = useStore();
   const resultRef = useRef<LoadableSetResult<unknown>>({ state: 'idle' });
   const notifyRef = useRef<(() => void) | null>(null);
@@ -56,9 +56,11 @@ export function useLoadableSet<T, CommandArgs extends unknown[]>(
         } else {
           updateResult({ state: 'hasData', data: result });
         }
+        return result;
       } else {
         store.set(signal, ...(args as [StateArg<T>]));
         updateResult({ state: 'hasData', data: undefined });
+        return undefined;
       }
     },
     [store, signal],
