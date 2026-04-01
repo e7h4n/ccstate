@@ -8,7 +8,7 @@ import { delay } from 'signal-timers';
 import { command, createStore, state } from 'ccstate';
 import { StrictMode } from 'react';
 import { StoreProvider } from '..';
-import { useLoadableSet } from '../useLoadableSet';
+import { useLoadableSet } from '../experimental';
 
 afterEach(() => {
   cleanup();

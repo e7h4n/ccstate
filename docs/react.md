@@ -65,7 +65,7 @@ import { user$ } from './data/user';
 function App() {
   const user_ = useLoadable(user$);
   if (user_.state === 'loading') return <div>Loading...</div>;
-  if (user_.state === 'error') return <div>Error: {user_.error.message}</div>;
+  if (user_.state === 'hasError') return <div>Error: {String(user_.error)}</div>;
 
   return <div>{user_.data.name}</div>;
 }
@@ -121,7 +121,7 @@ export function useResolved<T>(atom: State<Promise<T>> | Computed<Promise<T>>): 
 A common scenario is when a user clicks a button to send a network request. While the request is in flight, the button should be disabled. This can be achieved with `useLoadableSet`.
 
 ```typescript
-import { useLoadableSet } from 'ccstate-react';
+import { useLoadableSet } from 'ccstate-react/experimental';
 import { sendRequest$ } from './data/request';
 
 function App() {
@@ -141,13 +141,13 @@ function App() {
 In some scenarios, we want a refreshable Promise Computed to maintain its previous result during the refresh process instead of showing a loading state. CCState provides `useLastLoadable` and `useLastResolved` to achieve this functionality.
 
 ```jsx
-import { useLoadable } from 'ccstate-react';
+import { useLastLoadable } from 'ccstate-react';
 import { user$ } from './data/user';
 
 function App() {
   const user_ = useLastLoadable(user$); // Keep the previous result during new user$ request, without triggering loading state
   if (user_.state === 'loading') return <div>Loading...</div>;
-  if (user_.state === 'error') return <div>Error: {user_.error.message}</div>;
+  if (user_.state === 'hasError') return <div>Error: {String(user_.error)}</div>;
 
   return <div>{user_.data.name}</div>;
 }
