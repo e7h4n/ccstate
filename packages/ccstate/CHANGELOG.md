@@ -1,5 +1,11 @@
 # ccstate
 
+## 5.3.0
+
+### Minor Changes
+
+- ca7a146: Fix the previous publishing failure error.
+
 ## 5.2.0
 
 ### Minor Changes
