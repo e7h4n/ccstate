@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   CI: true
@@ -27,8 +28,6 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-      - name: Upgrade npm
-        run: npm install -g npm@latest
       - name: build
         run: pnpm build
       - name: lint
@@ -47,5 +46,3 @@ jobs:
       - name: Publish to npm
         if: steps.changesets.outputs.hasChangesets == 'false'
         run: pnpm ci:publish
-        env:
-          NODE_AUTH_TOKEN: ''
