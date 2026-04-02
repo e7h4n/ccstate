@@ -7,6 +7,11 @@ on:
 env:
   CI: true
 
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
 jobs:
   version:
     timeout-minutes: 15
@@ -18,20 +23,29 @@ jobs:
           version: 9
           run_install: |
             - args: [--frozen-lockfile, --strict-peer-dependencies]
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - name: Upgrade npm
+        run: npm install -g npm@latest
       - name: build
         run: pnpm build
       - name: lint
         run: pnpm lint
       - name: test
         run: pnpm test
-      - name: Setup npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
-      - name: create and publish versions
+      - name: Create or update version PR
+        id: changesets
         uses: changesets/action@v1
         with:
           version: pnpm ci:version
           commit: 'chore: update versions'
           title: 'chore: update versions'
-          publish: pnpm ci:publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish to npm
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: pnpm ci:publish
+        env:
+          NODE_AUTH_TOKEN: ''

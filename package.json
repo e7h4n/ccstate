@@ -27,12 +27,12 @@
     "lint:format": "prettier '**/*' --ignore-unknown --list-different",
     "ci:version": "changeset version && pnpm lint-staged",
     "ci:publish": "pnpm '/^publish:.*/'",
-    "publish:core": "cd packages/ccstate/dist && pnpm publish ; echo 0",
-    "publish:babel": "cd packages/babel/dist && pnpm publish ; echo 0",
-    "publish:react": "pnpm -F ccstate-react publish ; echo 0",
-    "publish:vue": "pnpm -F ccstate-vue publish ; echo 0",
-    "publish:solid": "pnpm -F ccstate-solid publish ; echo 0",
-    "publish:svelte": "pnpm -F ccstate-svelte publish ; echo 0",
+    "publish:core": "cd packages/ccstate/dist && npm publish",
+    "publish:babel": "cd packages/babel/dist && npm publish",
+    "publish:react": "cd packages/react && npm publish",
+    "publish:vue": "cd packages/vue && npm publish",
+    "publish:solid": "cd packages/solid && npm publish",
+    "publish:svelte": "cd packages/svelte && npm publish",
     "prepare": "husky"
   },
   "engines": {
