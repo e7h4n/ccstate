@@ -1,5 +1,4 @@
 // @ts-check
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { babel } from '@rollup/plugin-babel';
 import { dts } from 'rollup-plugin-dts';
@@ -16,76 +15,80 @@ function external(id) {
   return !id.startsWith('.') && !id.startsWith(projectRootDir);
 }
 
-/**
- * @param {{input:string, targetCJS:string, targetES:string}} param0
- * @returns {import('rollup').RollupOptions[]}
- */
-function generateTarget({ input, targetCJS, targetES }) {
-  return [
-    {
-      input,
-      onwarn: (warning) => {
-        throw new Error(warning?.message);
-      },
-      external,
-      plugins: [
-        nodeResolve({
-          extensions: ['.ts'],
-        }),
-        babel({
-          exclude: 'node_modules/**',
-          extensions: ['.ts'],
-          babelHelpers: 'bundled',
-          configFile: path.resolve(projectRootDir, './babel.config.json'),
-        }),
-      ],
-      output: [
-        {
-          file: targetCJS,
-          format: 'cjs',
-        },
-        {
-          file: targetES,
-          format: 'es',
-        },
-      ],
-    },
-    {
-      input,
-      onwarn: (warning) => {
-        throw new Error(warning?.message);
-      },
-      external,
-      plugins: [
-        dts({
-          respectExternal: true,
-          tsconfig: path.resolve(projectRootDir, './tsconfig.json'),
-          // https://github.com/Swatinem/rollup-plugin-dts/issues/143
-          compilerOptions: { preserveSymlinks: false },
-        }),
-      ],
-      output: [
-        {
-          file: targetCJS.replace(/\.cjs$/, '.d.cts'),
-        },
-        {
-          file: targetES.replace(/\.js$/, '.d.ts'),
-        },
-      ],
-    },
-  ];
-}
+const babelPlugin = babel({
+  exclude: 'node_modules/**',
+  extensions: ['.ts'],
+  babelHelpers: 'bundled',
+  configFile: path.resolve(projectRootDir, './babel.config.json'),
+});
 
 /** @type { Array<import('rollup').RollupOptions> } */
 export default [
-  ...generateTarget({
+  // ESM with code splitting so provider.ts is shared between index and experimental
+  {
+    input: {
+      index: './src/index.ts',
+      experimental: './src/experimental.ts',
+    },
+    onwarn: (warning) => {
+      throw new Error(warning?.message);
+    },
+    external,
+    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin],
+    output: {
+      dir: './dist',
+      format: 'es',
+      entryFileNames: '[name].js',
+      chunkFileNames: '[name].js',
+    },
+  },
+  // CJS with code splitting
+  {
+    input: {
+      index: './src/index.ts',
+      experimental: './src/experimental.ts',
+    },
+    onwarn: (warning) => {
+      throw new Error(warning?.message);
+    },
+    external,
+    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin],
+    output: {
+      dir: './dist',
+      format: 'cjs',
+      entryFileNames: '[name].cjs',
+      chunkFileNames: '[name].cjs',
+    },
+  },
+  // Type declarations
+  {
     input: './src/index.ts',
-    targetCJS: './dist/index.cjs',
-    targetES: './dist/index.js',
-  }),
-  ...generateTarget({
+    onwarn: (warning) => {
+      throw new Error(warning?.message);
+    },
+    external,
+    plugins: [
+      dts({
+        respectExternal: true,
+        tsconfig: path.resolve(projectRootDir, './tsconfig.json'),
+        compilerOptions: { preserveSymlinks: false },
+      }),
+    ],
+    output: [{ file: './dist/index.d.cts' }, { file: './dist/index.d.ts' }],
+  },
+  {
     input: './src/experimental.ts',
-    targetCJS: './dist/experimental.cjs',
-    targetES: './dist/experimental.js',
-  }),
+    onwarn: (warning) => {
+      throw new Error(warning?.message);
+    },
+    external,
+    plugins: [
+      dts({
+        respectExternal: true,
+        tsconfig: path.resolve(projectRootDir, './tsconfig.json'),
+        compilerOptions: { preserveSymlinks: false },
+      }),
+    ],
+    output: [{ file: './dist/experimental.d.cts' }, { file: './dist/experimental.d.ts' }],
+  },
 ];
