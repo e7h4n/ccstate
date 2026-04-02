@@ -1,5 +1,11 @@
 # ccstate
 
+## 5.2.0
+
+### Minor Changes
+
+- 304895d: Trigger a new release to resolve the previous unsuccessful deployment.
+
 ## 5.1.0
 
 ## 5.0.0

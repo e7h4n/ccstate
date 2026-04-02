@@ -1,5 +1,16 @@
 # ccstate-react
 
+## 5.2.0
+
+### Minor Changes
+
+- 515e24d: Set `useLoadableSet` back to `experimental` and test it for a period of time first.
+
+### Patch Changes
+
+- Updated dependencies [304895d]
+  - ccstate@5.2.0
+
 ## 5.1.0
 
 ### Minor Changes
