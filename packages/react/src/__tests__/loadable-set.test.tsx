@@ -173,6 +173,84 @@ it('state atom setter transitions to hasData', async () => {
   expect(await screen.findByText('done')).toBeTruthy();
 });
 
+it('state atom setter writes to a new atom when the signal argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+
+  function App({ atom }: { atom: typeof atomA }) {
+    const [, setValue] = useLoadableSet(atom);
+    return (
+      <button
+        onClick={() => {
+          setValue('updated');
+        }}
+      >
+        update
+      </button>
+    );
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={atomA} />
+    </StoreProvider>,
+  );
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={atomB} />
+    </StoreProvider>,
+  );
+
+  await userEvent.click(await screen.findByText('update'));
+
+  expect(store.get(atomA)).toBe('A0');
+  expect(store.get(atomB)).toBe('updated');
+});
+
+it('command setter invokes a new command when the signal argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+  const commandA = command(({ set }, value: string) => {
+    set(atomA, value);
+  });
+  const commandB = command(({ set }, value: string) => {
+    set(atomB, value);
+  });
+
+  function App({ cmd }: { cmd: typeof commandA }) {
+    const [, setValue] = useLoadableSet(cmd);
+    return (
+      <button
+        onClick={() => {
+          setValue('updated');
+        }}
+      >
+        update
+      </button>
+    );
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App cmd={commandA} />
+    </StoreProvider>,
+  );
+
+  rerender(
+    <StoreProvider value={store}>
+      <App cmd={commandB} />
+    </StoreProvider>,
+  );
+
+  await userEvent.click(await screen.findByText('update'));
+
+  expect(store.get(atomA)).toBe('A0');
+  expect(store.get(atomB)).toBe('updated');
+});
+
 it('second invoke cancels first pending promise', async () => {
   const deferred1 = makeDefered<string>();
   const deferred2 = makeDefered<string>();

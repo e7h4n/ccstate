@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, expect, it } from 'vitest';
-import { state, createStore } from 'ccstate';
+import { computed, state, createStore } from 'ccstate';
 import { StoreProvider } from '../provider';
 import { StrictMode } from 'react';
 import { useLastResolved, useResolved } from '../useResolved';
@@ -117,4 +117,132 @@ it('useResolved accept sync computed', async () => {
   );
 
   expect(await screen.findByText('0')).toBeInTheDocument();
+});
+
+it('useResolved subscribes to a new atom when the atom argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+
+  function App({ atom }: { atom: typeof atomA }) {
+    const value = useResolved(atom);
+    return <div>{value ?? 'loading'}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={atomA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={atomB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(atomA, 'A1');
+  await delay(0);
+  expect(screen.getByText('B0')).toBeInTheDocument();
+
+  store.set(atomB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useResolved subscribes to a new computed when the atom argument changes', async () => {
+  const store = createStore();
+  const sourceA = state('A0');
+  const sourceB = state('B0');
+  const computedA = computed((get) => get(sourceA));
+  const computedB = computed((get) => get(sourceB));
+
+  function App({ atom }: { atom: typeof computedA }) {
+    const value = useResolved(atom);
+    return <div>{value ?? 'loading'}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={computedA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={computedB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(sourceB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useLastResolved subscribes to a new atom when the atom argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+
+  function App({ atom }: { atom: typeof atomA }) {
+    const value = useLastResolved(atom);
+    return <div>{value ?? 'loading'}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={atomA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={atomB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(atomA, 'A1');
+  await delay(0);
+  expect(screen.getByText('B0')).toBeInTheDocument();
+
+  store.set(atomB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useLastResolved subscribes to a new computed when the atom argument changes', async () => {
+  const store = createStore();
+  const sourceA = state('A0');
+  const sourceB = state('B0');
+  const computedA = computed((get) => get(sourceA));
+  const computedB = computed((get) => get(sourceB));
+
+  function App({ atom }: { atom: typeof computedA }) {
+    const value = useLastResolved(atom);
+    return <div>{value ?? 'loading'}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={computedA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={computedB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(sourceB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
 });

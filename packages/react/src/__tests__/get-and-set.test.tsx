@@ -134,6 +134,148 @@ describe('react', () => {
     expect(screen.getByText('3')).toBeInTheDocument();
   });
 
+  it('subscribes to a new atom when the useGet atom argument changes', async () => {
+    const store = createStore();
+    const atomA = state('A0');
+    const atomB = state('B0');
+
+    function App({ atom }: { atom: typeof atomA }) {
+      const value = useGet(atom);
+      return <div>{value}</div>;
+    }
+
+    const { rerender } = render(
+      <StoreProvider value={store}>
+        <App atom={atomA} />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('A0')).toBeInTheDocument();
+
+    rerender(
+      <StoreProvider value={store}>
+        <App atom={atomB} />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('B0')).toBeInTheDocument();
+
+    store.set(atomB, 'B1');
+    await Promise.resolve();
+
+    expect(screen.getByText('B1')).toBeInTheDocument();
+  });
+
+  it('subscribes to a new computed when the useGet atom argument changes', async () => {
+    const store = createStore();
+    const sourceA = state('A0');
+    const sourceB = state('B0');
+    const computedA = computed((get) => get(sourceA));
+    const computedB = computed((get) => get(sourceB));
+
+    function App({ atom }: { atom: typeof computedA }) {
+      const value = useGet(atom);
+      return <div>{value}</div>;
+    }
+
+    const { rerender } = render(
+      <StoreProvider value={store}>
+        <App atom={computedA} />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('A0')).toBeInTheDocument();
+
+    rerender(
+      <StoreProvider value={store}>
+        <App atom={computedB} />
+      </StoreProvider>,
+    );
+    expect(screen.getByText('B0')).toBeInTheDocument();
+
+    store.set(sourceB, 'B1');
+    await Promise.resolve();
+
+    expect(screen.getByText('B1')).toBeInTheDocument();
+  });
+
+  it('useSet writes to a new state when the signal argument changes', async () => {
+    const store = createStore();
+    const atomA = state('A0');
+    const atomB = state('B0');
+
+    function App({ atom }: { atom: typeof atomA }) {
+      const setValue = useSet(atom);
+      return (
+        <button
+          onClick={() => {
+            setValue('updated');
+          }}
+        >
+          update
+        </button>
+      );
+    }
+
+    const { rerender } = render(
+      <StoreProvider value={store}>
+        <App atom={atomA} />
+      </StoreProvider>,
+    );
+
+    rerender(
+      <StoreProvider value={store}>
+        <App atom={atomB} />
+      </StoreProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('update'));
+
+    expect(store.get(atomA)).toBe('A0');
+    expect(store.get(atomB)).toBe('updated');
+  });
+
+  it('useSet invokes a new command when the signal argument changes', async () => {
+    const store = createStore();
+    const atomA = state('A0');
+    const atomB = state('B0');
+    const commandA = command(({ set }, value: string) => {
+      set(atomA, value);
+    });
+    const commandB = command(({ set }, value: string) => {
+      set(atomB, value);
+    });
+
+    function App({ cmd }: { cmd: typeof commandA }) {
+      const setValue = useSet(cmd);
+      return (
+        <button
+          onClick={() => {
+            setValue('updated');
+          }}
+        >
+          update
+        </button>
+      );
+    }
+
+    const { rerender } = render(
+      <StoreProvider value={store}>
+        <App cmd={commandA} />
+      </StoreProvider>,
+    );
+
+    rerender(
+      <StoreProvider value={store}>
+        <App cmd={commandB} />
+      </StoreProvider>,
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByText('update'));
+
+    expect(store.get(atomA)).toBe('A0');
+    expect(store.get(atomB)).toBe('updated');
+  });
+
   it('async callback will trigger rerender', async () => {
     const store = createStore();
     const count$ = state(0);
