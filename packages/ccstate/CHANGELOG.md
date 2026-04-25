@@ -1,5 +1,7 @@
 # ccstate
 
+## 5.2.4
+
 ## 5.3.0
 
 ### Minor Changes
