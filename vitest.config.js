@@ -5,7 +5,14 @@ export default defineConfig({
     coverage: {
       reporter: ['text', 'json-summary', 'json', 'cobertura', 'html'],
       provider: 'v8',
-      exclude: [...coverageConfigDefaults.exclude, '**/dist/**', '**/types/**', '**/*.config.*', '**/coverage/**'],
+      exclude: [
+        ...coverageConfigDefaults.exclude,
+        '**/dist/**',
+        '**/types/**',
+        '**/*.config.*',
+        '**/coverage/**',
+        'scripts/pnpm-pack-and-npm-publish.mjs',
+      ],
     },
   },
 });
