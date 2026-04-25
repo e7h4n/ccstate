@@ -1,5 +1,12 @@
 # ccstate-svelte
 
+## 5.3.0
+
+### Patch Changes
+
+- 47f1660: republish adapter packages with npm-compatible ccstate dependencies
+  - ccstate@5.3.0
+
 ## 5.2.4
 
 ### Patch Changes
