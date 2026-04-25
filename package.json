@@ -26,7 +26,7 @@
     "lint:eslint": "eslint .",
     "lint:format": "prettier '**/*' --ignore-unknown --list-different",
     "ci:version": "changeset version && pnpm lint-staged",
-    "ci:publish": "pnpm '/^publish:.*/'",
+    "ci:publish": "npm run publish:core && npm run publish:babel && npm run publish:react && npm run publish:vue && npm run publish:solid && npm run publish:svelte",
     "publish:core": "cd packages/ccstate/dist && npm publish",
     "publish:babel": "cd packages/babel/dist && npm publish",
     "publish:react": "cd packages/react && npm publish",
