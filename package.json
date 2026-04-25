@@ -29,10 +29,10 @@
     "ci:publish": "npm run publish:core && npm run publish:babel && npm run publish:react && npm run publish:vue && npm run publish:solid && npm run publish:svelte",
     "publish:core": "cd packages/ccstate/dist && npm publish",
     "publish:babel": "cd packages/babel/dist && npm publish",
-    "publish:react": "cd packages/react && npm publish",
-    "publish:vue": "cd packages/vue && npm publish",
-    "publish:solid": "cd packages/solid && npm publish",
-    "publish:svelte": "cd packages/svelte && npm publish",
+    "publish:react": "node scripts/pnpm-pack-and-npm-publish.mjs ccstate-react",
+    "publish:vue": "node scripts/pnpm-pack-and-npm-publish.mjs ccstate-vue",
+    "publish:solid": "node scripts/pnpm-pack-and-npm-publish.mjs ccstate-solid",
+    "publish:svelte": "node scripts/pnpm-pack-and-npm-publish.mjs ccstate-svelte",
     "prepare": "husky"
   },
   "engines": {
