@@ -1,5 +1,12 @@
 # ccstate-react
 
+## 5.2.5
+
+### Patch Changes
+
+- ea0f6c9: Fix `useGet` subscriptions when the atom argument changes.
+  - ccstate@5.2.5
+
 ## 5.2.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # ccstate-solid
 
+## 5.2.5
+
+### Patch Changes
+
+- ccstate@5.2.5
+
 ## 5.2.4
 
 ### Patch Changes

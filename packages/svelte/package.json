@@ -1,6 +1,6 @@
 {
   "name": "ccstate-svelte",
-  "version": "5.2.4",
+  "version": "5.2.5",
   "description": "CCState Svelte Hooks",
   "repository": {
     "type": "git",
