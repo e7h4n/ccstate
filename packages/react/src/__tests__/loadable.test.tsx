@@ -549,6 +549,146 @@ it('useLoadable accept sync computed', async () => {
   expect(await screen.findByText('hasData')).toBeInTheDocument();
 });
 
+it('useLoadable subscribes to a new atom when the atom argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+
+  function App({ atom }: { atom: typeof atomA }) {
+    const value = useLoadable(atom);
+    if (value.state !== 'hasData') {
+      return <div>loading</div>;
+    }
+    return <div>{value.data}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={atomA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={atomB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(atomA, 'A1');
+  await delay(0);
+  expect(screen.getByText('B0')).toBeInTheDocument();
+
+  store.set(atomB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useLoadable subscribes to a new computed when the atom argument changes', async () => {
+  const store = createStore();
+  const sourceA = state('A0');
+  const sourceB = state('B0');
+  const computedA = computed((get) => get(sourceA));
+  const computedB = computed((get) => get(sourceB));
+
+  function App({ atom }: { atom: typeof computedA }) {
+    const value = useLoadable(atom);
+    if (value.state !== 'hasData') {
+      return <div>loading</div>;
+    }
+    return <div>{value.data}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={computedA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={computedB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(sourceB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useLastLoadable subscribes to a new atom when the atom argument changes', async () => {
+  const store = createStore();
+  const atomA = state('A0');
+  const atomB = state('B0');
+
+  function App({ atom }: { atom: typeof atomA }) {
+    const value = useLastLoadable(atom);
+    if (value.state !== 'hasData') {
+      return <div>loading</div>;
+    }
+    return <div>{value.data}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={atomA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={atomB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(atomA, 'A1');
+  await delay(0);
+  expect(screen.getByText('B0')).toBeInTheDocument();
+
+  store.set(atomB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
+it('useLastLoadable subscribes to a new computed when the atom argument changes', async () => {
+  const store = createStore();
+  const sourceA = state('A0');
+  const sourceB = state('B0');
+  const computedA = computed((get) => get(sourceA));
+  const computedB = computed((get) => get(sourceB));
+
+  function App({ atom }: { atom: typeof computedA }) {
+    const value = useLastLoadable(atom);
+    if (value.state !== 'hasData') {
+      return <div>loading</div>;
+    }
+    return <div>{value.data}</div>;
+  }
+
+  const { rerender } = render(
+    <StoreProvider value={store}>
+      <App atom={computedA} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('A0')).toBeInTheDocument();
+
+  rerender(
+    <StoreProvider value={store}>
+      <App atom={computedB} />
+    </StoreProvider>,
+  );
+  expect(await screen.findByText('B0')).toBeInTheDocument();
+
+  store.set(sourceB, 'B1');
+  await delay(0);
+  expect(screen.getByText('B1')).toBeInTheDocument();
+});
+
 describe('works with AbortError', () => {
   let abortController: AbortController;
   let promise: Promise<void>;
