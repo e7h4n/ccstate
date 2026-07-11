@@ -1,5 +1,15 @@
 # ccstate-react
 
+## 5.4.0
+
+### Minor Changes
+
+- cc89a8a: Add custom equality functions for React value hooks and primitive loadable-state hooks.
+
+### Patch Changes
+
+- ccstate@5.4.0
+
 ## 5.3.1
 
 ### Patch Changes
