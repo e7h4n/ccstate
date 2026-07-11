@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
 import { Profiler, StrictMode, useEffect } from 'react';
-import { StoreProvider, useSet, useLoadable } from '..';
+import { StoreProvider, useSet, useLoadable, useLoadableState } from '..';
 import { delay } from 'signal-timers';
 import { useLastLoadable } from '../useLoadable';
 
@@ -57,6 +57,77 @@ it('convert promise to loadable', async () => {
 
   expect(screen.getByText('loading')).toBeTruthy();
   expect(await screen.findByText('foo')).toBeTruthy();
+});
+
+it('useLoadableState only commits when the loadable state changes', async () => {
+  const value$ = state({ count: 1 });
+  const onLoadableRender = vi.fn();
+  const onStateRender = vi.fn();
+  const store = createStore();
+
+  function Loadable() {
+    const loadable = useLoadable(value$);
+    return <div>{loadable.state}</div>;
+  }
+
+  function LoadableState() {
+    const loadableState = useLoadableState(value$);
+    return <div>{loadableState}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="loadable" onRender={onLoadableRender}>
+        <Loadable />
+      </Profiler>
+      <Profiler id="state" onRender={onStateRender}>
+        <LoadableState />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(screen.getAllByText('hasData')).toHaveLength(2);
+  onLoadableRender.mockClear();
+  onStateRender.mockClear();
+
+  store.set(value$, { count: 2 });
+  await delay(0);
+
+  expect(onLoadableRender).toHaveBeenCalledTimes(1);
+  expect(onStateRender).not.toHaveBeenCalled();
+});
+
+it('useLoadableState commits once for each async state transition', async () => {
+  const first = makeDefered<number>();
+  const async$ = state(first.promise);
+  const onRender = vi.fn();
+  const store = createStore();
+
+  function App() {
+    return <div>{useLoadableState(async$)}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="state" onRender={onRender}>
+        <App />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(screen.getByText('loading')).toBeInTheDocument();
+  expect(onRender).toHaveBeenCalledTimes(1);
+  first.resolve(1);
+  expect(await screen.findByText('hasData')).toBeInTheDocument();
+  expect(onRender).toHaveBeenCalledTimes(2);
+
+  const second = makeDefered<number>();
+  store.set(async$, second.promise);
+  expect(await screen.findByText('loading')).toBeInTheDocument();
+  expect(onRender).toHaveBeenCalledTimes(3);
+  second.reject(new Error('failed'));
+  expect(await screen.findByText('hasError')).toBeInTheDocument();
+  expect(onRender).toHaveBeenCalledTimes(4);
 });
 
 it('reset promise atom will reset loadable', async () => {
@@ -459,6 +530,40 @@ it('useLastLoadable does not commit when a new promise resolves to the same prim
   await delay(0);
 
   expect(onRender).not.toHaveBeenCalled();
+});
+
+it('useLastLoadable skips commits when equalityFn considers resolved values equal', async () => {
+  const async$ = state(Promise.resolve({ count: 1 }));
+  const onRender = vi.fn();
+  const store = createStore();
+
+  function App() {
+    const loadable = useLastLoadable(async$, {
+      equalityFn: (previous, next) => previous.count === next.count,
+    });
+    const value = loadable.state === 'hasData' ? loadable.data.count : 'loading';
+    return <div>{value}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="app" onRender={onRender}>
+        <App />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(await screen.findByText('1')).toBeInTheDocument();
+  onRender.mockClear();
+
+  store.set(async$, Promise.resolve({ count: 1 }));
+  await delay(0);
+  expect(onRender).not.toHaveBeenCalled();
+
+  store.set(async$, Promise.resolve({ count: 2 }));
+  await delay(0);
+  expect(onRender).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('2')).toBeInTheDocument();
 });
 
 it('use lastLoadable should keep error', async () => {

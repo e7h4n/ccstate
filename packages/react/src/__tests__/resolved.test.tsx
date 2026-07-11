@@ -130,6 +130,39 @@ it('useLastResolved does not commit when a new promise resolves to the same prim
   expect(onRender).not.toHaveBeenCalled();
 });
 
+it('useLastResolved skips commits when equalityFn considers resolved values equal', async () => {
+  const async$ = state(Promise.resolve({ count: 1 }));
+  const onRender = vi.fn();
+  const store = createStore();
+
+  function App() {
+    const value = useLastResolved(async$, {
+      equalityFn: (previous, next) => previous.count === next.count,
+    });
+    return <div>{value?.count}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="app" onRender={onRender}>
+        <App />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(await screen.findByText('1')).toBeInTheDocument();
+  onRender.mockClear();
+
+  store.set(async$, Promise.resolve({ count: 1 }));
+  await delay(0);
+  expect(onRender).not.toHaveBeenCalled();
+
+  store.set(async$, Promise.resolve({ count: 2 }));
+  await delay(0);
+  expect(onRender).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('2')).toBeInTheDocument();
+});
+
 it('useResolved accept sync computed', async () => {
   const base$ = state(0);
   function App() {
