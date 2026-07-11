@@ -6,7 +6,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, test, vi } from 'vitest';
 import { computed, createStore, state } from 'ccstate';
 import type { Computed, State } from 'ccstate';
-import { StrictMode, useEffect } from 'react';
+import { Profiler, StrictMode, useEffect } from 'react';
 import { StoreProvider, useSet, useLoadable } from '..';
 import { delay } from 'signal-timers';
 import { useLastLoadable } from '../useLoadable';
@@ -429,6 +429,36 @@ it('use lastLoadable should not update when new promise pending', async () => {
   defered.resolve(2);
   await delay(0);
   expect(screen.getByText('num2')).toBeInTheDocument();
+});
+
+it('useLastLoadable does not commit when a new promise resolves to the same primitive', async () => {
+  const async$ = state(Promise.resolve(false));
+  const onRender = vi.fn();
+  const store = createStore();
+
+  function App() {
+    const loadable = useLastLoadable(async$);
+    const value = loadable.state === 'hasData' ? loadable.data : 'loading';
+    return <div>{String(value)}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="app" onRender={onRender}>
+        <App />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(await screen.findByText('false')).toBeInTheDocument();
+  onRender.mockClear();
+
+  const deferred = makeDefered<boolean>();
+  store.set(async$, deferred.promise);
+  deferred.resolve(false);
+  await delay(0);
+
+  expect(onRender).not.toHaveBeenCalled();
 });
 
 it('use lastLoadable should keep error', async () => {

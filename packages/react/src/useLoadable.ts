@@ -15,6 +15,10 @@ type Loadable<T> =
       error: unknown;
     };
 
+function hasSameData<T>(previous: Loadable<T>, next: Loadable<T>): boolean {
+  return previous.state === 'hasData' && next.state === 'hasData' && previous.data === next.data;
+}
+
 function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
   promise$: State<U> | Computed<U>,
   keepLastResolved: boolean,
@@ -28,6 +32,7 @@ function useLoadableInternal<T, U extends Promise<Awaited<T>> | Awaited<T>>(
     (fn: () => void) => {
       function updateResult(result: Loadable<T>, signal: AbortSignal) {
         if (signal.aborted) return;
+        if (keepLastResolved && hasSameData(promiseResult.current, result)) return;
         promiseResult.current = result;
         fn();
       }

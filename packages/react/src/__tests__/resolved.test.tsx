@@ -2,10 +2,10 @@
 
 import '@testing-library/jest-dom/vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { computed, state, createStore } from 'ccstate';
 import { StoreProvider } from '../provider';
-import { StrictMode } from 'react';
+import { Profiler, StrictMode } from 'react';
 import { useLastResolved, useResolved } from '../useResolved';
 import { delay } from 'signal-timers';
 
@@ -99,6 +99,35 @@ it('use lastLoadable should not update when new promise pending', async () => {
   defered.resolve(2);
   await delay(0);
   expect(screen.getByText('num2')).toBeInTheDocument();
+});
+
+it('useLastResolved does not commit when a new promise resolves to the same primitive', async () => {
+  const async$ = state(Promise.resolve(false));
+  const onRender = vi.fn();
+  const store = createStore();
+
+  function App() {
+    const value = useLastResolved(async$);
+    return <div>{String(value)}</div>;
+  }
+
+  render(
+    <StoreProvider value={store}>
+      <Profiler id="app" onRender={onRender}>
+        <App />
+      </Profiler>
+    </StoreProvider>,
+  );
+
+  expect(await screen.findByText('false')).toBeInTheDocument();
+  onRender.mockClear();
+
+  const deferred = makeDefered<boolean>();
+  store.set(async$, deferred.promise);
+  deferred.resolve(false);
+  await delay(0);
+
+  expect(onRender).not.toHaveBeenCalled();
 });
 
 it('useResolved accept sync computed', async () => {
