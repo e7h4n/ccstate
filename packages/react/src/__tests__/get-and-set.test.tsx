@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { computed, createStore, command, state, createDebugStore } from 'ccstate';
 import { StoreProvider, useGet, useSet } from '..';
-import { StrictMode, useState } from 'react';
+import { Profiler, StrictMode, useState } from 'react';
 import '@testing-library/jest-dom/vitest';
 
 describe('react', () => {
@@ -71,6 +71,39 @@ describe('react', () => {
     store.set(base, 1);
     await Promise.resolve();
     expect(trace).not.toBeCalled();
+  });
+
+  it('useGet skips commits when equalityFn considers a new value equal', async () => {
+    const store = createStore();
+    const value$ = state({ count: 1 });
+    const onRender = vi.fn();
+
+    function App() {
+      const value = useGet(value$, {
+        equalityFn: (previous, next) => previous.count === next.count,
+      });
+      return <div>{value.count}</div>;
+    }
+
+    render(
+      <StoreProvider value={store}>
+        <Profiler id="app" onRender={onRender}>
+          <App />
+        </Profiler>
+      </StoreProvider>,
+    );
+
+    expect(screen.getByText('1')).toBeInTheDocument();
+    onRender.mockClear();
+
+    store.set(value$, { count: 1 });
+    await Promise.resolve();
+    expect(onRender).not.toHaveBeenCalled();
+
+    store.set(value$, { count: 2 });
+    await Promise.resolve();
+    expect(onRender).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('2')).toBeInTheDocument();
   });
 
   it('user click counter should increment', async () => {

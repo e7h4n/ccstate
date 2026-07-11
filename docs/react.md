@@ -46,6 +46,16 @@ function App() {
 
 `useGet` returns a `State` or a `Computed` value, and when the value changes, `useGet` triggers a re-render of the component.
 
+By default, `useGet` compares snapshots with `Object.is`. Pass an `equalityFn` when a computed value can return a new reference that is equivalent for rendering:
+
+```jsx
+const user = useGet(user$, {
+  equalityFn: (previous, next) => previous.id === next.id && previous.name === next.name,
+});
+```
+
+When `equalityFn` returns `true`, `useGet` keeps the previous snapshot reference and skips the React commit. Prefer stable computed values or primitive projections when possible, and use a custom equality function only where the comparison is cheaper than rendering.
+
 `useGet` does not do anything special with `Promise` values. In fact, `useGet` is equivalent to a single `store.get` call, plus a `store.watch` to ensure reactive updates to the React component.
 
 Two other useful hooks are available when dealing with `Promise` values. First, we introduce `useLoadable`.
@@ -89,6 +99,17 @@ type Loadable<T> =
 ```
 
 This allows you to render loading and error states in JSX based on the state. `useLoadable` suppresses exceptions, so it will not trigger an `ErrorBoundary`.
+
+If a component only needs the loadable state, use `useLoadableState`. It returns the primitive union `'loading' | 'hasData' | 'hasError'` and does not commit when only the resolved data or error reference changes without a state transition.
+
+```jsx
+import { useLoadableState } from 'ccstate-react';
+
+function LoadingIndicator() {
+  const state = useLoadableState(user$);
+  return state === 'loading' ? <div>Loading...</div> : null;
+}
+```
 
 Another useful hook is `useResolved`, which always returns the resolved value of a `Promise`.
 
@@ -154,6 +175,10 @@ function App() {
 ```
 
 `useLastResolved` behaves similarly - it always returns the last resolved value from a Promise Atom and won't reset to `undefined` when a new Promise is generated.
+
+`useLastLoadableState` is the state-only counterpart to `useLastLoadable`. After the first value resolves, it keeps returning `'hasData'` while a replacement Promise is pending and does not commit when that Promise resolves to new data.
+
+`useLastResolved` and `useLastLoadable` also accept an optional `equalityFn`. Equal resolved values preserve the previous reference and do not trigger a React commit.
 
 ## Updating State / Triggering Command
 
