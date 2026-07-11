@@ -1,5 +1,12 @@
 # ccstate-react
 
+## 5.3.1
+
+### Patch Changes
+
+- fa55719: Avoid React commits when last-loadable hooks resolve to an unchanged value.
+  - ccstate@5.3.1
+
 ## 5.3.0
 
 ### Minor Changes
