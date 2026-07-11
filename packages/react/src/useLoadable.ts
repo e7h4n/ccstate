@@ -128,9 +128,3 @@ export function useLoadableState<T>(
 ): LoadableState {
   return useLoadableInternal<T, LoadableState>(atom, false, selectLoadableState, defaultEqualityFn);
 }
-
-export function useLastLoadableState<T>(
-  atom: State<Promise<Awaited<T>> | Awaited<T>> | Computed<Promise<Awaited<T>> | Awaited<T>>,
-): LoadableState {
-  return useLoadableInternal<T, LoadableState>(atom, true, selectLoadableState, defaultEqualityFn);
-}

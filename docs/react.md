@@ -176,8 +176,6 @@ function App() {
 
 `useLastResolved` behaves similarly - it always returns the last resolved value from a Promise Atom and won't reset to `undefined` when a new Promise is generated.
 
-`useLastLoadableState` is the state-only counterpart to `useLastLoadable`. After the first value resolves, it keeps returning `'hasData'` while a replacement Promise is pending and does not commit when that Promise resolves to new data.
-
 `useLastResolved` and `useLastLoadable` also accept an optional `equalityFn`. Equal resolved values preserve the previous reference and do not trigger a React commit.
 
 ## Updating State / Triggering Command
