@@ -14,7 +14,6 @@ export type {
   StateArg,
   AsyncSnapshot,
   AsyncStatus,
-  Resource,
   Signal,
   Watch as Watcher,
 } from '../../types/core/signal';

@@ -24,11 +24,11 @@ it('resource exposes async state and retains data while refreshing', async () =>
   const user = resource(source$);
   const store = createStore();
   const controller = new AbortController();
-  const snapshots: unknown[] = [];
+  const statuses: string[] = [];
 
   store.watch(
     (get) => {
-      snapshots.push(get(user.snapshot$));
+      statuses.push(get(user.status$));
     },
     { signal: controller.signal },
   );
@@ -40,24 +40,19 @@ it('resource exposes async state and retains data while refreshing', async () =>
   first.resolve('Ada');
   await flushPromises();
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'success', data: 'Ada', error: undefined });
+  expect(store.get(user.data$)).toBe('Ada');
   expect(store.get(user.status$)).toBe('success');
 
   store.set(requestId$, 1);
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'loading', data: 'Ada', error: undefined });
+  expect(store.get(user.data$)).toBe('Ada');
   expect(store.get(user.status$)).toBe('loading');
 
   second.resolve('Grace');
   await flushPromises();
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'success', data: 'Grace', error: undefined });
-  expect(snapshots).toEqual([
-    { status: 'loading', data: undefined, error: undefined },
-    { status: 'success', data: 'Ada', error: undefined },
-    { status: 'loading', data: 'Ada', error: undefined },
-    { status: 'success', data: 'Grace', error: undefined },
-  ]);
+  expect(store.get(user.data$)).toBe('Grace');
+  expect(statuses).toEqual(['loading', 'success', 'loading', 'success']);
 
   controller.abort();
 });
@@ -71,19 +66,21 @@ it('resource ignores a stale promise result', async () => {
   const store = createStore();
 
   store.watch((get) => {
-    get(user.snapshot$);
+    get(user.status$);
   });
 
   store.set(requestId$, 1);
   first.resolve('stale');
   await flushPromises();
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'loading', data: undefined, error: undefined });
+  expect(store.get(user.status$)).toBe('loading');
+  expect(store.get(user.data$)).toBeUndefined();
 
   second.resolve('current');
   await flushPromises();
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'success', data: 'current', error: undefined });
+  expect(store.get(user.status$)).toBe('success');
+  expect(store.get(user.data$)).toBe('current');
 });
 
 it('resource retains data when a refresh fails', async () => {
@@ -95,7 +92,7 @@ it('resource retains data when a refresh fails', async () => {
   const store = createStore();
 
   store.watch((get) => {
-    get(user.snapshot$);
+    get(user.status$);
   });
 
   first.resolve('Ada');
@@ -106,6 +103,7 @@ it('resource retains data when a refresh fails', async () => {
   second.reject(error);
   await flushPromises();
 
-  expect(store.get(user.snapshot$)).toEqual({ status: 'error', data: 'Ada', error });
+  expect(store.get(user.status$)).toBe('error');
+  expect(store.get(user.data$)).toBe('Ada');
   expect(store.get(user.error$)).toBe(error);
 });

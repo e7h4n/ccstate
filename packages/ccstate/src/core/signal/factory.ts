@@ -87,7 +87,6 @@ function createResourceSignal<T>(source: Signal<T | Promise<T>>, options?: Optio
 }
 
 export interface AsyncResource<T> {
-  snapshot$: Resource<T>;
   data$: Computed<T | undefined>;
   error$: Computed<unknown>;
   status$: Computed<AsyncStatus>;
@@ -98,7 +97,6 @@ export function resource<T>(source: Signal<T | Promise<T>>, options?: Options): 
   const label = options?.debugLabel ?? 'resource';
 
   return {
-    snapshot$,
     data$: computed((get) => get(snapshot$).data, { debugLabel: `${label}.data` }),
     error$: computed((get) => get(snapshot$).error, { debugLabel: `${label}.error` }),
     status$: computed((get) => get(snapshot$).status, { debugLabel: `${label}.status` }),
