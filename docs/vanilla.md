@@ -2,6 +2,22 @@
 
 Using CCState in Vanilla JS is quite simple & straightforward, `get` to fetch values, and `sub` to trigger re-renders.
 
+## Async resources
+
+An async computed returns a `Promise` by default. Use `resource` when its loading, data, and error states need to be consumed as signals. The resource keeps the previous data during a refresh and ignores results from stale requests.
+
+```js
+import { computed, resource } from 'ccstate/core';
+
+const user$ = computed(async (get) => {
+  return fetch(`/api/users/${get(userId$)}`).then((response) => response.json());
+});
+
+const { data$, loading$, error$, status$ } = resource(user$);
+```
+
+`status$` is one of `'idle' | 'loading' | 'success' | 'error'`. `data$` can retain the previous successful value while `loading$` is `true`.
+
 ```js
 // user.js
 import { computed, state } from 'ccstate/core';

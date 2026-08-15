@@ -18,29 +18,50 @@ import type {
 } from '../../../types/core/store';
 import { evaluateComputed, tryGetCached } from '../signal/computed';
 import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from '../interceptor';
-import { createMutation, set as innerSet } from './set';
+import { createMutation, set as innerSet, setState } from './set';
 import { readState } from '../signal/state';
-import { canReadAsCompute } from '../typing-util';
+import { canReadAsCompute, isResource, isResourceController } from '../typing-util';
 import { mount as innerMount, unmount } from './sub';
 import { computed } from '../signal/factory';
+import { trackResource } from '../signal/resource';
 
 const readComputed: ReadComputed = <T>(
   computed$: Computed<T>,
   context: StoreContext,
   mutation?: Mutation,
 ): ComputedState<T> => {
+  function trackController(computedState: ComputedState<T>) {
+    if (!isResourceController(computed$)) return;
+
+    trackResource(
+      computedState,
+      computed$.resource,
+      context,
+      (snapshot, resourceMutation) => {
+        const nextMutation = resourceMutation ?? createMutation(context, storeGet, storeSet);
+        setState(readComputed, computed$.resource, context, nextMutation, snapshot);
+      },
+      mutation,
+    );
+  }
+
   const cachedState = tryGetCached(readComputed, computed$, context, mutation);
   if (cachedState) {
+    trackController(cachedState);
     return cachedState;
   }
 
-  return withComputedInterceptor(
+  const computedState = withComputedInterceptor(
     () => {
       return evaluateComputed(readSignal, mount, unmount, computed$, context, mutation);
     },
     computed$,
     context.interceptor?.computed,
   );
+
+  trackController(computedState);
+
+  return computedState;
 };
 
 function readSignal<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
@@ -48,7 +69,11 @@ function readSignal<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mut
     return readComputed(signal$, context, mutation);
   }
 
-  return readState(signal$, context);
+  if (isResource(signal$)) {
+    readComputed(signal$.controller, context, mutation);
+  }
+
+  return readState(signal$ as State<T>, context);
 }
 
 function mount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): Mounted {

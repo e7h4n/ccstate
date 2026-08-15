@@ -25,6 +25,15 @@ export interface Computed<T> {
   debugLabel?: string;
   toString: () => string;
 }
+
+export interface ResourceController<T> extends Computed<T | Promise<T>> {
+  resource: Resource<T>;
+}
+
+export interface Resource<T> extends State<AsyncSnapshot<T>> {
+  source: Signal<T | Promise<T>>;
+  controller: ResourceController<T>;
+}
 export interface Command<T, Args extends unknown[]> {
   id: number;
   write: Write<T, Args>;
@@ -32,4 +41,12 @@ export interface Command<T, Args extends unknown[]> {
   toString: () => string;
 }
 
-export type Signal<T> = State<T> | Computed<T>;
+export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export interface AsyncSnapshot<T> {
+  status: AsyncStatus;
+  data: T | undefined;
+  error: unknown;
+}
+
+export type Signal<T> = State<T> | Computed<T> | (T extends AsyncSnapshot<infer Value> ? Resource<Value> : never);

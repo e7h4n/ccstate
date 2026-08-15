@@ -1,6 +1,6 @@
 import type { SetArgs, StoreEventType, StoreInterceptor } from '../../types/core/store';
 import type { DebugStore } from '../../types/debug/debug-store';
-import type { Computed, Command, State } from '../core';
+import type { Computed, Command, Signal, State } from '../core';
 import { createDebugStoreInternal } from './debug-store';
 
 export interface AtomWatch {
@@ -33,7 +33,7 @@ export class ConsoleInterceptor implements StoreInterceptor {
     });
   };
 
-  get = <T>(atom$: State<T> | Computed<T>, fn: () => T) => {
+  get = <T>(atom$: Signal<T>, fn: () => T) => {
     if (!this.shouldLog(atom$, 'get')) {
       fn();
       return;
@@ -66,7 +66,7 @@ export class ConsoleInterceptor implements StoreInterceptor {
     console.groupEnd();
   };
 
-  mount = <T>(atom$: State<T> | Computed<T>) => {
+  mount = <T>(atom$: Signal<T>) => {
     if (!this.shouldLog(atom$, 'mount')) {
       return;
     }
@@ -74,7 +74,7 @@ export class ConsoleInterceptor implements StoreInterceptor {
     console.log('[R][MNT] ' + atom$.toString());
   };
 
-  unmount = <T>(atom$: State<T> | Computed<T>) => {
+  unmount = <T>(atom$: Signal<T>) => {
     if (!this.shouldLog(atom$, 'unmount')) {
       return;
     }

@@ -99,7 +99,7 @@ function propagationChanges(
   pullEvaluate(readComputed, signalState, context, mutation);
 }
 
-function innerSetState<T>(
+export function setState<T>(
   readComputed: ReadComputed,
   signal$: State<T>,
   context: StoreContext,
@@ -149,7 +149,7 @@ export function set<T, Args extends SetArgs<T, unknown[]>>(
     return writable$.write(mutation.visitor, ...args);
   }
 
-  innerSetState(readComputed, writable$, context, mutation, args[0]);
+  setState(readComputed, writable$, context, mutation, args[0]);
   return;
 }
 

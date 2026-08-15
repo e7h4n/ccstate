@@ -7,7 +7,8 @@ import type {
   SignalState,
   StoreContext,
 } from '../../../types/core/store';
-import { isComputedState } from '../typing-util';
+import { isComputedState, isResource } from '../typing-util';
+import { invalidateResource } from '../signal/resource';
 
 function unmountComputedDependencies<T>(
   computed$: Computed<T>,
@@ -47,6 +48,10 @@ function initMount<T>(readSignal: ReadSignal, signal$: Signal<T>, context: Store
     mountComputedDependencies(readSignal, signal$ as Computed<unknown>, signalState, context, mutation);
   }
 
+  if (isResource(signal$)) {
+    mount(readSignal, signal$.controller, context, mutation);
+  }
+
   return signalState.mounted;
 }
 
@@ -74,6 +79,11 @@ function doUnmount<T>(
 
   if (isComputedState(signalState)) {
     unmountComputedDependencies(signal$ as Computed<unknown>, signalState, context, mutation);
+  }
+
+  if (isResource(signal$)) {
+    invalidateResource(signal$, context);
+    unmount(signal$.controller, context, mutation);
   }
 
   signalState.mounted = undefined;

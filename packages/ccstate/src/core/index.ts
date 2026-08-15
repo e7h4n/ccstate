@@ -1,4 +1,5 @@
-export { state, computed, command } from './signal/factory';
+export { state, computed, command, resource } from './signal/factory';
+export type { AsyncResource } from './signal/factory';
 export { createStore } from './store/store';
 
 export type {
@@ -11,6 +12,10 @@ export type {
   Read,
   Write,
   StateArg,
+  AsyncSnapshot,
+  AsyncStatus,
+  Resource,
+  Signal,
   Watch as Watcher,
 } from '../../types/core/signal';
 

@@ -652,11 +652,23 @@ root.render(function App() {
 
 I'm agree with [explicit is better than implicit](https://peps.python.org/pep-0020/), so CCState removes the `onMount` capability.
 
-#### No `loadable` & `unwrap`
+#### No implicit `loadable` & `unwrap`
 
-Jotai provides `loadable` and `unwrap` to handle Promise Atom, to convert them to a flat loading state atom. To implement this functionality, it inevitably needs to use `onMount` to subscribe to Promise changes and then modify its own return value.
+Jotai provides `loadable` and `unwrap` to handle Promise Atom, to convert them to a flat loading state atom. CCState does not implicitly turn every Promise-returning signal into such a stateful node: the Promise remains the value of an ordinary async computed unless the application explicitly opts in.
 
-As mentioned in the previous section, CCState does not provide `onMount`, so `loadable` and `unwrap` are neither present nor necessary in CCState. Instead, React hooks `useLoadable` and `useResolved` are provided as alternatives. The reason for this design is that I noticed a detail - only within a subscription system (like React's rendering part) do we need to convert a Promise into a loading state:
+Use `resource` when a Promise lifecycle must become part of the signal graph. It is useful outside React as well, especially when loading, data, or error are consumed by downstream signals. It keeps the latest resolved data while a newer request is loading and ignores stale Promise results.
+
+```ts
+import { computed, resource } from 'ccstate';
+
+const user$ = computed(async (get) => {
+  return fetch(`/api/users/${get(userId$)}`).then((response) => response.json());
+});
+
+const { data$, loading$, error$, status$ } = resource(user$);
+```
+
+`resource` is explicit because it introduces asynchronous lifecycle management. React hooks `useLoadable` and `useResolved` remain lightweight adapter-local alternatives when the loading state is only needed by a component:
 
 ```tsx
 // Jotai's example, since try/catch and async/await cannot be used in JSX, loadable is required to flatten the Promise
