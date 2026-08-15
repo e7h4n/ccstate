@@ -665,7 +665,7 @@ const user$ = computed(async (get) => {
   return fetch(`/api/users/${get(userId$)}`).then((response) => response.json());
 });
 
-const { data$, loading$, error$, status$ } = resource(user$);
+const { data$, error$, status$ } = resource(user$);
 ```
 
 `resource` is explicit because it introduces asynchronous lifecycle management. React hooks `useLoadable` and `useResolved` remain lightweight adapter-local alternatives when the loading state is only needed by a component:

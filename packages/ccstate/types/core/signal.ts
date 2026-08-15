@@ -41,7 +41,7 @@ export interface Command<T, Args extends unknown[]> {
   toString: () => string;
 }
 
-export type AsyncStatus = 'idle' | 'loading' | 'success' | 'error';
+export type AsyncStatus = 'loading' | 'success' | 'error';
 
 export interface AsyncSnapshot<T> {
   status: AsyncStatus;

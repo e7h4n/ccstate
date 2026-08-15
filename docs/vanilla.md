@@ -13,10 +13,10 @@ const user$ = computed(async (get) => {
   return fetch(`/api/users/${get(userId$)}`).then((response) => response.json());
 });
 
-const { data$, loading$, error$, status$ } = resource(user$);
+const { data$, error$, status$ } = resource(user$);
 ```
 
-`status$` is one of `'idle' | 'loading' | 'success' | 'error'`. `data$` can retain the previous successful value while `loading$` is `true`.
+`status$` is one of `'loading' | 'success' | 'error'`. `data$` can retain the previous successful value while `status$` is `'loading'`.
 
 ```js
 // user.js

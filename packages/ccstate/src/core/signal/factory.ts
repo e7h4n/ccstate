@@ -68,7 +68,7 @@ function createResourceSignal<T>(source: Signal<T | Promise<T>>, options?: Optio
   const resource: Resource<T> = {
     id,
     init: {
-      status: 'idle',
+      status: 'loading',
       data: undefined,
       error: undefined,
     } satisfies AsyncSnapshot<T>,
@@ -89,7 +89,6 @@ function createResourceSignal<T>(source: Signal<T | Promise<T>>, options?: Optio
 export interface AsyncResource<T> {
   snapshot$: Resource<T>;
   data$: Computed<T | undefined>;
-  loading$: Computed<boolean>;
   error$: Computed<unknown>;
   status$: Computed<AsyncStatus>;
 }
@@ -101,7 +100,6 @@ export function resource<T>(source: Signal<T | Promise<T>>, options?: Options): 
   return {
     snapshot$,
     data$: computed((get) => get(snapshot$).data, { debugLabel: `${label}.data` }),
-    loading$: computed((get) => get(snapshot$).status === 'loading', { debugLabel: `${label}.loading` }),
     error$: computed((get) => get(snapshot$).error, { debugLabel: `${label}.error` }),
     status$: computed((get) => get(snapshot$).status, { debugLabel: `${label}.status` }),
   };

@@ -35,18 +35,18 @@ it('resource exposes async state and retains data while refreshing', async () =>
 
   expect(store.get(user.status$)).toBe('loading');
   expect(store.get(user.data$)).toBeUndefined();
-  expect(store.get(user.loading$)).toBe(true);
+  expect(store.get(user.status$)).toBe('loading');
 
   first.resolve('Ada');
   await flushPromises();
 
   expect(store.get(user.snapshot$)).toEqual({ status: 'success', data: 'Ada', error: undefined });
-  expect(store.get(user.loading$)).toBe(false);
+  expect(store.get(user.status$)).toBe('success');
 
   store.set(requestId$, 1);
 
   expect(store.get(user.snapshot$)).toEqual({ status: 'loading', data: 'Ada', error: undefined });
-  expect(store.get(user.loading$)).toBe(true);
+  expect(store.get(user.status$)).toBe('loading');
 
   second.resolve('Grace');
   await flushPromises();
