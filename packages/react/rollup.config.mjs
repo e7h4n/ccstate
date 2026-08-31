@@ -15,12 +15,19 @@ function external(id) {
   return !id.startsWith('.') && !id.startsWith(projectRootDir);
 }
 
-const babelPlugin = babel({
-  exclude: 'node_modules/**',
-  extensions: ['.ts'],
-  babelHelpers: 'bundled',
-  configFile: path.resolve(projectRootDir, './babel.config.json'),
-});
+/**
+ * @param {'legacy'|'modern'} envName
+ * @returns {import('rollup').Plugin}
+ */
+function babelPlugin(envName) {
+  return babel({
+    exclude: 'node_modules/**',
+    extensions: ['.ts'],
+    babelHelpers: 'bundled',
+    configFile: path.resolve(projectRootDir, './babel.config.json'),
+    envName,
+  });
+}
 
 /** @type { Array<import('rollup').RollupOptions> } */
 export default [
@@ -34,7 +41,7 @@ export default [
       throw new Error(warning?.message);
     },
     external,
-    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin],
+    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin('modern')],
     output: {
       dir: './dist',
       format: 'es',
@@ -52,7 +59,7 @@ export default [
       throw new Error(warning?.message);
     },
     external,
-    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin],
+    plugins: [nodeResolve({ extensions: ['.ts'] }), babelPlugin('legacy')],
     output: {
       dir: './dist',
       format: 'cjs',
