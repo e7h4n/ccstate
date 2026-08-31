@@ -17,39 +17,53 @@ function external(id) {
 }
 
 /**
+ * @param {{input:string, file:string, format:'cjs'|'es', envName:'legacy'|'modern'}} param0
+ * @returns {import('rollup').RollupOptions}
+ */
+function generateJavaScriptTarget({ input, file, format, envName }) {
+  return {
+    input,
+    onwarn: (warning) => {
+      throw new Error(warning?.message);
+    },
+    external,
+    plugins: [
+      nodeResolve({
+        extensions: ['.ts'],
+      }),
+      babel({
+        exclude: 'node_modules/**',
+        extensions: ['.ts'],
+        babelHelpers: 'bundled',
+        configFile: path.resolve(projectRootDir, './babel.config.json'),
+        envName,
+      }),
+    ],
+    output: {
+      file,
+      format,
+    },
+  };
+}
+
+/**
  * @param {{input:string, targetCJS:string, targetES:string}} param0
  * @returns {import('rollup').RollupOptions[]}
  */
 function generateTarget({ input, targetCJS, targetES }) {
   return [
-    {
+    generateJavaScriptTarget({
       input,
-      onwarn: (warning) => {
-        throw new Error(warning?.message);
-      },
-      external,
-      plugins: [
-        nodeResolve({
-          extensions: ['.ts'],
-        }),
-        babel({
-          exclude: 'node_modules/**',
-          extensions: ['.ts'],
-          babelHelpers: 'bundled',
-          configFile: path.resolve(projectRootDir, './babel.config.json'),
-        }),
-      ],
-      output: [
-        {
-          file: targetCJS,
-          format: 'cjs',
-        },
-        {
-          file: targetES,
-          format: 'es',
-        },
-      ],
-    },
+      file: targetES,
+      format: 'es',
+      envName: 'modern',
+    }),
+    generateJavaScriptTarget({
+      input,
+      file: targetCJS,
+      format: 'cjs',
+      envName: 'legacy',
+    }),
     {
       input,
       onwarn: (warning) => {
