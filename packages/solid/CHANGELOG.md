@@ -1,5 +1,12 @@
 # ccstate-solid
 
+## 5.7.0
+
+### Patch Changes
+
+- Updated dependencies [412fcec]
+  - ccstate@5.7.0
+
 ## 5.6.0
 
 ### Patch Changes
