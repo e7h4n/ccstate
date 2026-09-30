@@ -39,6 +39,7 @@ export interface StoreOptions {
 export interface StoreContext {
   stateMap: StateMap;
   interceptor?: StoreInterceptor;
+  writeVersion: number;
 }
 
 export interface Mutation {
@@ -62,6 +63,7 @@ export type ComputedState<T> =
       error: undefined;
       dependencies: Map<Signal<unknown>, number>;
       epoch: number;
+      verifiedAt?: number;
       abortController?: AbortController;
     }
   | {
@@ -70,6 +72,7 @@ export type ComputedState<T> =
       error: unknown;
       dependencies: Map<Signal<unknown>, number>;
       epoch: number;
+      verifiedAt?: number;
       abortController?: AbortController;
     };
 

@@ -118,6 +118,7 @@ function innerSetState<T>(
     return;
   }
 
+  context.writeVersion += 1;
   const signalState = context.stateMap.get(signal$);
   if (!signalState) {
     context.stateMap.set(signal$, {

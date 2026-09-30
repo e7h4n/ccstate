@@ -128,6 +128,7 @@ export class StoreImpl implements Store {
     this.context = {
       stateMap: this.stateMap,
       interceptor: this.options?.interceptor,
+      writeVersion: 0,
     };
   }
 
