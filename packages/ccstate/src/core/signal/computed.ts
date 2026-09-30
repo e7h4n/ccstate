@@ -45,12 +45,15 @@ export function tryGetCached<T>(
   // If a computed is marked as potentially dirty, we should perform a
   // thorough epoch check. Alternatively, we can check the mounted state since
   // a mounted computed is always re-evaluated immediately.
+  // Unmounted caches also stay valid until the store's next write.
+  const writeVersion = context.writeVersion;
   const mayDirty = mutation?.potentialDirtyIds.has(computed$.id);
-  if (!mayDirty && signalState.mounted) {
+  if (!mayDirty && (signalState.mounted || signalState.verifiedAt === writeVersion)) {
     return signalState;
   }
 
   if (checkEpoch(readComputed, signalState, context, mutation)) {
+    signalState.verifiedAt = writeVersion;
     if (mayDirty) {
       mutation?.potentialDirtyIds.delete(computed$.id);
     }
@@ -141,6 +144,7 @@ export function evaluateComputed<T>(
   context: StoreContext,
   mutation?: Mutation,
 ): ComputedState<T> {
+  const writeVersion = context.writeVersion;
   const computedState = getOrInitComputedState(computed$, context);
 
   const lastDeps = computedState.dependencies;
@@ -186,5 +190,6 @@ export function evaluateComputed<T>(
     computedState.epoch += 1;
   }
 
+  computedState.verifiedAt = writeVersion;
   return computedState;
 }
