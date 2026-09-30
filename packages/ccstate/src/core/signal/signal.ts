@@ -1,14 +1,12 @@
 import type { Computed, Signal } from '../../../types/core/signal';
-import type { ComputedState, StoreContext } from '../../../types/core/store';
-
-export function currentValue<T>(signal: Signal<T>, context: StoreContext): T | undefined {
-  return context.stateMap.get(signal)?.val as T | undefined;
-}
+import type { StoreContext } from '../../../types/core/store';
 
 export function shouldDistinct<T>(signal: Signal<T>, value: T, context: StoreContext) {
-  return currentValue(signal, context) === value;
+  const signalState = context.stateMap.get(signal);
+  return !!signalState && 'val' in signalState && !('error' in signalState) && signalState.val === value;
 }
 
-export function shouldDistinctError(signal: Computed<unknown>, context: StoreContext) {
-  return (context.stateMap.get(signal) as ComputedState<unknown> | undefined)?.error !== undefined;
+export function shouldDistinctError(signal: Computed<unknown>, error: unknown, context: StoreContext) {
+  const signalState = context.stateMap.get(signal);
+  return !!signalState && 'error' in signalState && signalState.error === error;
 }

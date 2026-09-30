@@ -23,6 +23,7 @@ export function createDiamondLadder(depth: number) {
 
   return {
     store: createStore(),
+    source$,
     root$,
     nodeCount: 2 * depth + 1,
     expected: 2 ** depth,
