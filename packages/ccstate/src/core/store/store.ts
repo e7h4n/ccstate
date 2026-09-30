@@ -88,12 +88,8 @@ const storeSet: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
 };
 
 const storeWatch: StoreWatch = (watchFn: Watch, context: StoreContext, options?: WatchOptions) => {
-  let controller: AbortController | undefined;
   const computed$ = computed(
-    (get) => {
-      controller?.abort(`abort ${options?.debugLabel ?? 'anonymous'} atom`);
-      controller = new AbortController();
-      const signal = controller.signal;
+    (get, { signal }) => {
       let childSignal: AbortSignal | undefined;
       const obOptions = {
         get signal() {

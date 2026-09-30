@@ -166,7 +166,7 @@ This way, `Computed` receives a get accessor that can access other signal in the
 
 In most cases, side-effect free computation logic is extremely useful. They can be executed any number of times and have few requirements regarding execution timing. `Computed` is one of the most powerful features in CCState, and you should try to write your logic as `Computed` whenever possible, unless you need to perform set operations on the `Store`.
 
-The computed callback receives only `get`. Promises returned by computed callbacks are cached as ordinary values: reevaluation does not cancel an earlier Promise. For operations that need cancellation, manage an `AbortSignal` explicitly in a command. The signal supplied to a `watch` callback remains available to cancel that watch invocation's external side effects when its dependencies change or the watch is cancelled.
+The computed callback also receives a second argument, `{ signal }`, which you can use when needed. This `AbortSignal` is created only when accessed and belongs to one evaluation: repeated reads return the same signal, and it is aborted when the computed actually reevaluates, even if the next evaluation does not read its signal. For an unmounted computed, this happens on its next read rather than immediately when a dependency changes. Reading the signal later from an obsolete evaluation returns an aborted signal and does not affect the current evaluation. Promises remain ordinary cached values; CCState does not inspect, wrap, or cancel them. An operation such as `fetch` can opt into cancellation by accepting the signal. Watch callbacks reuse this behavior and can also be cancelled using the signal passed to `store.watch`.
 
 ### Command
 

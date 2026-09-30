@@ -6,9 +6,12 @@ export interface Setter {
   <T, Args extends unknown[]>(command: Command<T, Args>, ...args: Args): T;
 }
 export type Getter = <T>(readable: Signal<T>) => T;
-export type Read<T> = (get: Getter) => T;
+export interface GetterOptions {
+  signal: AbortSignal;
+}
+export type Read<T> = (get: Getter, options: GetterOptions) => T;
 export type Write<T, Args extends unknown[]> = (visitor: { get: Getter; set: Setter }, ...args: Args) => T;
-export type Watch = (get: Getter, options: { signal: AbortSignal }) => void;
+export type Watch = Read<void>;
 
 export interface State<T> {
   id: number;

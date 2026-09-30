@@ -152,12 +152,34 @@ export function evaluateComputed<T>(
   const [_get, dependencies] = wrapGet(readSignal, mount, computed$, computedState, context, mutation);
   computedState.dependencies = dependencies;
 
+  const previousController = computedState.abortController;
+  delete computedState.abortController;
+  previousController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
+  let controller: AbortController | undefined;
+
   let result: ComputedResult<T>;
   try {
     result = {
-      value: computed$.read(function <U>(depAtom: Signal<U>) {
-        return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
-      }),
+      value: computed$.read(
+        function <U>(depAtom: Signal<U>) {
+          return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
+        },
+        {
+          get signal() {
+            if (!controller) {
+              controller = new AbortController();
+              // An older async evaluation may first request its signal after
+              // a newer evaluation has replaced its dependency map.
+              if (computedState.dependencies === dependencies) {
+                computedState.abortController = controller;
+              } else {
+                controller.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
+              }
+            }
+            return controller.signal;
+          },
+        },
+      ),
     };
   } catch (error) {
     result = {
