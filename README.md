@@ -166,6 +166,8 @@ This way, `Computed` receives a get accessor that can access other signal in the
 
 In most cases, side-effect free computation logic is extremely useful. They can be executed any number of times and have few requirements regarding execution timing. `Computed` is one of the most powerful features in CCState, and you should try to write your logic as `Computed` whenever possible, unless you need to perform set operations on the `Store`.
 
+The computed callback receives only `get`. Promises returned by computed callbacks are cached as ordinary values: reevaluation does not cancel an earlier Promise. For operations that need cancellation, manage an `AbortSignal` explicitly in a command. The signal supplied to a `watch` callback remains available to cancel that watch invocation's external side effects when its dependencies change or the watch is cancelled.
+
 ### Command
 
 `Command` is CCState's logic unit for organizing side effects. It has both `set` and `get` accessors from the store, allowing it to not only read other signal types but also modify `State` or call other `Command`.

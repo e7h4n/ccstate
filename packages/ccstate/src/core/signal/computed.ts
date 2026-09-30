@@ -155,18 +155,9 @@ export function evaluateComputed<T>(
   let result: ComputedResult<T>;
   try {
     result = {
-      value: computed$.read(
-        function <U>(depAtom: Signal<U>) {
-          return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
-        },
-        {
-          get signal() {
-            computedState.abortController?.abort(`abort ${computed$.debugLabel ?? 'anonymous'} atom`);
-            computedState.abortController = new AbortController();
-            return computedState.abortController.signal;
-          },
-        },
-      ),
+      value: computed$.read(function <U>(depAtom: Signal<U>) {
+        return withGeValInterceptor(() => _get(depAtom), depAtom, context.interceptor?.get);
+      }),
     };
   } catch (error) {
     result = {
@@ -179,7 +170,7 @@ export function evaluateComputed<T>(
   cleanupMissingDependencies(unmount, computed$, lastDeps, dependencies, context, mutation);
 
   if ('error' in result) {
-    if (!shouldDistinctError(computed$, context)) {
+    if (!shouldDistinctError(computed$, result.error, context)) {
       computedState.error = result.error;
       delete computedState.val;
       computedState.epoch += 1;

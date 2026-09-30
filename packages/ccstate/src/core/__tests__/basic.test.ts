@@ -68,7 +68,8 @@ it('should catch error when computed throw exception', () => {
   expect(trace).toBeCalledTimes(1);
 
   store.set(base$, 2);
-  expect(trace).toBeCalledTimes(2);
+  // Both the changed error and the normal computed notify their watchers.
+  expect(trace).toBeCalledTimes(3);
 });
 
 it('should throw error in derived computed', () => {

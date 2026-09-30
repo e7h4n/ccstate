@@ -17,10 +17,15 @@ import { shouldDistinct } from '../signal/signal';
 // #tryGetCached. So the propagation is greedy to mark all dependants as dirty
 function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
+  const visited = new Set<Computed<unknown>>();
 
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
+      if (visited.has(computed$)) {
+        continue;
+      }
+      visited.add(computed$);
       mutation.potentialDirtyIds.add(computed$.id);
 
       const computedState = context.stateMap.get(computed$);
@@ -43,14 +48,15 @@ function pullEvaluate(
 ) {
   let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
 
-  const oldValues = new Map<Computed<unknown>, unknown>();
-  const oldErrors = new Map<Computed<unknown>, unknown>();
+  const oldEpochs = new Map<Computed<unknown>, number | undefined>();
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
+      if (oldEpochs.has(computed$)) {
+        continue;
+      }
       const oldState = context.stateMap.get(computed$) as ComputedState<unknown> | undefined;
-      oldValues.set(computed$, oldState?.val);
-      oldErrors.set(computed$, oldState?.error);
+      oldEpochs.set(computed$, oldState?.epoch);
 
       const readDepts = context.stateMap.get(computed$)?.mounted?.readDepts;
       if (readDepts) {
@@ -63,17 +69,18 @@ function pullEvaluate(
   }
 
   queue = Array.from(signalState.mounted?.readDepts ?? []);
+  const visited = new Set<Computed<unknown>>();
 
   while (queue.length > 0) {
     const nextQueue: Computed<unknown>[] = [];
     for (const computed$ of queue) {
+      if (visited.has(computed$)) {
+        continue;
+      }
+      visited.add(computed$);
       const computedState = readComputed(computed$, context, mutation);
 
-      const isSameWithOldValue =
-        !computedState.error && oldValues.has(computed$) && oldValues.get(computed$) === computedState.val;
-      const isSameError = computedState.error && Boolean(oldErrors.get(computed$));
-
-      if (isSameWithOldValue || isSameError) {
+      if (oldEpochs.get(computed$) === computedState.epoch) {
         continue;
       }
 
@@ -109,7 +116,8 @@ function innerSetState<T>(
   let newValue: T;
   if (typeof val === 'function') {
     const updater = val as Updater<T>;
-    newValue = updater((context.stateMap.get(signal$)?.val as T | undefined) ?? signal$.init);
+    const signalState = context.stateMap.get(signal$);
+    newValue = updater(signalState ? (signalState.val as T) : signal$.init);
   } else {
     newValue = val;
   }
