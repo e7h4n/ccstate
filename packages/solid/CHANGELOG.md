@@ -1,5 +1,12 @@
 # ccstate-solid
 
+## 5.6.0
+
+### Patch Changes
+
+- Updated dependencies [b535aa0]
+  - ccstate@5.6.0
+
 ## 5.5.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # ccstate
 
+## 5.6.0
+
+### Minor Changes
+
+- b535aa0: Cache dependency validation for unmounted computed values between state writes, avoiding repeated traversal of shared dependency graphs.
+
 ## 5.5.0
 
 ### Minor Changes
