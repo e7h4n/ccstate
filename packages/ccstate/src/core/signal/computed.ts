@@ -47,7 +47,7 @@ export function tryGetCached<T>(
   // a mounted computed is always re-evaluated immediately.
   // Unmounted caches also stay valid until the store's next write.
   const writeVersion = context.writeVersion;
-  const mayDirty = mutation?.potentialDirtyIds.has(computed$.id);
+  const mayDirty = (context.pendingMutation ?? mutation)?.potentialDirtyIds.has(computed$.id);
   if (!mayDirty && (signalState.mounted || signalState.verifiedAt === writeVersion)) {
     return signalState;
   }
@@ -146,6 +146,8 @@ export function evaluateComputed<T>(
 ): ComputedState<T> {
   const writeVersion = context.writeVersion;
   const computedState = getOrInitComputedState(computed$, context);
+  const previousEpoch = computedState.epoch;
+  const wasDirty = mutation?.potentialDirtyIds.has(computed$.id);
 
   const lastDeps = computedState.dependencies;
 
@@ -203,6 +205,7 @@ export function evaluateComputed<T>(
     computedState.epoch += 1;
   }
 
+  if (wasDirty && computedState.epoch !== previousEpoch) context.changedSignals.add(computed$);
   computedState.verifiedAt = writeVersion;
   return computedState;
 }

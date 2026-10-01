@@ -1,0 +1,6 @@
+{
+  "extends": "./packages/ccstate/tsconfig.json",
+  "compilerOptions": { "noEmit": true },
+  "include": ["packages/ccstate/src/**/*.ts", "packages/ccstate/types/**/*.ts"],
+  "exclude": ["packages/ccstate/src/**/__tests__/**"]
+}

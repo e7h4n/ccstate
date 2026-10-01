@@ -1,4 +1,4 @@
-import type { Command, Getter, Setter, Signal, State, Computed, Watch } from '../../../types/core/signal';
+import type { Command, Getter, Setter, Signal, State, Computed } from '../../../types/core/signal';
 import type {
   StateMap,
   Store,
@@ -14,15 +14,13 @@ import type {
   SetArgs,
   Watcher,
   StoreWatch,
-  WatchOptions,
 } from '../../../types/core/store';
 import { evaluateComputed, tryGetCached } from '../signal/computed';
 import { withComputedInterceptor, withGetInterceptor, withSetInterceptor } from '../interceptor';
-import { createMutation, set as innerSet } from './set';
+import { flushMutation, set as innerSet } from './set';
 import { readState } from '../signal/state';
 import { canReadAsCompute } from '../typing-util';
 import { mount as innerMount, unmount } from './sub';
-import { computed } from '../signal/factory';
 
 const readComputed: ReadComputed = <T>(
   computed$: Computed<T>,
@@ -44,6 +42,7 @@ const readComputed: ReadComputed = <T>(
 };
 
 function readSignal<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): SignalState<T> {
+  mutation = context.pendingMutation ?? mutation;
   if (canReadAsCompute(signal$)) {
     return readComputed(signal$, context, mutation);
   }
@@ -77,9 +76,12 @@ const storeSet: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
 ): T | undefined => {
   return withSetInterceptor<T, Args>(
     () => {
-      const mutation = createMutation(context, storeGet, storeSet);
-
-      return innerSet<T, Args>(readComputed, atom, context, mutation, ...args);
+      const previousChangedSize = context.changedSignals.size;
+      try {
+        return innerSet<T, Args>(readComputed, atom, context, storeGet, flushPending, ...args);
+      } finally {
+        if (context.changedSignals.size !== previousChangedSize) flushPending(context);
+      }
     },
     atom,
     context.interceptor?.set,
@@ -87,37 +89,55 @@ const storeSet: StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
   );
 };
 
-const storeWatch: StoreWatch = (watchFn: Watch, context: StoreContext, options?: WatchOptions) => {
-  const computed$ = computed(
-    (get, { signal }) => {
-      let childSignal: AbortSignal | undefined;
-      const obOptions = {
-        get signal() {
-          if (!childSignal) {
-            childSignal = options?.signal ? AbortSignal.any([options.signal, signal]) : signal;
-          }
-          return childSignal;
-        },
-      };
+function flushPending(context: StoreContext): void {
+  if (flushMutation(readComputed, context)) flushCallbacks(context);
+}
 
-      watchFn(get, obOptions);
-    },
-    {
-      debugLabel: options?.debugLabel,
-    },
-  );
+function flushCallbacks(context: StoreContext): void {
+  if (!context.changedSignals.size) return;
+  const errors: unknown[] = [];
+  do {
+    // changedSignals is also write-boundary bookkeeping. It may contain only
+    // unobserved sources, so do not allocate notification work until needed.
+    let callbacks: Set<() => void> | undefined;
+    for (const signal$ of context.changedSignals) {
+      const listeners = context.stateMap.get(signal$)?.mounted?.listeners;
+      if (listeners?.size) {
+        callbacks ??= new Set();
+        for (const listener of listeners) callbacks.add(listener);
+      }
+    }
+    context.changedSignals.clear();
+    if (!callbacks) continue;
+    for (const callback of callbacks) {
+      try {
+        callback();
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+  } while (context.changedSignals.size);
+  if (errors.length) {
+    const AggregateErrorCtor = (
+      globalThis as typeof globalThis & {
+        AggregateError?: new (errors: unknown[]) => Error;
+      }
+    ).AggregateError;
+    if (AggregateErrorCtor) throw new AggregateErrorCtor(errors);
+    throw Object.assign(new Error(), { errors });
+  }
+}
 
-  innerMount(readSignal, computed$, context);
-
-  options?.signal?.addEventListener(
-    'abort',
-    () => {
-      unmount(computed$, context);
-    },
-    {
-      once: true,
-    },
-  );
+const storeWatch: StoreWatch = (signal$, context, listener) => {
+  if (!('read' in signal$) && !('init' in signal$)) throw new TypeError('watch requires a state or computed');
+  const mounted = innerMount(readSignal, signal$, context);
+  mounted.listeners.add(listener);
+  flushPending(context);
+  return () => {
+    mounted.listeners.delete(listener);
+    unmount(signal$, context);
+    flushPending(context);
+  };
 };
 
 export class StoreImpl implements Store {
@@ -129,6 +149,9 @@ export class StoreImpl implements Store {
       stateMap: this.stateMap,
       interceptor: this.options?.interceptor,
       writeVersion: 0,
+      changedSignals: new Set(),
+      pendingMutation: undefined,
+      mutationWork: undefined,
     };
   }
 
@@ -143,8 +166,8 @@ export class StoreImpl implements Store {
     return storeSet<T, Args>(atom, this.context, ...args);
   };
 
-  watch: Watcher = (watchFn: Watch, options?: WatchOptions) => {
-    storeWatch(watchFn, this.context, options);
+  watch: Watcher = (signal$, listener) => {
+    return storeWatch(signal$, this.context, listener);
   };
 }
 
