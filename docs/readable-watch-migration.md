@@ -2,7 +2,7 @@
 
 ## Draft status
 
-This branch is a core breaking-change prototype, not a release-ready migration. Existing callback-watch tests, framework adapters, examples, and public documentation are not yet fully migrated. The full CI pipeline is expected to remain blocked until those migrations are complete. No tests are skipped or deleted in the default pipeline to hide that boundary.
+This branch is a core breaking-change prototype, not a release-ready migration. Existing callback-watch core tests, non-React framework adapters, examples, and public documentation are not yet fully migrated. The React hooks have now been migrated and their complete 68-case suite passes. The full CI pipeline is expected to remain blocked until those migrations are complete. No tests are skipped or deleted in the default pipeline to hide that boundary.
 
 The isolated `tsconfig.prototype.json` and `vitest.prototype.workspace.json` exist only to validate the proposed runtime and dedicated tests. They do not replace the repository's normal lint/test configuration.
 
@@ -58,7 +58,9 @@ Nested internal command setters share pending work. A nested public `store.set` 
 
 Store-owned scratch collections are cleared and reused, but evaluation dependency Maps and signal owners are not reused. Pending graph work is drained before listeners, including writes triggered synchronously by an old computed signal's abort handler.
 
-## React migration plan — not implemented in this draft
+## React migration — implemented and tested in this draft
+
+`useGet` and the loadable subscription layer now use direct readable-signal subscriptions. The complete React suite passes: 63 existing cases (one hidden-computed-count assertion migrated to actual mount/unmount assertions) plus 5 new regression cases. React package TypeScript, modified-file lint/format, and React ESM/CJS/declaration builds are verified before handoff.
 
 ### useGet
 
@@ -75,7 +77,7 @@ React reads the initial snapshot and checks snapshot freshness after subscriptio
 
 The current implementation relies on watch's initial invocation and per-invocation signal. Merely changing the watch signature would lose initialization and stale-Promise protection.
 
-The replacement subscription should own a per-subscription active flag and a per-observed-value generation:
+The replacement subscription owns a per-subscription active flag and a per-observed-value generation:
 
 1. Register a listener on the supplied readable signal.
 2. Explicitly refresh from `store.get` to handle the current value/Promise.
@@ -85,7 +87,7 @@ The replacement subscription should own a per-subscription active flag and a per
 
 This isolates late results; it must not cancel a shared computed task when one component unsubscribes. Computed's own signal remains the task cancellation mechanism.
 
-Preserve `keepLastResolved`, data equality, selected-result identity, loading/error transitions and suppression of redundant notifications. A new StrictMode subscription must have a new lease; a global active boolean alone is insufficient. Define and test synchronous read-error handling rather than letting it accidentally escape through core listener aggregation.
+Preserve `keepLastResolved`, data equality, selected-result identity, loading/error transitions and suppression of redundant notifications. A new StrictMode subscription must have a new lease; a global active boolean alone is insufficient. Synchronous `store.get` failures now become `hasError` loadable results and can recover when the computed becomes readable again; a regression test covers both directions instead of letting errors escape through listener aggregation.
 
 ### useResolved / useLastResolved
 
@@ -143,7 +145,7 @@ Not every case improves. The unobserved target write with unrelated subscription
 ## Before marking ready
 
 - Migrate old watch call sites and tests without removing distinct correctness boundaries.
-- Migrate React and the other framework adapters and run their unchanged behavioral tests.
+- React hooks are migrated and the complete React suite passes. Migrate the other framework adapters and run their behavioral tests.
 - Update examples, README and vanilla/framework docs.
 - Restore full normal build/lint/test/benchmark CI to green without exclusion configs.
 - Independently review lifecycle, error, subscription and write-boundary semantics.

@@ -11,24 +11,7 @@ export function useGet<T>(atom: State<T> | Computed<T>, options?: EqualityOption
     atom: State<T> | Computed<T>;
     value: T;
   } | null>(null);
-  const subscribe = useCallback(
-    (fn: () => void) => {
-      const controller = new AbortController();
-      store.watch(
-        (get) => {
-          get(atom);
-          fn();
-        },
-        {
-          signal: controller.signal,
-        },
-      );
-      return () => {
-        controller.abort();
-      };
-    },
-    [store, atom],
-  );
+  const subscribe = useCallback((fn: () => void) => store.watch(atom, fn), [store, atom]);
 
   const getSnapshot = useCallback(() => {
     const next = store.get(atom);
