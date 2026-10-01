@@ -7,21 +7,15 @@ export function useGet<Value>(atom: Computed<Value> | State<Value>): Readonly<Sh
 
   const vueState = shallowRef(store.get(atom));
 
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      vueState.value = get(atom);
-    },
-    {
-      signal: controller.signal,
-    },
-  );
+  const refresh = () => {
+    vueState.value = store.get(atom);
+  };
+  const unsubscribe = store.watch(atom, refresh);
 
   if (getCurrentInstance()) {
-    onScopeDispose(() => {
-      controller.abort();
-    });
+    onScopeDispose(unsubscribe);
   }
+  refresh();
 
   return shallowReadonly(vueState);
 }

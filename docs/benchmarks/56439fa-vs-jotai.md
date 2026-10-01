@@ -7,7 +7,7 @@
 - React/ReactDOM 19.0.0, Happy DOM 15.11.7.
 - Production Node v24.21.0 / V8 13.6.233.17-node.53; shared Linux x64 Xeon 2.10GHz, two vCPU. No CPU affinity/exclusivity guarantee.
 
-This document adds evidence only. Later documentation commits do not change the measured runtime SHA. The branch remains Draft; outstanding legacy core-call/test and non-React adapter migrations still block normal CI and release acceptance.
+This document adds evidence only. Later documentation commits do not change the measured runtime SHA. The branch remains Draft; outstanding legacy core-call/test and benchmark migrations still block normal CI and release acceptance. Vue/Solid/Svelte adapters were migrated after this fixed-SHA measurement, with passing adapter suites and a passing full repository build; those later adapter changes are not part of the measured runtime.
 
 ## Coverage and correctness
 

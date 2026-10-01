@@ -2,7 +2,7 @@
 
 ## Draft status
 
-This branch is a core breaking-change prototype, not a release-ready migration. Existing callback-watch core tests, non-React framework adapters, examples, and public documentation are not yet fully migrated. The React hooks have now been migrated and their complete 68-case suite passes. The full CI pipeline is expected to remain blocked until those migrations are complete. No tests are skipped or deleted in the default pipeline to hide that boundary.
+This branch is a core breaking-change prototype, not a release-ready migration. Existing callback-watch core tests, benchmark call sites, examples, and public documentation are not yet fully migrated. React hooks and the Vue/Solid/Svelte readable adapters have been migrated; the complete React 68-case suite and the other adapters' 53-case suite pass, and the full repository build passes. The full CI pipeline is expected to remain blocked until those migrations are complete. No tests are skipped or deleted in the default pipeline to hide that boundary.
 
 The isolated `tsconfig.prototype.json` and `vitest.prototype.workspace.json` exist only to validate the proposed runtime and dedicated tests. They do not replace the repository's normal lint/test configuration.
 
@@ -147,7 +147,7 @@ Not every case improves. The unobserved target write with unrelated subscription
 ## Before marking ready
 
 - Migrate old watch call sites and tests without removing distinct correctness boundaries.
-- React hooks are migrated and the complete React suite passes. Migrate the other framework adapters and run their behavioral tests.
+- React hooks and Vue/Solid/Svelte readable adapters are migrated. Their complete suites pass (68 React cases; 14 Vue, 25 Solid, 14 Svelte cases), and the full repository build passes. Remaining migration gates are legacy core/benchmark call sites and full normal CI.
 - Update examples, README and vanilla/framework docs.
 - Restore full normal build/lint/test/benchmark CI to green without exclusion configs.
 - Independently review lifecycle, error, subscription and write-boundary semantics.

@@ -6,4 +6,6 @@ Replace callback-computation watch with a readable-signal listener subscription:
 
 Batch synchronous internal command writes at the public write boundary. Explicit intermediate reads remain fresh, while listeners receive the flushed result. Post-await or escaped setters flush independently.
 
+Migrate Vue, Solid, and Svelte readable adapters to direct subscriptions and returned unsubscribe functions, preserving each framework's initial value and cleanup contracts.
+
 Migrate React hooks to direct readable subscriptions. Loadable hooks own their subscription lease and Promise generation so obsolete settlements cannot update current results; synchronous computed read failures become recoverable loadable error states.
