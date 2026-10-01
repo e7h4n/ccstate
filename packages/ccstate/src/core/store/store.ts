@@ -133,10 +133,23 @@ const storeWatch: StoreWatch = (signal$, context, listener) => {
   const mounted = innerMount(readSignal, signal$, context);
   mounted.listeners.add(listener);
   flushPending(context);
+  let subscription:
+    | { signal: Signal<unknown>; mounted: Mounted; listener: () => void; context: StoreContext }
+    | undefined = {
+    signal: signal$,
+    mounted,
+    listener,
+    context,
+  };
   return () => {
-    mounted.listeners.delete(listener);
-    unmount(signal$, context);
-    flushPending(context);
+    const current = subscription;
+    if (!current) return;
+    // An owner may retain its disposed cleanup function. Release the captured
+    // signal/listener so that retention cannot keep an unmounted graph alive.
+    subscription = undefined;
+    current.mounted.listeners.delete(current.listener);
+    unmount(current.signal, current.context);
+    flushPending(current.context);
   };
 };
 

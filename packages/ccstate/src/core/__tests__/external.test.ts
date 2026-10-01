@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { command, state } from '../signal/factory';
+import { command, computed, state } from '../signal/factory';
 import { createStore } from '../store/store';
 
-describe('effect', () => {
-  it('multiple set in async func should trigger notify multiple times', async () => {
+describe('subscription and explicit effect ownership', () => {
+  it('batches the synchronous async-command prefix and notifies later writes separately', async () => {
     const base$ = state(0);
     const action$ = command(async ({ set }) => {
       set(base$, 1);
@@ -12,113 +12,101 @@ describe('effect', () => {
       set(base$, 3);
       set(base$, 4);
     });
-
     const trace = vi.fn();
     const store = createStore();
-    store.watch((get) => {
-      get(base$);
-      trace();
+    const unsubscribe = store.watch(base$, () => {
+      trace(store.get(base$));
     });
-    expect(trace).toHaveBeenCalledTimes(1);
-
+    expect(trace).not.toHaveBeenCalled();
     const ret = store.set(action$);
-    expect(trace).toHaveBeenCalledTimes(3);
+    expect(trace).toHaveBeenCalledTimes(1);
+    expect(trace).toHaveBeenLastCalledWith(2);
     await ret;
-    expect(trace).toHaveBeenCalledTimes(5);
+    expect(trace.mock.calls).toEqual([[2], [3], [4]]);
+    unsubscribe();
   });
 
-  it('should execute immediately', () => {
+  it('reads the initial value separately and does not invoke the listener initially', () => {
     const base$ = state(0);
     const trace = vi.fn();
-
     const store = createStore();
-
-    store.watch((get, { signal }) => {
-      trace(get(base$));
-      signal.addEventListener('abort', () => {
-        trace('aborted');
-      });
+    const unsubscribe = store.watch(base$, () => {
+      trace(store.get(base$));
     });
-
-    expect(trace).toHaveBeenCalledTimes(1);
-  });
-
-  it('should abort when signal is aborted', async () => {
-    const trace = vi.fn();
-
-    const store = createStore();
-    const ctrl = new AbortController();
-    store.watch(
-      (_, { signal }) => {
-        void (async () => {
-          await Promise.resolve();
-          if (signal.aborted) {
-            trace('aborted');
-          }
-        })();
-      },
-      { signal: ctrl.signal },
-    );
-    ctrl.abort();
-
-    await Promise.resolve();
-    expect(trace).toBeCalledTimes(1);
-  });
-
-  it('should trigger sync when dependency changes', () => {
-    const base$ = state(0);
-    const trace = vi.fn();
-
-    const store = createStore();
-
-    store.watch((get) => {
-      trace(get(base$));
-    });
-
-    expect(trace).toHaveBeenCalledTimes(1);
-
+    expect(store.get(base$)).toBe(0);
+    expect(trace).not.toHaveBeenCalled();
     store.set(base$, 1);
-    expect(trace).toHaveBeenCalledTimes(2);
+    expect(trace.mock.calls).toEqual([[1]]);
+    unsubscribe();
   });
 
-  it('should abort signal for incompleted external effect', async () => {
+  it('allows the task owner to compose an external cancellation signal explicitly', async () => {
+    const trace = vi.fn();
+    const store = createStore();
+    const owner = new AbortController();
+    const source = state(0);
+    const task = computed(async (get, options) => {
+      get(source);
+      const signal = AbortSignal.any([owner.signal, options.signal]);
+      await Promise.resolve();
+      if (signal.aborted) trace('aborted');
+    });
+    const listener = vi.fn();
+    const unsubscribe = store.watch(task, listener);
+    const pending = store.get(task);
+    unsubscribe();
+    owner.abort();
+    await pending;
+    expect(trace.mock.calls).toEqual([['aborted']]);
+    store.set(source, 1);
+    expect(listener).not.toHaveBeenCalled();
+    expect(trace).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies synchronously when the observed value changes', () => {
     const base$ = state(0);
     const trace = vi.fn();
-
     const store = createStore();
+    const unsubscribe = store.watch(base$, () => {
+      trace(store.get(base$));
+    });
+    expect(trace).not.toHaveBeenCalled();
+    store.set(base$, 1);
+    expect(trace.mock.calls).toEqual([[1]]);
+    unsubscribe();
+  });
 
-    store.watch((get, { signal }) => {
+  it('cancels an observed computation old async work on reevaluation', async () => {
+    const base$ = state(0);
+    const trace = vi.fn();
+    const store = createStore();
+    const task = computed(async (get, { signal }) => {
       get(base$);
-      void (async () => {
-        await Promise.resolve();
-        if (signal.aborted) {
-          trace('aborted');
-        }
-      })();
+      await Promise.resolve();
+      if (signal.aborted) trace('aborted');
     });
-
+    const unsubscribe = store.watch(task, () => undefined);
+    const first = store.get(task);
     store.set(base$, 1);
-    await Promise.resolve();
-    expect(trace).toHaveBeenCalledTimes(1);
-    expect(trace).toBeCalledWith('aborted');
+    const second = store.get(task);
+    await Promise.all([first, second]);
+    expect(trace.mock.calls).toEqual([['aborted']]);
+    unsubscribe();
   });
 });
 
-it('should execute when dependency changes', () => {
+it('notifies for each independent value-changing public write', () => {
   const base$ = state(0);
   const trace = vi.fn();
-
   const store = createStore();
-
-  store.watch((get) => {
-    trace(get(base$));
+  const unsubscribe = store.watch(base$, () => {
+    trace(store.get(base$));
   });
-
-  expect(trace).toHaveBeenCalledTimes(1);
-
+  expect(trace).not.toHaveBeenCalled();
   store.set(base$, (x) => x + 1);
   store.set(base$, (x) => x + 1);
   store.set(base$, (x) => x + 1);
   store.set(base$, (x) => x + 1);
-  expect(trace).toHaveBeenCalledTimes(5);
+  expect(trace.mock.calls).toEqual([[1], [2], [3], [4]]);
+  unsubscribe();
 });

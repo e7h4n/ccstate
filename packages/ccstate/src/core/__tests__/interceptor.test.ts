@@ -157,11 +157,9 @@ it('intercept mount', () => {
   });
   const base$ = state(0);
   const derived$ = computed((get) => get(base$) + 1);
-  store.watch((get) => {
-    get(derived$);
-  });
+  store.watch(derived$, () => undefined);
 
-  expect(trace).toBeCalledTimes(3);
+  expect(trace).toBeCalledTimes(2);
   expect(trace).toBeCalledWith(base$);
   expect(trace).toBeCalledWith(derived$);
 });
@@ -181,19 +179,15 @@ it('should not intercept mount if atom is already mounted', () => {
   const derived$ = computed((get) => get(base$) + 1, {
     debugLabel: 'derived',
   });
-  store.watch((get) => {
-    get(derived$);
-  });
+  store.watch(derived$, () => undefined);
   const derived2$ = computed((get) => get(derived$) + 1, {
     debugLabel: 'derived2',
   });
 
   trace.mockClear();
-  store.watch((get) => {
-    get(derived2$);
-  });
+  store.watch(derived2$, () => undefined);
 
-  expect(trace).toBeCalledTimes(2);
+  expect(trace).toBeCalledTimes(1);
   expect(trace).toBeCalledWith(derived2$);
 });
 
@@ -211,18 +205,11 @@ it('intercept unmount', () => {
 
   const base$ = state(0);
   const derived$ = computed((get) => get(base$) + 1);
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(derived$);
-    },
-    {
-      signal: controller.signal,
-    },
-  );
-  controller.abort();
 
-  expect(trace).toBeCalledTimes(3);
+  const unsubscribeWatch1 = store.watch(derived$, () => undefined);
+  unsubscribeWatch1();
+
+  expect(trace).toBeCalledTimes(2);
   expect(trace).toBeCalledWith(derived$);
   expect(trace).toBeCalledWith(base$);
 });
@@ -264,10 +251,8 @@ it('should intercept computed', () => {
   expect(traceRead).toBeCalled();
 
   traceRead.mockClear();
-  store.watch((get) => {
-    get(derived$);
-  });
-  expect(traceRead).toBeCalledTimes(1);
+  store.watch(derived$, () => undefined);
+  expect(traceRead).not.toHaveBeenCalled();
 
   store.set(base$, 2);
   expect(traceRead).toBeCalled();

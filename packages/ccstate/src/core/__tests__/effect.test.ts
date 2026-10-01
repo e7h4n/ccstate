@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { createStore, command, state } from '..';
 
-it('should trigger multiple times when hierarchy func is set', () => {
+it('notifies once with the final value of nested synchronous commands', () => {
   const base$ = state(0);
   const innerUpdate$ = command(({ set }) => {
     set(base$, 1);
@@ -13,15 +13,15 @@ it('should trigger multiple times when hierarchy func is set', () => {
 
   const trace = vi.fn();
   const store = createStore();
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     trace();
   });
 
   trace.mockClear();
   store.set(update$);
 
-  expect(trace).toHaveBeenCalledTimes(2);
+  expect(store.get(base$)).toBe(2);
+  expect(trace).toHaveBeenCalledTimes(1);
 });
 
 it('should trigger subscriber if func throws', () => {
@@ -33,8 +33,7 @@ it('should trigger subscriber if func throws', () => {
 
   const trace = vi.fn();
   const store = createStore();
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     trace();
   });
 

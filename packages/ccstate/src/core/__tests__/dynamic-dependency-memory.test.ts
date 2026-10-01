@@ -50,7 +50,7 @@ describe('dynamic dependency memory with an active watcher', () => {
               return selected ? get(currentSource).value : readOldSource(get, oldSource);
             });
       const controller = new AbortController();
-      store.watch((get) => void get(value), { signal: controller.signal });
+      const unsubscribeWatch1 = store.watch(value, () => undefined);
       try {
         expect(await store.get(value)).toBe(1);
         store.set(branch, true);
@@ -69,7 +69,7 @@ describe('dynamic dependency memory with an active watcher', () => {
         expect(reads).toBe(readsAfterSwitch + 1);
         expect(await store.get(value)).toBe(3);
       } finally {
-        controller.abort();
+        unsubscribeWatch1();
       }
     },
   );
@@ -111,7 +111,7 @@ describe('dynamic dependency memory with an active watcher', () => {
         return readOldSource(get, oldSource);
       });
       const controller = new AbortController();
-      store.watch((get) => void get(value), { signal: controller.signal });
+      const unsubscribeWatch2 = store.watch(value, () => undefined);
       try {
         const oldPromise = store.get(value);
         store.set(branch, true);
@@ -137,7 +137,7 @@ describe('dynamic dependency memory with an active watcher', () => {
         expect(await store.get(value)).toBe(3);
       } finally {
         oldGate.resolve();
-        controller.abort();
+        unsubscribeWatch2();
       }
     },
   );

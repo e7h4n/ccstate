@@ -5,29 +5,29 @@ import { suspense } from './utils';
 import { createDebugStore } from '../../debug';
 import { nestedAtomToString } from '../../__tests__/util';
 
-it('should fire on watch', () => {
+it('does not notify initially and notifies both listeners when the value changes', () => {
   const store = createStore();
   const countAtom = state(0);
   const callback1 = vi.fn();
   const callback2 = vi.fn();
-  store.watch((get) => {
-    get(countAtom);
+  store.watch(countAtom, () => {
     callback1();
   });
-  store.watch((get) => {
-    get(countAtom);
+  store.watch(countAtom, () => {
     callback2();
   });
-  expect(callback1).toHaveBeenCalled();
-  expect(callback2).toHaveBeenCalled();
+  expect(callback1).not.toHaveBeenCalled();
+  expect(callback2).not.toHaveBeenCalled();
+  store.set(countAtom, 1);
+  expect(callback1).toHaveBeenCalledTimes(1);
+  expect(callback2).toHaveBeenCalledTimes(1);
 });
 
 it('should not fire subscription if primitive atom value is the same', () => {
   const store = createStore();
   const countAtom = state(0);
   const callback = vi.fn();
-  store.watch((get) => {
-    get(countAtom);
+  store.watch(countAtom, () => {
     callback();
   });
   callback.mockClear();
@@ -40,8 +40,7 @@ it('should not fire subscription if derived atom value is the same', () => {
   const countAtom = state(0);
   const derivedAtom = computed((get) => get(countAtom) * 0);
   const callback = vi.fn();
-  store.watch((get) => {
-    get(derivedAtom);
+  store.watch(derivedAtom, () => {
     callback();
   });
   callback.mockClear();
@@ -53,18 +52,16 @@ it('should unmount with store.get', () => {
   const store = createStore();
   const countAtom = state(0);
   const callback = vi.fn();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(countAtom);
-      callback();
-    },
-    { signal: controller.signal },
-  );
-  expect(callback).toHaveBeenCalled();
-  controller.abort();
-  callback.mockClear();
+
+  const unsubscribeWatch1 = store.watch(countAtom, () => {
+    callback();
+  });
+  expect(callback).not.toHaveBeenCalled();
   store.set(countAtom, 1);
+  expect(callback).toHaveBeenCalledTimes(1);
+  unsubscribeWatch1();
+  callback.mockClear();
+  store.set(countAtom, 2);
   expect(callback).not.toHaveBeenCalled();
 });
 
@@ -73,15 +70,11 @@ it('should unmount dependencies with store.get', () => {
   const countAtom = state(0);
   const derivedAtom = computed((get) => get(countAtom) * 2);
   const callback = vi.fn();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(derivedAtom);
-      callback();
-    },
-    { signal: controller.signal },
-  );
-  controller.abort();
+
+  const unsubscribeWatch2 = store.watch(derivedAtom, () => {
+    callback();
+  });
+  unsubscribeWatch2();
 
   callback.mockClear();
   store.set(countAtom, 1);
@@ -157,13 +150,10 @@ it('should update async atom with deps after await', async () => {
 
   const store = createStore();
   let lastValue = store.get(derivedAtom);
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      lastValue = get(derivedAtom);
-    },
-    { signal: controller.signal },
-  );
+
+  const unsubscribeWatch3 = store.watch(derivedAtom, () => {
+    lastValue = store.get(derivedAtom);
+  });
 
   store.set(countAtom, 1);
   restore();
@@ -177,7 +167,7 @@ it('should update async atom with deps after await', async () => {
   restore();
 
   expect(await lastValue).toBe(3);
-  controller.abort();
+  unsubscribeWatch3();
 });
 
 it('should not fire subscription when async atom promise is the same', () => {
@@ -195,23 +185,15 @@ it('should not fire subscription when async atom promise is the same', () => {
   expect(derivedGetter).not.toHaveBeenCalled();
 
   const promiseListener = vi.fn();
-  const promiseController = new AbortController();
-  store.watch(
-    (get) => {
-      void get(promiseAtom);
-      promiseListener();
-    },
-    { signal: promiseController.signal },
-  );
+
+  const unsubscribeWatch4 = store.watch(promiseAtom, () => {
+    promiseListener();
+  });
   const derivedListener = vi.fn();
-  const derivedController = new AbortController();
-  store.watch(
-    (get) => {
-      void get(derivedAtom);
-      derivedListener();
-    },
-    { signal: derivedController.signal },
-  );
+
+  const unsubscribeWatch5 = store.watch(derivedAtom, () => {
+    derivedListener();
+  });
 
   promiseListener.mockClear();
   derivedListener.mockClear();
@@ -237,8 +219,8 @@ it('should not fire subscription when async atom promise is the same', () => {
   expect(promiseListener).not.toBeCalled();
   expect(derivedListener).not.toBeCalled();
 
-  promiseController.abort();
-  derivedController.abort();
+  unsubscribeWatch4();
+  unsubscribeWatch5();
 });
 
 it('should notify subscription with tree dependencies', () => {
@@ -257,11 +239,8 @@ it('should notify subscription with tree dependencies', () => {
 
   const traceDep3 = vi.fn();
   const store = createStore();
-  store.watch((get) => {
-    get(dep2_sumAtom);
-  }); // this will cause the bug
-  store.watch((get) => {
-    get(dep3_mirrorDoubleAtom);
+  store.watch(dep2_sumAtom, () => undefined); // this will cause the bug
+  store.watch(dep3_mirrorDoubleAtom, () => {
     traceDep3();
   });
 
@@ -281,11 +260,8 @@ it('should notify subscription with tree dependencies with bail-out', () => {
 
   const cb = vi.fn();
   const store = createStore();
-  store.watch((get) => {
-    get(dep1Atom);
-  });
-  store.watch((get) => {
-    get(dep3Atom);
+  store.watch(dep1Atom, () => undefined);
+  store.watch(dep3Atom, () => {
     cb();
   });
 
@@ -321,8 +297,7 @@ it('should not trigger subscriber if the same value with chained dependency', ()
     debugLabel: 'derivedFurtherAtom',
   });
   const traceFurther = vi.fn();
-  store.watch((get) => {
-    get(derivedFurtherAtom);
+  store.watch(derivedFurtherAtom, () => {
     traceFurther();
   });
 
@@ -350,9 +325,7 @@ it('read function should called during subscription', () => {
   expect(derive1Fn).toHaveBeenCalledTimes(1);
   expect(derive2Fn).toHaveBeenCalledTimes(1);
 
-  store.watch((get) => {
-    get(derived2Atom);
-  });
+  store.watch(derived2Atom, () => undefined);
   store.set(countAtom, (c) => c + 1);
   expect(derive1Fn).toHaveBeenCalledTimes(1);
   expect(derive2Fn).toHaveBeenCalledTimes(2);
@@ -367,15 +340,9 @@ it('should update with conditional dependencies', () => {
     set(f1, val);
     set(f2, val);
   });
-  store.watch((get) => {
-    get(f1);
-  });
-  store.watch((get) => {
-    get(f2);
-  });
-  store.watch((get) => {
-    get(f3);
-  });
+  store.watch(f1, () => undefined);
+  store.watch(f2, () => undefined);
+  store.watch(f3, () => undefined);
   store.set(updateFn, true);
   expect(store.get(f3)).toBe(true);
 });
@@ -393,9 +360,7 @@ it('should update derived atoms during write', () => {
     }
   });
 
-  store.watch((get) => {
-    get(countAtom);
-  });
+  store.watch(countAtom, () => undefined);
   expect(store.get(countAtom)).toBe(1);
   store.set(updateCountAtom, 2);
   expect(store.get(countAtom)).toBe(2);
@@ -419,14 +384,11 @@ it('should notify pending write triggered asynchronously and indirectly (#2451)'
   const anAtom = state('initial');
 
   const callbackFn = vi.fn();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      const value = get(anAtom);
-      callbackFn(value);
-    },
-    { signal: controller.signal },
-  );
+
+  const unsubscribeWatch6 = store.watch(anAtom, () => {
+    const value = store.get(anAtom);
+    callbackFn(value);
+  });
   callbackFn.mockClear();
 
   const actionAtom = command(async ({ set }) => {
@@ -443,7 +405,7 @@ it('should notify pending write triggered asynchronously and indirectly (#2451)'
 
   expect(callbackFn).toHaveBeenCalledOnce();
   expect(callbackFn).toHaveBeenCalledWith('next');
-  controller.abort();
+  unsubscribeWatch6();
 });
 
 describe('async atom with subtle timing', () => {
@@ -507,8 +469,7 @@ it('Unmount an atom that is no longer dependent within a derived atom', () => {
 
   const store = createStore();
   const trace = vi.fn();
-  store.watch((get) => {
-    get(derivedAtom);
+  store.watch(derivedAtom, () => {
     trace();
   });
   trace.mockClear();
@@ -534,13 +495,10 @@ it('should update derived atom even if dependances changed (#2697)', () => {
   const store = createStore();
   const onChangeDerived = vi.fn();
 
-  store.watch((get) => {
-    get(derivedAtom);
+  store.watch(derivedAtom, () => {
     onChangeDerived();
   });
-  store.watch((get) => {
-    get(conditionalAtom);
-  });
+  store.watch(conditionalAtom, () => undefined);
   onChangeDerived.mockClear();
 
   expect(onChangeDerived).toHaveBeenCalledTimes(0);
@@ -553,16 +511,11 @@ it('double unmount should not cause new mount', () => {
     debugLabel: 'base',
   });
   const store = createDebugStore();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(base);
-    },
-    { signal: controller.signal },
-  );
 
-  controller.abort();
-  controller.abort();
+  const unsubscribeWatch7 = store.watch(base, () => undefined);
+
+  unsubscribeWatch7();
+  unsubscribeWatch7();
 
   expect(store.isMounted(base)).toBeFalsy();
 });
@@ -572,34 +525,27 @@ it('mount multiple times on same atom', () => {
     debugLabel: 'base',
   });
   const store = createDebugStore();
-  const controller1 = new AbortController();
-  store.watch(
-    (get) => {
-      get(base);
-    },
-    { signal: controller1.signal },
-  );
-  const controller2 = new AbortController();
-  store.watch(
-    (get) => {
-      get(base);
-    },
-    { signal: controller2.signal },
-  );
 
-  controller1.abort();
-  controller2.abort();
+  const unsubscribeWatch8 = store.watch(base, () => undefined);
+
+  const unsubscribeWatch9 = store.watch(base, () => undefined);
+
+  unsubscribeWatch8();
+  unsubscribeWatch9();
 
   expect(store.isMounted(base)).toBeFalsy();
 });
 
-it('sub empty atoms', () => {
+it('can observe a computed with no dependencies without an initial notification', () => {
   const store = createStore();
-  expect(() => {
-    store.watch(() => {
-      // empty watch function
-    });
-  }).not.toThrow();
+  const empty = computed<number | undefined>(() => undefined);
+  const callback = vi.fn();
+  const unsubscribe = store.watch(empty, callback);
+  expect(store.get(empty)).toBeUndefined();
+  expect(callback).not.toHaveBeenCalled();
+  store.set(state(0), 1);
+  expect(callback).not.toHaveBeenCalled();
+  unsubscribe();
 });
 
 it('mount single atom in array', () => {
@@ -607,8 +553,7 @@ it('mount single atom in array', () => {
   const base$ = state(0);
   const trace = vi.fn();
 
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     trace();
   });
   trace.mockClear(); // clear initial call
@@ -622,19 +567,12 @@ it('mount support signal', () => {
   const base$ = state(0);
   const trace = vi.fn();
 
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(base$);
-      trace();
-    },
-    {
-      signal: controller.signal,
-    },
-  );
+  const unsubscribeWatch10 = store.watch(base$, () => {
+    trace();
+  });
 
   trace.mockClear(); // clear initial call
-  controller.abort();
+  unsubscribeWatch10();
 
   store.set(base$, 1);
   expect(trace).not.toBeCalled();
@@ -646,17 +584,14 @@ it('call unsub for multiple atoms will unsub all listeners', () => {
   const base2$ = state(0);
   const trace = vi.fn();
 
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(base1$);
-      get(base2$);
+  const unsubscribeWatch11 = store.watch(
+    computed((get) => [get(base1$), get(base2$)]),
+    () => {
       trace();
     },
-    { signal: controller.signal },
   );
   trace.mockClear(); // clear initial call
-  controller.abort();
+  unsubscribeWatch11();
   store.set(base1$, 1);
   store.set(base2$, 2);
   expect(trace).not.toBeCalled();
@@ -687,18 +622,12 @@ it('should unmount base automatically when unmount listener', () => {
     },
   );
 
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(derived$);
-    },
-    { signal: controller.signal },
-  );
+  const unsubscribeWatch12 = store.watch(derived$, () => undefined);
   trace.mockClear();
   store.set(base$, 1);
   expect(trace).toHaveBeenCalledTimes(1);
 
-  controller.abort();
+  unsubscribeWatch12();
   trace.mockClear();
   store.set(base$, 2);
   expect(trace).not.toHaveBeenCalled();
@@ -741,15 +670,10 @@ it('should unmount base$ atom in this complex scenario', () => {
   );
 
   const store = createDebugStore();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(derived1$);
-    },
-    { signal: controller.signal },
-  );
+
+  const unsubscribeWatch13 = store.watch(derived1$, () => undefined);
   store.get(derived2$);
-  controller.abort();
+  unsubscribeWatch13();
 
   trace.mockClear();
   store.set(base$, 1);
@@ -781,15 +705,10 @@ it('shoule unmount base$ atom in this complex scenario 2', () => {
   );
 
   const store = createDebugStore();
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(derived$);
-    },
-    { signal: controller.signal },
-  );
+
+  const unsubscribeWatch14 = store.watch(derived$, () => undefined);
   store.set(branch$, false);
-  controller.abort();
+  unsubscribeWatch14();
 
   expect(nestedAtomToString(store.getReadDependents(base2$))).toEqual(['base2$']);
 });
@@ -805,9 +724,7 @@ it('shoule unmount base$ atom in this complex scenario 3', () => {
   });
 
   const store = createDebugStore();
-  store.watch((get) => {
-    get(derived$);
-  });
+  store.watch(derived$, () => undefined);
   expect(store.isMounted(base$)).toBeTruthy();
 
   store.set(branch$, false);
@@ -826,12 +743,8 @@ it('shoule unmount base$ atom in this complex scenario 4', () => {
   });
 
   const store = createDebugStore();
-  store.watch((get) => {
-    get(derived$);
-  });
-  store.watch((get) => {
-    get(base$);
-  });
+  store.watch(derived$, () => undefined);
+  store.watch(base$, () => undefined);
 
   store.set(branch$, false);
 

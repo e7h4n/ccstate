@@ -29,18 +29,14 @@ describe('unhandled rejections', () => {
   });
 
   test('watch will raise unhandled rejection', async () => {
-    store.watch((get) => {
-      void get(promise$);
-    });
+    store.watch(promise$, () => undefined);
 
     await delay(0);
     expect(trace).toBeCalledTimes(1);
   });
 
   test('set to a mounted computed will raise unhandled rejection', async () => {
-    store.watch((get) => {
-      void get(promise$);
-    });
+    store.watch(promise$, () => undefined);
     store.set(reload$, (x) => x + 1);
 
     await delay(0);
@@ -48,8 +44,8 @@ describe('unhandled rejections', () => {
   });
 
   test('manual process unhandled rejection will prevent unhandled rejection', async () => {
-    store.watch((get) => {
-      get(promise$).catch(() => void 0);
+    store.watch(promise$, () => {
+      store.get(promise$).catch(() => void 0);
     });
 
     await delay(0);
