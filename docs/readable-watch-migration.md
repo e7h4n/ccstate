@@ -119,7 +119,9 @@ These are selectors over the loadable hooks and inherit their migration. Verify 
 
 These checks do not mean the unchanged legacy-watch tests or the framework/UI suite pass.
 
-## Performance evidence
+## Earlier before/after prototype performance evidence
+
+The comprehensive benchmark of runtime commit `56439fa` is now documented in [the fixed-SHA report](benchmarks/56439fa-vs-jotai.md), including all 94 scenario medians and React's remaining performance gaps. The table below is a separate earlier before/after prototype experiment, not the final comprehensive run.
 
 Five independent processes per version/scenario; production Node 24; same host and source-bundle settings. One timed command-batch operation contains 1000 commands, each with three writes.
 
