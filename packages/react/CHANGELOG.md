@@ -1,5 +1,12 @@
 # ccstate-react
 
+## 6.0.0
+
+### Patch Changes
+
+- Updated dependencies [40b9575]
+  - ccstate@6.0.0
+
 ## 5.7.0
 
 ### Patch Changes
