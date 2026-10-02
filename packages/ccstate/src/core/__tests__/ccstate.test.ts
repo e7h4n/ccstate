@@ -102,22 +102,20 @@ test('set an atom should trigger subscribe', () => {
     debugLabel: 'base',
   });
   const trace = vi.fn();
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     trace();
   });
   store.set(base$, 2);
-  expect(trace).toBeCalledTimes(2);
+  expect(trace).toBeCalledTimes(1);
 });
 
-test('set an atom in func should trigger multiple times', () => {
+test('set an atom in a command notifies the final value once', () => {
   const store = createStore();
   const base$ = state(1, {
     debugLabel: 'base',
   });
   const trace = vi.fn();
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     trace();
   });
   store.set(
@@ -133,7 +131,8 @@ test('set an atom in func should trigger multiple times', () => {
     ),
   );
 
-  expect(trace).toBeCalledTimes(4);
+  expect(store.get(base$)).toBe(4);
+  expect(trace).toBeCalledTimes(1);
 });
 
 test('sub multiple atoms', () => {
@@ -147,10 +146,13 @@ test('sub multiple atoms', () => {
 
   const trace = vi.fn();
 
-  store.watch((get) => {
-    trace();
-    return `${String(get(state1$))}:${String(get(state2$))}`;
-  });
+  store.watch(
+    computed((get) => [get(state1$), get(state2$)]),
+    () => {
+      trace();
+      return `${String(store.get(state1$))}:${String(store.get(state2$))}`;
+    },
+  );
 
   store.set(state1$, (x) => x + 1);
   store.set(state2$, (x) => x + 1);
@@ -172,14 +174,15 @@ test('sub computed atom', () => {
   );
 
   const trace = vi.fn();
-  store.watch((get) => {
-    get(derived$);
+  store.watch(derived$, () => {
     trace();
   });
 
-  expect(trace).toBeCalled();
+  expect(store.get(derived$)).toBe(2);
+  expect(trace).not.toHaveBeenCalled();
   store.set(base$, 2);
-  expect(trace).toBeCalledTimes(2);
+  expect(store.get(derived$)).toBe(4);
+  expect(trace).toBeCalledTimes(1);
 });
 
 test('get read deps', () => {
@@ -271,8 +274,7 @@ test('outdated deps should not trigger sub', async () => {
   );
 
   const traceSub = vi.fn();
-  store.watch((get) => {
-    void get(derived$);
+  store.watch(derived$, () => {
     traceSub();
   });
   await expect(store.get(derived$)).resolves.toBe('A');
@@ -398,9 +400,7 @@ test('diamond deps and distinct compute', () => {
 
   const store = createStore();
 
-  store.watch((get) => {
-    get(test$);
-  });
+  store.watch(test$, () => undefined);
 
   trace.mockClear();
 

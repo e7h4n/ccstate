@@ -1,195 +1,157 @@
-import type { Command, State, Computed, Signal, Updater, StateArg } from '../../../types/core/signal';
-import type {
-  Mutation,
-  ReadComputed,
-  StoreContext,
-  StateState,
-  StoreGet,
-  StoreSet,
-  SetArgs,
-  ComputedState,
-} from '../../../types/core/store';
+import type { Command, State, Computed, Signal, Updater, StateArg, Getter, Setter } from '../../../types/core/signal';
+import type { Mutation, ReadComputed, StoreContext, StoreGet, SetArgs } from '../../../types/core/store';
 import { shouldDistinct } from '../signal/signal';
+import { withSetInterceptor } from '../interceptor';
 
-// Dirty markers are just 'potentially' dirty because we don't know if
-// dependencies result will change. Pushing a computed to dirty markers doesn't
-// mean it will re-evaluate immediately, just marks it for epoch checking in
-// #tryGetCached. So the propagation is greedy to mark all dependants as dirty
-function pushDirtyMarkers(signalState: StateState<unknown>, context: StoreContext, mutation: Mutation) {
-  let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
-  const visited = new Set<Computed<unknown>>();
+type Flush = (context: StoreContext) => void;
 
-  while (queue.length > 0) {
-    const nextQueue: Computed<unknown>[] = [];
+// Writes mark the current mounted graph, but do not evaluate it. Repeated
+// invalidations must still mark nodes whose dirty flag an eager get cleared.
+function markDirty(dependents: Set<Computed<unknown>>, context: StoreContext, mutation: Mutation) {
+  let queue = Array.from(dependents);
+  while (queue.length) {
+    const next: Computed<unknown>[] = [];
     for (const computed$ of queue) {
-      if (visited.has(computed$)) {
-        continue;
-      }
-      visited.add(computed$);
-      mutation.potentialDirtyIds.add(computed$.id);
-
+      // Jotai likewise stops at an already invalidated node (#2950). An
+      // eager read clears this flag, so a later write can invalidate it again.
+      if (mutation.potentialDirtyIds.has(computed$.id)) continue;
       const computedState = context.stateMap.get(computed$);
-      // This computed$ is read from other computed$'s readDepts, so it must not be null and must have mounted
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      for (const dep of computedState!.mounted!.readDepts) {
-        nextQueue.push(dep);
-      }
+      if (!mutation.oldEpochs.has(computed$)) mutation.oldEpochs.set(computed$, computedState?.epoch);
+      mutation.potentialDirtyIds.add(computed$.id);
+      for (const dep of computedState?.mounted?.readDepts ?? []) next.push(dep);
     }
-
-    queue = nextQueue;
+    queue = next;
   }
 }
 
 function pullEvaluate(
   readComputed: ReadComputed,
-  signalState: StateState<unknown>,
+  dependents: Set<Computed<unknown>>,
   context: StoreContext,
   mutation: Mutation,
 ) {
-  let queue: Computed<unknown>[] = Array.from(signalState.mounted?.readDepts ?? []);
-
-  const oldEpochs = new Map<Computed<unknown>, number | undefined>();
-  while (queue.length > 0) {
-    const nextQueue: Computed<unknown>[] = [];
-    for (const computed$ of queue) {
-      if (oldEpochs.has(computed$)) {
-        continue;
-      }
-      const oldState = context.stateMap.get(computed$) as ComputedState<unknown> | undefined;
-      oldEpochs.set(computed$, oldState?.epoch);
-
-      const readDepts = context.stateMap.get(computed$)?.mounted?.readDepts;
-      if (readDepts) {
-        for (const dep of Array.from(readDepts)) {
-          nextQueue.push(dep);
-        }
-      }
-    }
-    queue = nextQueue;
-  }
-
-  queue = Array.from(signalState.mounted?.readDepts ?? []);
+  let queue = Array.from(dependents);
   const visited = new Set<Computed<unknown>>();
-
-  while (queue.length > 0) {
-    const nextQueue: Computed<unknown>[] = [];
+  while (queue.length) {
+    const next: Computed<unknown>[] = [];
     for (const computed$ of queue) {
-      if (visited.has(computed$)) {
-        continue;
-      }
+      if (visited.has(computed$)) continue;
       visited.add(computed$);
-      const computedState = readComputed(computed$, context, mutation);
+      const current = readComputed(computed$, context, mutation);
+      // Newly mounted roots already computed their initial value and must not
+      // receive an initial notification merely because an earlier write exists.
+      if (!mutation.oldEpochs.has(computed$) || mutation.oldEpochs.get(computed$) === current.epoch) continue;
+      context.changedSignals.add(computed$);
+      for (const dep of current.mounted?.readDepts ?? []) next.push(dep);
+    }
+    queue = next;
+  }
+}
 
-      if (oldEpochs.get(computed$) === computedState.epoch) {
-        continue;
-      }
+function getPendingMutation(context: StoreContext): Mutation {
+  // Like Jotai's store-owned invalidation collections, reuse cleared work
+  // buffers. Evaluation dependency Maps and AbortSignal owners are not reused.
+  return (context.pendingMutation ??= context.mutationWork ??=
+    {
+      potentialDirtyIds: new Set(),
+      oldEpochs: new Map(),
+      changedSources: new Set(),
+      flushing: false,
+    });
+}
 
-      const readDepts = computedState.mounted?.readDepts;
-      if (readDepts) {
-        for (const dep of Array.from(readDepts)) {
-          nextQueue.push(dep);
-        }
+export function flushMutation(readComputed: ReadComputed, context: StoreContext): boolean {
+  const mutation = context.pendingMutation;
+  if (!mutation) return true;
+  // A computed's old AbortSignal can synchronously cause a write while the new
+  // evaluation is being constructed. Finish that graph before firing listeners.
+  if (mutation.flushing) return false;
+  mutation.flushing = true;
+  try {
+    while (mutation.changedSources.size) {
+      const sources = Array.from(mutation.changedSources);
+      mutation.changedSources.clear();
+      for (const source of sources) {
+        const dependents = context.stateMap.get(source)?.mounted?.readDepts;
+        if (dependents?.size) pullEvaluate(readComputed, dependents, context, mutation);
       }
     }
-
-    queue = nextQueue;
+    mutation.potentialDirtyIds.clear();
+    mutation.oldEpochs.clear();
+    if (context.pendingMutation === mutation) context.pendingMutation = undefined;
+    return true;
+  } finally {
+    mutation.flushing = false;
   }
 }
 
-function propagationChanges(
-  readComputed: ReadComputed,
-  signalState: StateState<unknown>,
-  context: StoreContext,
-  mutation: Mutation,
-) {
-  pushDirtyMarkers(signalState, context, mutation);
-  pullEvaluate(readComputed, signalState, context, mutation);
-}
-
-function innerSetState<T>(
-  readComputed: ReadComputed,
-  signal$: State<T>,
-  context: StoreContext,
-  mutation: Mutation,
-  val: StateArg<T>,
-) {
-  let newValue: T;
-  if (typeof val === 'function') {
-    const updater = val as Updater<T>;
-    const signalState = context.stateMap.get(signal$);
-    newValue = updater(signalState ? (signalState.val as T) : signal$.init);
+function setState<T>(signal$: State<T>, context: StoreContext, value: StateArg<T>) {
+  let next: T;
+  if (typeof value === 'function') {
+    const updaterState = context.stateMap.get(signal$);
+    next = (value as Updater<T>)(updaterState ? (updaterState.val as T) : signal$.init);
   } else {
-    newValue = val;
+    next = value;
   }
-
-  if (shouldDistinct(signal$, newValue, context)) {
-    return;
-  }
-
+  if (shouldDistinct(signal$, next, context)) return;
   context.writeVersion += 1;
-  const signalState = context.stateMap.get(signal$);
-  if (!signalState) {
-    context.stateMap.set(signal$, {
-      val: newValue,
-      epoch: 0,
-    });
-    return;
+  // Updaters are user code and can subscribe or write before returning.
+  // Preserve the state object/mounted listeners established during that call.
+  const oldState = context.stateMap.get(signal$);
+  if (oldState) {
+    oldState.val = next;
+    oldState.epoch += 1;
+  } else {
+    context.stateMap.set(signal$, { val: next, epoch: 0 });
   }
-
-  signalState.val = newValue;
-  signalState.epoch += 1;
-  propagationChanges(readComputed, signalState, context, mutation);
-
-  return undefined;
+  // Like Jotai changedAtoms, this records real state changes even without a
+  // listener, and is also the public set entry's flush-work checkpoint.
+  context.changedSignals.add(signal$);
+  const dependents = oldState?.mounted?.readDepts;
+  if (dependents?.size) {
+    const mutation = getPendingMutation(context);
+    mutation.changedSources.add(signal$);
+    markDirty(dependents, context, mutation);
+  }
 }
 
 export function set<T, Args extends SetArgs<T, unknown[]>>(
   readComputed: ReadComputed,
   writable$: State<T> | Command<T, Args>,
   context: StoreContext,
-  mutation: Mutation,
+  get: StoreGet,
+  flush: Flush,
   ...args: Args
 ): undefined | T {
-  if ('read' in writable$) {
+  if ('read' in writable$) return;
+  if (!('write' in writable$)) {
+    setState(writable$, context, args[0]);
     return;
   }
-
-  if ('write' in writable$) {
-    return writable$.write(mutation.visitor, ...args);
-  }
-
-  innerSetState(readComputed, writable$, context, mutation, args[0]);
-  return;
-}
-
-/**
- * Creates a mutation operation context. The Mutation remains unique throughout
- * the mutation cycle and can track side effects produced by this mutation operation
- *
- * This tracking is implemented by coloring the visitor function, so the Mutation
- * needs to wrap get & set functions and ensure that all get & set operations
- * executed in the mutation context come from the same Mutation
- *
- * @param context
- * @param get
- * @param set
- * @returns
- */
-export function createMutation(context: StoreContext, get: StoreGet, set: StoreSet): Mutation {
-  const mutation: Mutation = {
-    potentialDirtyIds: new Set(),
-    visitor: {
-      get: <T>(signal$: Signal<T>) => {
-        return get(signal$, context, mutation);
-      },
-      set: <T, Args extends SetArgs<T, unknown[]>>(
-        signal$: State<T> | Command<T, Args>,
-        ...args: Args
-      ): undefined | T => {
-        return set<T, Args>(signal$, context, ...args);
-      },
+  let isSync = true;
+  const visitor: { get: Getter; set: Setter } = {
+    get: <U>(signal$: Signal<U>) => get(signal$, context),
+    set: <U, Params extends SetArgs<U, unknown[]>>(
+      child: State<U> | Command<U, Params>,
+      ...innerArgs: Params
+    ): undefined | U => {
+      try {
+        return withSetInterceptor(
+          () => set<U, Params>(readComputed, child, context, get, flush, ...innerArgs),
+          child,
+          context.interceptor?.set,
+          ...innerArgs,
+        );
+      } finally {
+        // Each write invocation owns this flag. Returning a Promise (or the
+        // setter itself) ends its synchronous phase, just as in Jotai.
+        if (!isSync) flush(context);
+      }
     },
   };
-
-  return mutation;
+  try {
+    return writable$.write(visitor, ...args);
+  } finally {
+    isSync = false;
+  }
 }

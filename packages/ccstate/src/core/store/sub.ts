@@ -41,6 +41,7 @@ function initMount<T>(readSignal: ReadSignal, signal$: Signal<T>, context: Store
 
   signalState.mounted = {
     readDepts: new Set(),
+    listeners: new Set(),
   };
 
   if (isComputedState(signalState)) {
@@ -81,7 +82,7 @@ function doUnmount<T>(
 
 export function unmount<T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation): void {
   const signalState = context.stateMap.get(signal$);
-  if (!signalState?.mounted || signalState.mounted.readDepts.size) {
+  if (!signalState?.mounted || signalState.mounted.readDepts.size || signalState.mounted.listeners.size) {
     return;
   }
 

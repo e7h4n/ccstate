@@ -25,8 +25,8 @@ describe.each([false, true])('computed results (mounted: %s)', (mounted) => {
       const relay$ = computed((get) => get(caught$));
       const listener = vi.fn();
       if (mounted) {
-        store.watch((get) => {
-          listener(get(relay$));
+        store.watch(relay$, () => {
+          listener(store.get(relay$));
         });
       }
 
@@ -40,7 +40,7 @@ describe.each([false, true])('computed results (mounted: %s)', (mounted) => {
       expect(store.get(relay$)).toEqual({ value: undefined });
 
       if (mounted) {
-        expect(listener.mock.calls).toEqual([[{ value: undefined }], [{ error }], [{ value: undefined }]]);
+        expect(listener.mock.calls).toEqual([[{ error }], [{ value: undefined }]]);
       }
     },
   );
@@ -64,8 +64,8 @@ describe.each([false, true])('computed results (mounted: %s)', (mounted) => {
     const relay$ = computed((get) => get(caught$));
     const listener = vi.fn();
     if (mounted) {
-      store.watch((get) => {
-        listener(get(relay$));
+      store.watch(relay$, () => {
+        listener(store.get(relay$));
       });
     }
 
@@ -75,7 +75,7 @@ describe.each([false, true])('computed results (mounted: %s)', (mounted) => {
     expect(store.get(relay$)).toBe(second);
     expect(() => store.get(output$)).toThrow(second);
     if (mounted) {
-      expect(listener.mock.calls).toEqual([[first], [second]]);
+      expect(listener.mock.calls).toEqual([[second]]);
     }
   });
 
@@ -97,7 +97,7 @@ describe.each([false, true])('computed results (mounted: %s)', (mounted) => {
     });
     const caught$ = computed(catchError);
     if (mounted) {
-      store.watch((get) => get(caught$));
+      store.watch(caught$, () => undefined);
     }
 
     expect(store.get(caught$)).toBe(error);

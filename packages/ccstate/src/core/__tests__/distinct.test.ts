@@ -14,12 +14,10 @@ it('default state & computed is distincted', () => {
 
   const traceBase = vi.fn();
   const traceComputed = vi.fn();
-  store.watch((get) => {
-    get(base$);
+  store.watch(base$, () => {
     traceBase();
   });
-  store.watch((get) => {
-    get(computed$);
+  store.watch(computed$, () => {
     traceComputed();
   });
 
@@ -42,9 +40,7 @@ it('will distinct computed calls', () => {
     return get(computed$);
   });
 
-  store.watch((get) => {
-    get(computed2$);
-  });
+  store.watch(computed2$, () => undefined);
   expect(traceComputed).toBeCalledTimes(1);
 
   store.set(base$, { a: 1 });

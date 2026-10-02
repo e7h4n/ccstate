@@ -1,17 +1,6 @@
 export { state, computed, command } from './signal/factory';
 export { createStore } from './store/store';
 
-export type {
-  State,
-  Computed,
-  Command,
-  Getter,
-  Setter,
-  Updater,
-  Read,
-  Write,
-  StateArg,
-  Watch as Watcher,
-} from '../../types/core/signal';
+export type { State, Computed, Command, Getter, Setter, Updater, Read, Write, StateArg } from '../../types/core/signal';
 
-export type { Store, SetArgs } from '../../types/core/store';
+export type { Store, SetArgs, Watcher } from '../../types/core/store';

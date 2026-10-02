@@ -43,11 +43,13 @@ test('ccstate sub scenerio', () => {
 
   const topComputed = atoms[atoms.length - 1][0];
   const trace = vi.fn();
-  store.watch((get) => {
-    get(topComputed);
-    trace();
+  const unsubscribe = store.watch(topComputed, () => {
+    trace(store.get(topComputed));
   });
+  expect(store.get(topComputed)).toBe(45);
+  expect(trace).not.toHaveBeenCalled();
   const bottomAtom = atoms[0][0] as State<number>;
   store.set(bottomAtom, (x) => x + 1);
-  expect(trace).toHaveBeenCalledTimes(2);
+  expect(trace.mock.calls).toEqual([[46]]);
+  unsubscribe();
 });

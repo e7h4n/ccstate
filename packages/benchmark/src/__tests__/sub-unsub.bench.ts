@@ -16,11 +16,8 @@ for (let depth = beginScale; depth <= maxScale; depth++) {
   describe(`sub & unsub top atom, ${String(Math.pow(10, depth))} atoms pyramid`, () => {
     const { atoms: atomsCCState, store: storeCCState } = setupStoreWithoutSub(depth, ccstateStrategy);
     bench('ccstate', () => {
-      const controller = new AbortController();
-      storeCCState.watch((get) => get(atomsCCState[atomsCCState.length - 1][0]), {
-        signal: controller.signal,
-      });
-      controller.abort();
+      const unsubscribeWatch1 = storeCCState.watch(atomsCCState[atomsCCState.length - 1][0], () => undefined);
+      unsubscribeWatch1();
     });
 
     const { atoms: atomsJotai, store: storeJotai } = setupStoreWithoutSub(depth, jotaiStrategy);

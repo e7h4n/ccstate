@@ -39,8 +39,11 @@ function useLoadableInternal<T, R>(
   const store = useStore();
   const subStore = useCallback(
     (fn: () => void) => {
-      function updateResult(result: Loadable<T>, signal: AbortSignal) {
-        if (signal.aborted) return;
+      let active = true;
+      let generation = 0;
+
+      function updateResult(result: Loadable<T>, version: number) {
+        if (!active || version !== generation) return;
         if (keepLastResolved && hasSameData(promiseResult.current, result, equalityFn)) return;
         promiseResult.current = result;
         const nextSelectedResult = select(result);
@@ -49,59 +52,39 @@ function useLoadableInternal<T, R>(
         fn();
       }
 
-      const controller = new AbortController();
+      function refresh() {
+        const version = ++generation;
+        let promise: Promise<Awaited<T>> | Awaited<T>;
+        try {
+          promise = store.get(promise$);
+        } catch (error) {
+          updateResult({ state: 'hasError', error }, version);
+          return;
+        }
+        if (!(promise instanceof Promise)) {
+          updateResult({ state: 'hasData', data: promise }, version);
+          return;
+        }
+        if (!keepLastResolved) updateResult({ state: 'loading' }, version);
+        void promise.then(
+          (data) => {
+            updateResult({ state: 'hasData', data }, version);
+          },
+          (error: unknown) => {
+            updateResult({ state: 'hasError', error }, version);
+          },
+        );
+      }
 
-      store.watch(
-        (get, { signal }) => {
-          const promise: Promise<Awaited<T>> | Awaited<T> = get(promise$);
-          if (!(promise instanceof Promise)) {
-            updateResult(
-              {
-                state: 'hasData',
-                data: promise,
-              },
-              signal,
-            );
-            return;
-          }
-
-          if (!keepLastResolved) {
-            updateResult(
-              {
-                state: 'loading',
-              },
-              signal,
-            );
-          }
-
-          promise.then(
-            (ret) => {
-              updateResult(
-                {
-                  state: 'hasData',
-                  data: ret,
-                },
-                signal,
-              );
-            },
-            (error: unknown) => {
-              updateResult(
-                {
-                  state: 'hasError',
-                  error,
-                },
-                signal,
-              );
-            },
-          );
-        },
-        {
-          signal: controller.signal,
-        },
-      );
+      const unsubscribe = store.watch(promise$, refresh);
+      // Core watch establishes dependencies, but initialization of the hook's
+      // selected snapshot belongs to this subscription, not to the listener API.
+      refresh();
 
       return () => {
-        controller.abort();
+        active = false;
+        generation += 1;
+        unsubscribe();
       };
     },
     [store, promise$, keepLastResolved, select, equalityFn],

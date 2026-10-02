@@ -1,4 +1,4 @@
-import type { Signal, Command, Getter, Setter, State, Computed, StateArg, Watch } from './signal';
+import type { Signal, Command, Getter, Setter, State, Computed, StateArg } from './signal';
 
 export interface Store {
   get: Getter;
@@ -11,7 +11,7 @@ export interface WatchOptions {
   debugLabel?: string;
 }
 
-export type Watcher = (watch: Watch, options?: WatchOptions) => void;
+export type Watcher = (signal: Signal<unknown>, listener: () => void) => () => void;
 
 export type InterceptorGet = <T>(signal$: Signal<T>, fn: () => T) => void;
 export interface InterceptorSet {
@@ -40,14 +40,16 @@ export interface StoreContext {
   stateMap: StateMap;
   interceptor?: StoreInterceptor;
   writeVersion: number;
+  changedSignals: Set<Signal<unknown>>;
+  pendingMutation: Mutation | undefined;
+  mutationWork: Mutation | undefined;
 }
 
 export interface Mutation {
   potentialDirtyIds: Set<number>;
-  visitor: {
-    get: Getter;
-    set: Setter;
-  };
+  oldEpochs: Map<Computed<unknown>, number | undefined>;
+  changedSources: Set<State<unknown>>;
+  flushing: boolean;
 }
 
 export interface StateState<T> {
@@ -81,6 +83,7 @@ export type StateMap = WeakMap<Signal<unknown>, SignalState<unknown>>;
 
 export interface Mounted {
   readDepts: Set<Computed<unknown>>;
+  listeners: Set<() => void>;
 }
 
 export type SetArgs<T, CommandArgs extends unknown[]> = [StateArg<T>] | CommandArgs;
@@ -93,7 +96,7 @@ export type StoreSet = <T, Args extends SetArgs<T, unknown[]>>(
 
 export type StoreGet = <T>(signal: Signal<T>, context: StoreContext, mutation?: Mutation) => T;
 
-export type StoreWatch = (watch: Watch, context: StoreContext, options?: WatchOptions) => void;
+export type StoreWatch = (signal: Signal<unknown>, context: StoreContext, listener: () => void) => () => void;
 
 export type ReadComputed = <T>(computed$: Computed<T>, context: StoreContext, mutation?: Mutation) => ComputedState<T>;
 export type ReadSignal = <T>(signal$: Signal<T>, context: StoreContext, mutation?: Mutation) => SignalState<T>;

@@ -118,9 +118,7 @@ it('do not keep atoms mounted between async recalculations', async () => {
 
   const store = createDebugStore();
   expect(store.getReadDependents(base)).toEqual([base]);
-  store.watch((get) => {
-    void get(derived);
-  });
+  store.watch(derived, () => undefined);
   restore();
   await Promise.resolve();
 
@@ -154,12 +152,8 @@ it('should not provide stale values to conditional dependents', () => {
   });
 
   const store = createStore();
-  store.watch((get) => {
-    get(derivedAtom);
-  });
-  store.watch((get) => {
-    get(stageAtom);
-  });
+  store.watch(derivedAtom, () => undefined);
+  store.watch(stageAtom, () => undefined);
 
   expect(store.get(stageAtom)).toBe('no-filter');
   store.set(hasFilterAtom, true);
@@ -187,13 +181,15 @@ it('settles never resolving async derivations with deps picked up sync', async (
     trace('NEVER');
   });
 
-  store.watch((get) => {
+  const consumeCurrent = () => {
     void (async () => {
       traceSub();
-      await get(asyncAtom);
+      await store.get(asyncAtom);
       trace('OK');
     })();
-  });
+  };
+  store.watch(asyncAtom, consumeCurrent);
+  consumeCurrent(); // Initial consumption is explicitly owned by the caller.
 
   store.set(syncAtom, {
     promise: pause(),
@@ -223,13 +219,15 @@ it('settles never resolving async derivations with deps picked up async', async 
   void store.get(asyncAtom).then(() => {
     trace('NEVER');
   });
-  store.watch((get) => {
+  const consumeCurrent = () => {
     void (async () => {
       trace('SUB');
-      await get(asyncAtom);
+      await store.get(asyncAtom);
       trace('OK');
     })();
-  });
+  };
+  store.watch(asyncAtom, consumeCurrent);
+  consumeCurrent();
 
   await delay(0);
   store.set(syncAtom, {
@@ -315,12 +313,8 @@ it('should re-evaluate stable derived atom values in situations where dependenci
   );
 
   const store = createStore();
-  store.watch((get) => {
-    get(stableDepDep);
-  });
-  store.watch((get) => {
-    get(newAtom);
-  });
+  store.watch(stableDepDep, () => undefined);
+  store.watch(newAtom, () => undefined);
   expect(store.get(stableDepDep)).toBe(2);
   expect(traceStableDepDep).toHaveBeenCalledTimes(1);
 

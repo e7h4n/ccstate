@@ -34,7 +34,7 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
       expect(signal.aborted).toBe(false);
       return signal;
     });
-    if (mounted) store.watch((get) => get(value));
+    if (mounted) store.watch(value, () => undefined);
 
     const first = store.get(value);
     expect(invocations[0]?.signal).toBe(first);
@@ -64,7 +64,7 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
         expect(options.signal).toBe(signal);
         return signal;
       });
-      if (mounted) store.watch((get) => void get(value));
+      if (mounted) store.watch(value, () => undefined);
 
       const first = store.get(value);
       store.set(source, 1);
@@ -87,7 +87,7 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
       if (result === 0) signal = options.signal;
       return result;
     });
-    if (mounted) store.watch((get) => get(value));
+    if (mounted) store.watch(value, () => undefined);
 
     expect(store.get(value)).toBe(0);
     expect(store.get(value)).toBe(0);
@@ -113,8 +113,8 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
       return signal;
     });
     if (mounted) {
-      firstStore.watch((get) => get(value));
-      secondStore.watch((get) => get(value));
+      firstStore.watch(value, () => undefined);
+      secondStore.watch(value, () => undefined);
     }
 
     const firstSignal = firstStore.get(value);
@@ -150,7 +150,7 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
         return error;
       }
     });
-    if (mounted) store.watch((get) => get(caught));
+    if (mounted) store.watch(caught, () => undefined);
 
     expect(store.get(caught)).toBe(0);
     const firstSignal = signal;
@@ -179,14 +179,7 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
       signals.push(signal);
       return get(source) === 0 ? first : second;
     });
-    const controller = new AbortController();
-    if (mounted)
-      store.watch(
-        (get) => {
-          void get(value);
-        },
-        { signal: controller.signal },
-      );
+    const unsubscribe = mounted ? store.watch(value, () => undefined) : () => undefined;
 
     expect(store.get(value)).toBe(first);
     store.set(source, 1);
@@ -198,18 +191,20 @@ describe.each([false, true])('computed signals (mounted=%s)', (mounted) => {
     resolveFirst(1);
     await expect(first).resolves.toBe(1);
     expect(store.get(value)).toBe(second);
-    controller.abort();
+    unsubscribe();
   });
 });
 
-it('watch signals stay stable within an invocation and belong to that invocation', () => {
+it('observed computed signals stay stable within an evaluation and belong to that evaluation', () => {
   const store = createStore();
   const source = state(0);
   const invocations: { signal: AbortSignal }[] = [];
-  store.watch((get, options) => {
-    get(source);
+  const observed = computed((get, options) => {
+    const value = get(source);
     invocations.push(options);
+    return value;
   });
+  const unsubscribe = store.watch(observed, () => undefined);
 
   const first = invocations[0]?.signal;
   expect(first.aborted).toBe(false);
@@ -222,38 +217,43 @@ it('watch signals stay stable within an invocation and belong to that invocation
   const second = invocations[1]?.signal;
   expect(second.aborted).toBe(false);
   expect(invocations[1]?.signal).toBe(second);
+  unsubscribe();
 });
 
-it('a late first read of an old watch signal cannot cancel the current invocation', () => {
+it('a late first read of an observed computed signal cannot cancel the current evaluation', () => {
   const store = createStore();
   const source = state(0);
   const invocations: { signal: AbortSignal }[] = [];
-  store.watch((get, options) => {
-    get(source);
+  const observed = computed((get, options) => {
+    const value = get(source);
     invocations.push(options);
+    return value;
   });
+  const unsubscribe = store.watch(observed, () => undefined);
 
   store.set(source, 1);
   const current = invocations[1]?.signal;
   expect(invocations[0]?.signal.aborted).toBe(true);
   expect(current.aborted).toBe(false);
+  unsubscribe();
 });
 
-it('an external signal still cancels watch side effects and unsubscribes', () => {
+it('unsubscribing stops notification without taking ownership of a computed signal', () => {
   const store = createStore();
   const source = state(0);
-  const controller = new AbortController();
   const signals: AbortSignal[] = [];
-  store.watch(
-    (get, { signal }) => {
-      get(source);
-      signals.push(signal);
-    },
-    { signal: controller.signal },
-  );
-
-  controller.abort();
-  expect(signals[0]?.aborted).toBe(true);
+  const observed = computed((get, { signal }) => {
+    signals.push(signal);
+    return get(source);
+  });
+  const listener = vi.fn();
+  const unsubscribe = store.watch(observed, listener);
+  unsubscribe();
+  expect(signals[0]?.aborted).toBe(false);
   store.set(source, 1);
   expect(signals).toHaveLength(1);
+  expect(listener).not.toHaveBeenCalled();
+  expect(store.get(observed)).toBe(1);
+  expect(signals[0]?.aborted).toBe(true);
+  expect(signals[1]?.aborted).toBe(false);
 });

@@ -40,18 +40,19 @@ it('should catch error when computed throw exception', () => {
 
   const store = createStore();
   const trace = vi.fn();
-  store.watch((get) => {
+  store.watch(cmptWithError$, () => {
     try {
-      get(cmptWithError$);
+      store.get(cmptWithError$);
     } catch {}
     trace();
   });
 
-  expect(trace).toBeCalledTimes(1);
+  expect(store.get(cmptWithError$)).toBe(0);
+  expect(trace).not.toHaveBeenCalled();
 
   store.set(base$, 1);
 
-  expect(trace).toBeCalledTimes(2);
+  expect(trace).toBeCalledTimes(1);
 
   expect(() => {
     store.get(cmptWithError$);
@@ -61,15 +62,15 @@ it('should catch error when computed throw exception', () => {
   const normalComputed$ = computed((get) => {
     return get(base$) + 1;
   });
-  store.watch((get) => {
-    get(normalComputed$);
+  store.watch(normalComputed$, () => {
     trace();
   });
-  expect(trace).toBeCalledTimes(1);
+  expect(store.get(normalComputed$)).toBe(2);
+  expect(trace).not.toHaveBeenCalled();
 
   store.set(base$, 2);
   // Both the changed error and the normal computed notify their watchers.
-  expect(trace).toBeCalledTimes(3);
+  expect(trace).toBeCalledTimes(2);
 });
 
 it('should throw error in derived computed', () => {
@@ -101,8 +102,7 @@ it('should not throw error in sub', () => {
   const trace = vi.fn();
 
   expect(() => {
-    store.watch((get) => {
-      get(derived$);
+    store.watch(derived$, () => {
       trace();
     });
   }).not.toThrow();

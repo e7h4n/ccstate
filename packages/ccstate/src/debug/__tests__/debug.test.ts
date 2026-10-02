@@ -7,9 +7,7 @@ it('get all subscribed atoms', () => {
   const store = createDebugStore();
   const base = state(1, { debugLabel: 'base' });
   const derived = computed((get) => get(base) + 1, { debugLabel: 'derived' });
-  store.watch((get) => {
-    get(derived);
-  });
+  store.watch(derived, () => undefined);
   expect(store.isMounted(base)).toBe(true);
   expect(store.isMounted(derived)).toBe(true);
 });

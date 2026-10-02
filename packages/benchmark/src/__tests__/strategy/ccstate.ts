@@ -13,20 +13,7 @@ export const ccstateStrategy: Strategy<State<number> | Computed<number>, ReturnT
     return computed((get) => compute(get));
   },
   sub(store, atom, callback) {
-    const controller = new AbortController();
-    store.watch(
-      (get) => {
-        get(atom);
-        callback();
-      },
-      {
-        signal: controller.signal,
-      },
-    );
-
-    return () => {
-      controller.abort();
-    };
+    return store.watch(atom, callback);
   },
   get(store, atom) {
     return store.get(atom);

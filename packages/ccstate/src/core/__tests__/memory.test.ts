@@ -53,21 +53,29 @@ it('should not hold onto dependent atoms that are not mounted', async () => {
   await expect(detector.isLeaking()).resolves.toBe(false);
 });
 
+it('a retained disposed unsubscribe releases both its target and captured listener payload', async () => {
+  const store = createStore();
+  function subscribe() {
+    const payload = {};
+    const source = state(payload);
+    const detector = new LeakDetector(payload);
+    const unsubscribe = store.watch(source, () => payload);
+    return { detector, unsubscribe };
+  }
+  const { detector, unsubscribe } = subscribe();
+  unsubscribe();
+  unsubscribe();
+  expect(await detector.isLeaking()).toBe(false);
+});
+
 it('unsubscribe on atom should release memory', async () => {
   const store = createStore();
   let objAtom: State<object> | undefined = state({});
   const detector = new LeakDetector(store.get(objAtom));
-  const controller = new AbortController();
 
-  store.watch(
-    (get) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      get(objAtom!);
-    },
-    { signal: controller.signal, debugLabel: 'watched' },
-  );
+  const unsubscribeWatch1 = store.watch(objAtom, () => undefined);
 
-  controller.abort();
+  unsubscribeWatch1();
 
   objAtom = undefined;
   expect(await detector.isLeaking()).toBe(false);
@@ -81,15 +89,9 @@ it('unsubscribe on computed should release memory', async () => {
     obj: objAtom && get(objAtom),
   }));
   const detector2 = new LeakDetector(store.get(derivedAtom));
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      get(objAtom!);
-    },
-    { signal: controller.signal },
-  );
-  controller.abort();
+
+  const unsubscribeWatch2 = store.watch(objAtom, () => undefined);
+  unsubscribeWatch2();
 
   objAtom = undefined;
   derivedAtom = undefined;
@@ -104,16 +106,9 @@ it('unsubscribe a long-lived base atom', async () => {
     obj: get(base),
   }));
   const detector = new LeakDetector(store.get(cmpt));
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(base);
-    },
-    {
-      signal: controller.signal,
-    },
-  );
-  controller.abort();
+
+  const unsubscribeWatch3 = store.watch(base, () => undefined);
+  unsubscribeWatch3();
   cmpt = undefined;
   expect(await detector.isLeaking()).toBe(false);
 });
@@ -128,16 +123,10 @@ it('unsubscribe a computed atom', async () => {
     { debugLabel: 'cmpt' },
   );
   const detector = new LeakDetector(store.get(cmpt));
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      get(cmpt!);
-    },
-    { signal: controller.signal },
-  );
 
-  controller.abort();
+  const unsubscribeWatch4 = store.watch(cmpt, () => undefined);
+
+  unsubscribeWatch4();
   cmpt = undefined;
   expect(await detector.isLeaking()).toBe(false);
 });

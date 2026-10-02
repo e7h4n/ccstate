@@ -17,9 +17,7 @@ it('test glitch 1', () => {
   );
 
   const store = createStore();
-  store.watch((get) => {
-    get(alwaysTrue$);
-  });
+  store.watch(alwaysTrue$, () => undefined);
 
   expect(store.get(alwaysTrue$)).toBe(true);
   trace.mockClear();
@@ -43,9 +41,7 @@ it('test glitch 2', () => {
   );
 
   const store = createStore();
-  store.watch((get) => {
-    get(alwaysTrue$);
-  });
+  store.watch(alwaysTrue$, () => undefined);
 
   expect(store.get(alwaysTrue$)).toBe(true);
   trace.mockClear();
@@ -158,9 +154,7 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'left', traceComputed);
 
     const store = createStore();
-    store.watch((get) => {
-      get(top$);
-    });
+    store.watch(top$, () => undefined);
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -172,9 +166,7 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'right', traceComputed);
 
     const store = createStore();
-    store.watch((get) => {
-      get(top$);
-    });
+    store.watch(top$, () => undefined);
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -186,9 +178,7 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'alternate', traceComputed);
 
     const store = createStore();
-    store.watch((get) => {
-      get(top$);
-    });
+    store.watch(top$, () => undefined);
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -200,9 +190,7 @@ describe('diamond deps evaluation consistency', () => {
     const [base$, , top$] = createDiamondDeps(100, 'random', traceComputed);
 
     const store = createStore();
-    store.watch((get) => {
-      get(top$);
-    });
+    store.watch(top$, () => undefined);
 
     expect(() => {
       store.set(base$, (x) => x + 1);
@@ -216,9 +204,7 @@ describe('diamond deps evaluation performance', () => {
     const [base$, , top$] = createDiamondDeps(100, 'random', traceComputed);
 
     const store = createStore();
-    store.watch((get) => {
-      get(top$);
-    });
+    store.watch(top$, () => undefined);
 
     traceComputed.mockClear();
     store.set(base$, (x) => x + 1);

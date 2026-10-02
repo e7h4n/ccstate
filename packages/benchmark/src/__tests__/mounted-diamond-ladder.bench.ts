@@ -8,8 +8,8 @@ for (const depth of [4, 8, 12, 16]) {
     let writes = 0;
     let observedValue = 0;
     let notifications = 0;
-    graph.store.watch((get) => {
-      observedValue = get(graph.root$);
+    graph.store.watch(graph.root$, () => {
+      observedValue = graph.store.get(graph.root$);
       notifications++;
     });
     const options: BenchOptions = {

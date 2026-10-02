@@ -34,10 +34,11 @@ it.each([4, 8, 12])('visits a mounted %i-layer diamond in linear work per write'
   const root = counted((get) => get(left) + get(right));
   const nodeCount = 2 * depth + 1;
   const values: number[] = [];
-  store.watch((get) => {
-    values.push(get(root));
+  store.watch(root, () => {
+    values.push(store.get(root));
   });
-  expect(values).toEqual([2 ** depth]);
+  expect(store.get(root)).toBe(2 ** depth);
+  expect(values).toEqual([]);
   expect(evaluate).toHaveBeenCalledTimes(nodeCount);
 
   for (const value of [2, 3]) {
@@ -46,7 +47,7 @@ it.each([4, 8, 12])('visits a mounted %i-layer diamond in linear work per write'
     evaluate.mockClear();
     store.set(source, value);
 
-    expect(values).toEqual(Array.from({ length: value }, (_, index) => (index + 1) * 2 ** depth));
+    expect(values).toEqual(Array.from({ length: value - 1 }, (_, index) => (index + 2) * 2 ** depth));
     expect(evaluate).toHaveBeenCalledTimes(nodeCount);
     // This graph has constant fan-in: reads and traversal must scale with nodes.
     expect(cacheLookup.mock.calls.length).toBeLessThanOrEqual(6 * (nodeCount + 1));
@@ -63,13 +64,14 @@ it('pulls dirty upstreams before visiting an unequal-path join only once', () =>
   const evaluate = vi.fn((get: Getter) => get(source) + get(third));
   const join = computed(evaluate);
   const values: number[] = [];
-  store.watch((get) => {
-    values.push(get(join));
+  store.watch(join, () => {
+    values.push(store.get(join));
   });
   evaluate.mockClear();
 
   store.set(source, 2);
-  expect(values).toEqual([31, 62]);
+  expect(store.get(join)).toBe(62);
+  expect(values).toEqual([62]);
   expect(evaluate).toHaveBeenCalledTimes(1);
 });
 
@@ -83,26 +85,27 @@ it('updates shared downstreams after switching mounted dependencies and bails ou
   const evaluate = vi.fn((get: Getter) => get(selected) + get(double));
   const join = computed(evaluate);
   const values: number[] = [];
-  store.watch((get) => {
-    values.push(get(join));
+  store.watch(join, () => {
+    values.push(store.get(join));
   });
   evaluate.mockClear();
 
   store.set(selectLeft, false);
   store.set(left, 2);
-  expect(values).toEqual([3]);
+  expect(store.get(join)).toBe(3);
+  expect(values).toEqual([]);
   expect(evaluate).not.toHaveBeenCalled();
 
   store.set(right, 2);
-  expect(values).toEqual([3, 6]);
+  expect(values).toEqual([6]);
   expect(evaluate).toHaveBeenCalledTimes(1);
 
   store.set(selectLeft, true);
   store.set(right, 3);
-  expect(values).toEqual([3, 6]);
+  expect(values).toEqual([6]);
   expect(evaluate).toHaveBeenCalledTimes(1);
 
   store.set(left, 3);
-  expect(values).toEqual([3, 6, 9]);
+  expect(values).toEqual([6, 9]);
   expect(evaluate).toHaveBeenCalledTimes(2);
 });

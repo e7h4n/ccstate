@@ -31,19 +31,16 @@ function runStore(interceptor: ConsoleInterceptor) {
   const store = createDebugStoreInternal(interceptor);
   store.set(base1$, 1);
   store.set(base2$, 2);
-  const controller = new AbortController();
-  store.watch(
-    (get) => {
-      get(doubleBase1$);
-      store.set(callback$);
-    },
-    {
-      signal: controller.signal,
-    },
-  );
+  const notify = () => {
+    store.get(doubleBase1$);
+    store.set(callback$);
+  };
+  const unsubscribe = store.watch(doubleBase1$, notify);
+  // Initial work is explicit; the listener only observes later changes.
+  notify();
   store.get(base1$);
   store.set(base1$, 3);
-  controller.abort();
+  unsubscribe();
 }
 
 it('should log specified atoms to console', () => {

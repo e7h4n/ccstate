@@ -431,12 +431,15 @@ describe('react', () => {
     expect(screen.getByText('ret:0')).toBeInTheDocument();
     const button = screen.getByText('hide');
 
-    expect(store.getReadDependents(base$)).toHaveLength(2);
+    // The hook attaches a direct listener, not a hidden dependent computed.
+    expect(store.isMounted(base$)).toBe(true);
+    expect(store.getReadDependents(base$)).toEqual([base$]);
 
     expect(button).toBeInTheDocument();
     await user.click(button);
     expect(await screen.findByText('unmounted')).toBeInTheDocument();
-    expect(store.getReadDependents(base$)).toHaveLength(1);
+    expect(store.isMounted(base$)).toBe(false);
+    expect(store.getReadDependents(base$)).toEqual([base$]);
   });
 });
 
