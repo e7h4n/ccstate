@@ -11,6 +11,7 @@ const generateToString = (id: number, prefix: string, debugLabel?: string) => {
   return () => label;
 };
 
+/* @__NO_SIDE_EFFECTS__ */
 export function state<T>(init: T, options?: Options): State<T> {
   const id = globalId++;
   const ret: State<T> = {
@@ -25,6 +26,7 @@ export function state<T>(init: T, options?: Options): State<T> {
   return ret;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function computed<T>(read: Read<T>, options?: Options): Computed<T> {
   const id = globalId++;
   const ret: Computed<T> = {
@@ -39,6 +41,7 @@ export function computed<T>(read: Read<T>, options?: Options): Computed<T> {
   return ret;
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function command<T, Args extends unknown[]>(write: Write<T, Args>, options?: Options): Command<T, Args> {
   const id = globalId++;
   const ret: Command<T, Args> = {
