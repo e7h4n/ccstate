@@ -1,5 +1,11 @@
 # ccstate
 
+## 6.1.0
+
+### Minor Changes
+
+- df2fdcf: Mark `state`, `computed`, and `command` with `/* @__NO_SIDE_EFFECTS__ */` so bundlers that honor the annotation, such as Rolldown and Rollup, can tree-shake unused signal declarations and everything they reference. esbuild only applies this annotation within the declaring file, so esbuild users still need `/* @__PURE__ */` at call sites.
+
 ## 6.0.0
 
 ### Major Changes

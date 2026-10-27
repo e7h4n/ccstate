@@ -1,5 +1,12 @@
 # ccstate-vue
 
+## 6.1.0
+
+### Patch Changes
+
+- Updated dependencies [df2fdcf]
+  - ccstate@6.1.0
+
 ## 6.0.0
 
 ### Patch Changes
