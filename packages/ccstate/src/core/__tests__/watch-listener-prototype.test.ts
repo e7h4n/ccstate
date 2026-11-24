@@ -330,3 +330,55 @@ it('preserves computed AbortSignal ownership independently of listener lifetime'
   stop();
   expect(signals[1]?.aborted).toBe(false);
 });
+
+it('preserves listener errors on runtimes without AggregateError', () => {
+  const store = createStore();
+  const source = state(0);
+  const firstError = new Error('first listener');
+  const secondError = new Error('second listener');
+  const stopFirst = store.watch(source, () => {
+    throw firstError;
+  });
+  const stopSecond = store.watch(source, () => {
+    throw secondError;
+  });
+  let thrown: unknown;
+  vi.stubGlobal('AggregateError', undefined);
+  try {
+    store.set(source, 1);
+  } catch (error) {
+    thrown = error;
+  } finally {
+    vi.unstubAllGlobals();
+    stopFirst();
+    stopSecond();
+  }
+  expect(thrown).toBeInstanceOf(Error);
+  expect(thrown).toMatchObject({ name: 'Error', errors: [firstError, secondError] });
+});
+
+it('continues propagation when an abort handler unsubscribes the computed being refreshed', () => {
+  const store = createStore();
+  const source = state(0);
+  const listener = vi.fn();
+  const target = computed((get, { signal }) => {
+    const value = get(source);
+    if (value === 0)
+      signal.addEventListener('abort', () => {
+        stop();
+      });
+    return value;
+  });
+  const stop = store.watch(target, listener);
+  const sibling = computed((get) => get(source) * 2);
+  const seen: number[] = [];
+  const stopSibling = store.watch(sibling, () => seen.push(store.get(sibling)));
+
+  store.set(source, 1);
+  store.set(source, 2);
+
+  expect(listener).not.toHaveBeenCalled();
+  expect(seen).toEqual([2, 4]);
+  expect(store.get(target)).toBe(2);
+  stopSibling();
+});
