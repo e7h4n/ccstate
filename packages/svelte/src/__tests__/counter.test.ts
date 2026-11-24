@@ -1,5 +1,5 @@
 import { render, cleanup, screen } from '@testing-library/svelte';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { createStore } from 'ccstate';
 import '@testing-library/jest-dom/vitest';
 import App from './App.svelte';
@@ -58,4 +58,16 @@ it('should throw error when store is not provided', () => {
   expect(() => {
     render(App);
   }).toThrowError('useStore must be used within a StoreProvider');
+});
+
+it('releases the subscription when the initial useGet read throws', () => {
+  const store = createStore();
+  const error = new Error('initial read failed');
+  const get = vi.spyOn(store, 'get').mockImplementationOnce(() => {
+    throw error;
+  });
+
+  expect(() => render(App, { props: { store } })).toThrow(error);
+  store.set(count$, 1);
+  expect(get).toHaveBeenCalledTimes(1);
 });
